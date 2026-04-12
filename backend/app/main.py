@@ -114,3 +114,89 @@ def get_universidades():
 
     finally:
         db.close()
+
+@app.get("/rankings")
+def get_rankings():
+    db = SessionLocal()
+    try:
+        result = db.execute(text("SELECT id_ranking, nombre_ranking FROM ranking ORDER BY id_ranking"))
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+@app.get("/simulacion")
+def get_simulacion(ranking_id: int, anio: int, universidades: str = None):
+    db = SessionLocal()
+    try:
+        params = {"ranking_id": ranking_id, "anio": anio}
+        uni_filter = ""
+        if universidades:
+            ids = [int(x) for x in universidades.split(",")]
+            uni_filter = "AND u.id_universidad = ANY(:ids)"
+            params["ids"] = ids
+
+        query = text(f"""
+            SELECT
+                u.id_universidad,
+                u.nombre_universidad,
+                m.id_metrica,
+                m.nombre_metrica,
+                m.peso_metrica,
+                mu.valor_metrica,
+                mu.anio_metrica
+            FROM metrica m
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN universidad u ON u.id_universidad = mu.id_universidad
+            WHERE m.id_ranking = :ranking_id
+              AND mu.anio_metrica = :anio
+              {uni_filter}
+            ORDER BY u.nombre_universidad, m.id_metrica
+        """)
+
+        rows = [dict(row._mapping) for row in db.execute(query, params)]
+        return rows
+    finally:
+        db.close()
+
+@app.get("/anios")
+def get_anios(ranking_id: int):
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT DISTINCT mu.anio_metrica
+            FROM metrica_universidad mu
+            JOIN metrica m ON m.id_metrica = mu.id_metrica
+            WHERE m.id_ranking = :ranking_id
+            ORDER BY mu.anio_metrica DESC
+        """), {"ranking_id": ranking_id})
+        return [row._mapping["anio_metrica"] for row in result]
+    finally:
+        db.close()
+
+@app.get("/ranking-resumen")
+def get_ranking_resumen(ranking_id: int, anio: int):
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT
+                r.id_ranking,
+                r.nombre_ranking,
+                r.descripcion_ranking,
+                u.id_universidad,
+                u.nombre_universidad,
+                u.pais_universidad,
+                COALESCE(SUM(mu.valor_metrica * m.peso_metrica), 0) AS score_total
+            FROM ranking r
+            JOIN metrica m ON m.id_ranking = r.id_ranking
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN universidad u ON u.id_universidad = mu.id_universidad
+            WHERE r.id_ranking = :ranking_id
+              AND mu.anio_metrica = :anio
+            GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
+                     u.id_universidad, u.nombre_universidad, u.pais_universidad
+            ORDER BY score_total DESC
+        """), {"ranking_id": ranking_id, "anio": anio})
+        rows = [dict(row._mapping) for row in result]
+        return rows
+    finally:
+        db.close()

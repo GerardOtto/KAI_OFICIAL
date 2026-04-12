@@ -1,20 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Header from "./components/Header";
 import Tendencias from "./pages/Tendencias";
+import Simulacion from "./pages/Simulacion";
+import Ranking from "./pages/Ranking";
 
 function App() {
   return (
     <BrowserRouter>
+      <Header />
       <Routes>
-
-        {/* Ruta principal */}
         <Route path="/" element={<Navigate to="/tendencias" replace />} />
-
-        {/* Página Tendencias */}
         <Route path="/tendencias" element={<Tendencias />} />
-
-        {/* Fallback (opcional) */}
+        <Route path="/simulacion" element={<Simulacion />} />
         <Route path="*" element={<h1>404 - Página no encontrada</h1>} />
-
+        <Route path="/ranking" element={<Ranking />} />
       </Routes>
     </BrowserRouter>
   );
