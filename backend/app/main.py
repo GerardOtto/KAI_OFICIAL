@@ -200,3 +200,63 @@ def get_ranking_resumen(ranking_id: int, anio: int):
         return rows
     finally:
         db.close()
+
+@app.get("/tipos-metrica")
+def get_tipos_metrica():
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT DISTINCT tipo_metrica
+            FROM metrica
+            WHERE tipo_metrica IS NOT NULL
+            ORDER BY tipo_metrica
+        """))
+        return [row._mapping["tipo_metrica"] for row in result]
+    finally:
+        db.close()
+
+@app.get("/metricas-por-tipo")
+def get_metricas_por_tipo(tipo: str):
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT
+                m.id_metrica,
+                m.nombre_metrica,
+                m.descripcion_metrica,
+                m.peso_metrica,
+                m.tipo_metrica,
+                r.id_ranking,
+                r.nombre_ranking
+            FROM metrica m
+            JOIN ranking r ON r.id_ranking = m.id_ranking
+            WHERE m.tipo_metrica = :tipo
+            ORDER BY r.nombre_ranking, m.nombre_metrica
+        """), {"tipo": tipo})
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+@app.get("/valores-metrica-universidad")
+def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int):
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT
+                m.id_metrica,
+                m.nombre_metrica,
+                m.tipo_metrica,
+                r.nombre_ranking,
+                mu.valor_metrica,
+                mu.anio_metrica
+            FROM metrica m
+            JOIN ranking r ON r.id_ranking = m.id_ranking
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            WHERE m.tipo_metrica = :tipo
+              AND mu.id_universidad = :universidad_id
+              AND mu.anio_metrica = :anio
+            ORDER BY r.nombre_ranking, m.nombre_metrica
+        """), {"tipo": tipo, "universidad_id": universidad_id, "anio": anio})
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()

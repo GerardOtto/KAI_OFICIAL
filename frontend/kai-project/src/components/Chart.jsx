@@ -102,6 +102,7 @@ export default function Chart({ rankingId, metricaId, selectedUniversidades, onD
               <li>La institución se ha dado de baja del ranking.</li>
               <li>Los datos no son accesibles públicamente por el momento.</li>
               <li>La institución nunca ha participado en este ranking.</li>
+              <p>Para mostrar el gráfico, seleccione un ranking con datos válidos.</p>
             </ul>
           </div>
         </div>
