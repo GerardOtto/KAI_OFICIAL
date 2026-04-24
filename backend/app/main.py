@@ -185,7 +185,7 @@ def get_ranking_resumen(ranking_id: int, anio: int):
                 u.id_universidad,
                 u.nombre_universidad,
                 u.pais_universidad,
-                COALESCE(SUM(mu.valor_metrica * m.peso_metrica), 0) AS score_total
+                COALESCE(SUM(mu.valor_metrica * (m.peso_metrica / 100.0)), 0) AS score_total
             FROM ranking r
             JOIN metrica m ON m.id_ranking = r.id_ranking
             JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
