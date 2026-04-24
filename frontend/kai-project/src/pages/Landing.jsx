@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import AuthModal from "../components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
+import bgImage from "../assets/La_scuola_di_Atene.jpg";
+import muestra from "../assets/muestra.jpg";
 
 export default function Landing() {
   const [showAuth, setShowAuth] = useState(false);
@@ -31,41 +33,54 @@ export default function Landing() {
       </nav>
 
       <main>
-
-        {/* Hero */}
         <section className="relative min-h-screen flex items-center justify-center px-12 overflow-hidden bg-[#0e0e0e]">
+          {/* Imagen de fondo */}
+          <div
+            className="absolute inset-0 bg-cover bg-center grayscale contrast-125 brightness-75"
+            style={{
+              backgroundImage: `url(${bgImage})`
+            }}
+          />
+          {/* Sombra */}
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           {/* Fondo decorativo */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#131313]" />
-            <div
-              className="absolute inset-0 opacity-[0.04]"
-              style={{
-                backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 80px, #ffffff 80px, #ffffff 81px), repeating-linear-gradient(90deg, transparent, transparent 80px, #ffffff 80px, #ffffff 81px)"
-              }}
-            />
           </div>
-
-          <div className="relative z-10 max-w-5xl text-center">
-            <div className="mb-10 inline-flex items-center gap-4 bg-white/5 px-4 py-1.5 border-l-2 border-white">
+            <div className="relative z-10 max-w-5xl text-center">
+            <div className="mb-10 inline-flex items-center gap-4 bg-black/20 px-4 py-1.5 border-l-2 border-white">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
-              <span className="font-label text-[10px] uppercase tracking-[0.3em] text-outline">
+              <span className="inline-block font-label text-[10px] uppercase tracking-[0.3em] text-white px-4 py-1.5 backdrop-blur-sm border border-white/10">
                 Bibliometría digital de academia
               </span>
             </div>
 
-            <h1 className="font-headline text-7xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-white leading-[0.9] mb-6">
+            <h1 className="font-headline text-7xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-white/90 leading-[0.9] mb-6 [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]">
               Evolución
-              <div className="text-outline/60">dato a dato</div>
+              <div className="text-white/80 [text-shadow:0_2px_6px_rgba(0,0,0,0.4)]">
+                dato a dato
+              </div>
             </h1>
 
             <p className="font-body text-lg md:text-xl text-white max-w-2xl mx-auto leading-relaxed opacity-80 mb-14">
-              Accede a insights construidos a través de ciencia de datos y visualiza las correlaciones y patrones ocultos en la medición global de desempeño académico.
+              Accede a insights construidos a través de ciencia de datos y visualiza las tendencias y patrones ocultos en la medición global de desempeño académico.
             </p>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <div className="flex flex-col md:flex-row gap-4 justify-center active:scale-95 transition-transform">
               <button
-                onClick={() => setShowAuth(true)}
+                onClick={() => {
+                  const el = document.getElementById("planes");
+                
+                  if (!el) return;
+                
+                  if (window.lenis) {
+                    window.lenis.scrollTo(el);
+                  } else {
+                    el.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
                 className="bg-white text-black px-10 py-5 font-bold uppercase tracking-widest text-sm hover:bg-white/90 transition-all active:scale-95"
               >
                 Obtén acceso
@@ -78,23 +93,17 @@ export default function Landing() {
               </button>
             </div>
           </div>
-
-          {/* Scroll indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
-            <div className="w-px h-12 bg-white animate-pulse" />
-            <span className="text-[9px] uppercase tracking-[0.3em] text-white">Scroll</span>
-          </div>
         </section>
 
         {/* Planes */}
-        <section className="py-32 px-12 bg-background">
+        <section id="planes" className="py-32 px-12 bg-background">
           <div className="max-w-7xl mx-auto">
             <div className="mb-20 flex flex-col md:flex-row justify-between items-end gap-8">
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-4">Acceso</p>
                 <h2 className="font-headline text-5xl font-bold text-white mb-4">Suscripción a tu medida</h2>
                 <p className="text-white text-lg max-w-md">
-                Selecciona tu nivel de acceso dentro del entorno digital de bibliometría.
+                Selecciona tu nivel de acceso a las diferentes herramientas y servicios de la plataforma.
                 </p>
               </div>
               <div className="bg-surfaceHigh p-1 inline-flex shrink-0">
@@ -106,7 +115,7 @@ export default function Landing() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {[
                 {
-                  tier: "Investigador",
+                  tier: "Básico",
                   desc: "Acceso individual a rankings generales y métricas de desempeño institucional.",
                   highlight: false,
                   badge: null,
@@ -188,15 +197,13 @@ export default function Landing() {
         <section id="sobre" className="py-32 px-12 bg-[#0e0e0e] grid grid-cols-1 lg:grid-cols-2 gap-24 items-center max-w-7xl mx-auto">
           <div className="relative">
             <div className="aspect-square bg-surfaceHigh flex items-center justify-center overflow-hidden">
-              <div
-                className="w-full h-full opacity-20"
-                style={{
-                  backgroundImage: "repeating-linear-gradient(45deg, #ffffff 0px, #ffffff 1px, transparent 0px, transparent 50%)",
-                  backgroundSize: "20px 20px"
-                }}
-              />
               <div className="absolute inset-0 flex items-center justify-center">
-                <img src={logo} alt="KAI" style={{ height: "120px", filter: "invert(1)", opacity: 0.15 }} />
+                <img
+                  src={muestra}
+                  alt="KAI"
+                  className="grayscale"
+                  style={{ opacity: 1 }}
+                />
               </div>
             </div>
             <div

@@ -47,11 +47,11 @@ export default function Ranking() {
           <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-4">
             Rankings Académicos
           </p>
-          <h1 className="font-headline text-5xl font-bold text-white mb-4 tracking-tight max-w-3xl leading-tight">
-            Perspectiva Global de Excelencia Académica
+          <h1 className="font-headline text-5xl font-bold text-white mb-4 tracking-tight max-w-5xl leading-tight">
+            Score total basado en Metodología
           </h1>
-          <p className="text-on-surface-variant max-w-2xl leading-relaxed text-sm">
-            Clasificación de instituciones de educación superior a través de métricas de investigación, impacto académico y reputación internacional.
+          <p className="text-on-surface-variant max-w-4xl leading-relaxed text-sm">
+            Clasificación de instituciones de educación superior calculada a través de las metodologías públicas y los datos disponibles.
           </p>
         </section>
 

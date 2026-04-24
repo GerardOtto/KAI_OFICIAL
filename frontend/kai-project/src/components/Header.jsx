@@ -7,6 +7,7 @@ const NAV = [
     label: "Rankings",
     to: "/ranking",
     items: [
+      { label: "Resumen", to: "/ranking" },
       { label: "Times Higher Education", to: "/ranking?r=1" },
       { label: "Shanghai GRAS", to: "/ranking?r=2" },
       { label: "QS Latam", to: "/ranking?r=3" },
