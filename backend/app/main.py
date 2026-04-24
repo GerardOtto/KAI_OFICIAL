@@ -14,13 +14,18 @@ SessionLocal = sessionmaker(bind=engine)
 app = FastAPI()
 
 # 2. Configura el middleware de CORS
+# 2. Configura el middleware de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Permite todos los dominios. En producción, cámbialo por tu URL (ej: ["http://localhost:3000"])
+    allow_origins=[
+        "http://localhost:5173",                     # Para tus pruebas locales
+        "https://railway.app" # Tu frontend en Railway
+    ], 
     allow_credentials=True,
-    allow_methods=["*"], # Permite todos los métodos (GET, POST, etc.)
-    allow_headers=["*"], # Permite todos los encabezados
+    allow_methods=["*"], 
+    allow_headers=["*"],
 )
+
 
 @app.get("/")
 def root():
