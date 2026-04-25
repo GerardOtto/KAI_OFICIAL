@@ -9,6 +9,8 @@ import Tendencias from "./pages/Tendencias";
 import Simulacion from "./pages/Simulacion";
 import Metricas from "./pages/Metricas";
 
+
+
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === "/";
@@ -48,6 +50,7 @@ function AppContent() {
 
   return (
     <>
+
       {!isLanding && <Header />}
       <Routes>
         <Route path="/" element={<Landing />} />

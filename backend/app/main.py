@@ -13,8 +13,7 @@ SessionLocal = sessionmaker(bind=engine)
 
 app = FastAPI()
 
-# 2. Configura el middleware de CORS
-# 2. Configura el middleware de CORS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
