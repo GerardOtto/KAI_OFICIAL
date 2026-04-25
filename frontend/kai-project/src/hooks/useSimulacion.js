@@ -5,7 +5,7 @@ export function useSimulacion(rankingId, anio, universidades) {
     if (!rankingId || !anio) return;
     const params = new URLSearchParams({ ranking_id: rankingId, anio });
     if (universidades?.length) params.append("universidades", universidades.join(","));
-    fetch(`http://localhost:8000/simulacion?${params}`)
+    fetch(`${import.meta.env.VITE_API_URL}/simulacion?${params}`)
       .then(r => r.json())
       .then(setData)
       .catch(console.error);

@@ -3,7 +3,7 @@ export function useMetricasPorTipo(tipo) {
   const [data, setData] = useState([]);
   useEffect(() => {
     if (!tipo) return;
-    fetch(`http://localhost:8000/metricas-por-tipo?tipo=${encodeURIComponent(tipo)}`)
+    fetch(`${import.meta.env.VITE_API_URL}/metricas-por-tipo?tipo=${encodeURIComponent(tipo)}`)
       .then(r => r.json())
       .then(setData)
       .catch(console.error);

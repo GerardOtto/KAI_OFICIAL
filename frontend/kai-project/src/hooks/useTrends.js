@@ -13,7 +13,7 @@ export function useTrends(rankingId, metricaId, universidades) {
         universidades: universidades?.join(",") || ""
       });
   
-      fetch(`http://localhost:8000/trends?${query}`)
+      fetch(`${import.meta.env.VITE_API_URL}/trends?${query}`)
         .then(res => res.json())
         .then(res => {
           setData(res.data);

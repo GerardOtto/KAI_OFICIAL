@@ -4,7 +4,7 @@ export function useUniversidades() {
   const [universidades, setUniversidades] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/universidades") // ⚠️ usa este endpoint
+    fetch(`${import.meta.env.VITE_API_URL}/universidades`) //  usa este endpoint
       .then(res => res.json())
       .then(data => {
         setUniversidades(data); // ✅ sin transformar

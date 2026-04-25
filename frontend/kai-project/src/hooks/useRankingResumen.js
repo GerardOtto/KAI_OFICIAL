@@ -7,7 +7,7 @@ export function useRankingResumen(rankingId, anio) {
   useEffect(() => {
     if (!rankingId || !anio) return;
     setLoading(true);
-    fetch(`http://localhost:8000/ranking-resumen?ranking_id=${rankingId}&anio=${anio}`)
+    fetch(`${import.meta.env.VITE_API_URL}/ranking-resumen?ranking_id=${rankingId}&anio=${anio}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(console.error);

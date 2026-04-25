@@ -6,7 +6,7 @@ export function useMetricas(rankingId) {
   useEffect(() => {
     if (!rankingId) return;
 
-    fetch(`http://localhost:8000/metricas?ranking_id=${rankingId}`)
+    fetch(`${import.meta.env.VITE_API_URL}/metricas?ranking_id=${rankingId}`)
       .then(res => res.json())
       .then(setMetricas)
       .catch(console.error);
