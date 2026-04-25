@@ -18,13 +18,14 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",                     # Para tus pruebas locales
-        "https://railway.app" # Tu frontend en Railway
-    ], 
+        "http://localhost:5173",
+        "https://kaioficial-production.up.railway.app" # Sin el "/" final
+    ],
     allow_credentials=True,
-    allow_methods=["*"], 
+    allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 @app.get("/")
