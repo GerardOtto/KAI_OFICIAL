@@ -91,7 +91,7 @@ export default function Header() {
       <img
         src={logo}
         alt="KAI"
-        onClick={() => navigate("/ranking")}
+        onClick={() => navigate("/")}
         style={{ height: "36px", filter: "invert(1)", mixBlendMode: "screen", cursor: "pointer" }}
       />
 
