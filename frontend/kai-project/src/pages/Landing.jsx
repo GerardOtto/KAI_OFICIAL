@@ -17,7 +17,27 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-surface text-on-surface font-body">
 
-      {/* Nav — sin links funcionales */}
+      {/* Nav — sin links funcionales 
+      
+      <nav className="fixed top-0 w-full z-50 bg-background flex justify-between items-center px-12 h-16 border-b border-outline/10">
+        <img src={logo} alt="KAI" style={{ height: "32px", filter: "invert(1)", mixBlendMode: "screen" }} />
+        <div className="hidden md:flex gap-10">
+          {["Ranking", "Tendencias", "Métricas", "Instituciones"].map(item => (
+            <span key={item} className="text-outline/50 font-headline tracking-tight text-sm cursor-not-allowed select-none">
+              {item}
+            </span>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowAuth(true)}
+          className="bg-white text-black px-6 py-2 text-[11px] uppercase tracking-widest font-bold hover:bg-white/80 transition-all active:scale-95"
+        >
+          Identificate
+        </button>
+      </nav>
+      
+      */}
+
       <Header />
 
       <main>
