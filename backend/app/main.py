@@ -265,3 +265,18 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int):
         return [dict(row._mapping) for row in result]
     finally:
         db.close()
+
+@app.get("/metricas-con-datos")
+def get_metricas_con_datos(ranking_id: int):
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT DISTINCT m.id_metrica, m.nombre_metrica
+            FROM metrica m
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            WHERE m.id_ranking = :ranking_id
+            ORDER BY m.nombre_metrica
+        """), {"ranking_id": ranking_id})
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()

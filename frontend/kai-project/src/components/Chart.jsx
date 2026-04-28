@@ -64,16 +64,16 @@ const CustomLegend = ({ universidades, colors, activeUni, setActiveUni }) => (
 
 export default function Chart({ rankingId, metricaId, selectedUniversidades, onDataReady }) {
   const { data } = useTrends(rankingId, metricaId);
-  const [activeUni, setActiveUni] = useState(null);
-  
-  useEffect(() => {
-    if (onDataReady) onDataReady(data);
-  }, [data]);
+const [activeUni, setActiveUni] = useState(null);
 
-  const filteredData = useMemo(() => {
-    if (!selectedUniversidades.length) return data;
-    return data.filter(d => selectedUniversidades.includes(d.id_universidad));
-  }, [data, selectedUniversidades]);
+const filteredData = useMemo(() => {
+  if (!selectedUniversidades.length) return data;
+  return data.filter(d => selectedUniversidades.includes(d.id_universidad));
+}, [data, selectedUniversidades]);
+
+useEffect(() => {
+  if (onDataReady) onDataReady(filteredData);
+}, [filteredData]);
 
   const chartData = useMemo(() => transformToRecharts(filteredData), [filteredData]);
 

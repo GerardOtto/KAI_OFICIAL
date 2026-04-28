@@ -4,15 +4,9 @@ import logo from "../assets/logo.png";
 
 const NAV = [
   {
-    label: "Rankings",
+    label: "Resumen",
     to: "/ranking",
-    items: [
-      { label: "Resumen", to: "/ranking" },
-      { label: "Times Higher Education", to: "/ranking?r=1" },
-      { label: "Shanghai GRAS", to: "/ranking?r=2" },
-      { label: "QS Latam", to: "/ranking?r=3" },
-      { label: "SCImago", to: "/ranking?r=4" },
-    ]
+    items: null
   },
   {
     label: "Tendencias",
@@ -96,29 +90,43 @@ export default function Header() {
       />
 
       <nav className="hidden md:flex items-center h-full gap-1">
-        {NAV.map(section => (
-          <div key={section.label} className="relative h-full flex items-center">
-            <button
-              onClick={() => setOpenMenu(openMenu === section.label ? null : section.label)}
-              onMouseEnter={() => setOpenMenu(section.label)}
-              className={`flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-                openMenu === section.label ? "text-white" : "text-outlineSoft hover:text-white"
-              }`}
-            >
-              {section.label}
-              <svg
-                width="10" height="10" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transition: "transform 0.2s", transform: openMenu === section.label ? "rotate(180deg)" : "rotate(0deg)" }}
-              >
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
-            {openMenu === section.label && (
-              <DropdownMenu items={section.items} onClose={() => setOpenMenu(null)} />
-            )}
-          </div>
-        ))}
+      {NAV.map(section => (
+  section.items === null ? (
+    <NavLink
+      key={section.label}
+      to={section.to}
+      className={({ isActive }) =>
+        `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
+          isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
+        }`
+      }
+    >
+      {section.label}
+    </NavLink>
+  ) : (
+    <div key={section.label} className="relative h-full flex items-center">
+      <button
+        onClick={() => setOpenMenu(openMenu === section.label ? null : section.label)}
+        onMouseEnter={() => setOpenMenu(section.label)}
+        className={`flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
+          openMenu === section.label ? "text-white" : "text-outlineSoft hover:text-white"
+        }`}
+      >
+        {section.label}
+        <svg
+          width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transition: "transform 0.2s", transform: openMenu === section.label ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      {openMenu === section.label && (
+        <DropdownMenu items={section.items} onClose={() => setOpenMenu(null)} />
+      )}
+    </div>
+  )
+))}
 
         <NavLink
           to="/metricas"
