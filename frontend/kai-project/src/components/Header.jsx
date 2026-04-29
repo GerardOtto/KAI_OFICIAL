@@ -23,16 +23,12 @@ const NAV = [
     items: [
       { label: "Simulador de métricas", to: "/simulacion" },
     ]
-  },
-  {
+  }
+  /*{ Aquí quiero aplicar el Universidad 1 vs 1 con los escudos, todas las métricas etc...
     label: "Instituciones",
-    to: "/instituciones",
-    items: [
-      { label: "Nacional", to: null },
-      { label: "Continental", to: null },
-      { label: "Internacional", to: null },
-    ]
-  },
+    to: "",
+    items: null
+  },*/
 ];
 
 function DropdownMenu({ items, onClose }) {

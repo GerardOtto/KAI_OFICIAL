@@ -1,13 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRankings } from "../../hooks/useRankings";
 import { useAnios } from "../../hooks/useAnios";
 import { useUniversidades } from "../../hooks/useUniversidades";
+
 
 export default function SidebarSimulacion({
   rankingId, setRankingId,
   anio, setAnio,
   selectedUniversidades, setSelectedUniversidades
 }) {
+  const [width, setWidth] = useState(320); // w-80 inicial
+  const [isResizing, setIsResizing] = useState(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+
   const rankings = useRankings();
   const anios = useAnios(rankingId);
   const { universidades } = useUniversidades();
@@ -20,8 +26,47 @@ export default function SidebarSimulacion({
     );
   }, [universidades, search]);
 
+  useEffect(() => {
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+  
+      const delta = e.clientX - startX.current;
+      const newWidth = Math.max(240, Math.min(600, startWidth.current + delta));
+  
+      setWidth(newWidth);
+    }
+  
+    function handleMouseUp() {
+      setIsResizing(false);
+    }
+  
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  useEffect(() => {
+    document.body.style.cursor = isResizing ? "col-resize" : "default";
+    document.body.style.userSelect = isResizing ? "none" : "auto";
+  }, [isResizing]);
+
   return (
-    <aside className="w-80 shrink-0 bg-surface border-r border-outline/30 p-6 flex flex-col gap-8">
+    <aside
+      style={{ width }}
+      className="shrink-0 bg-surface border-r border-outline/30 p-6 flex flex-col gap-8 relative"
+    >
+      <div
+        onMouseDown={(e) => {
+          setIsResizing(true);
+          startX.current = e.clientX;
+          startWidth.current = width;
+        }}
+        className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-white/10 hover:bg-white/30 transition"
+      />
 
       {/* Ranking */}
       <div>

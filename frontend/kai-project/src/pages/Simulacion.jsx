@@ -10,7 +10,7 @@ export default function Simulacion() {
   const [anio, setAnio] = useState(null);
   const [selectedUniversidades, setSelectedUniversidades] = useState([]);
   const [tablaData, setTablaData] = useState({ filas: [], metricas: [], overrides: {} });
-
+  const [sidebarWidth, setSidebarWidth] = useState(280);
   const rankings = useRankings();
 
   const handleRankingChange = (id) => {
@@ -161,6 +161,8 @@ export default function Simulacion() {
       <div className="flex flex-grow w-full max-w-[1920px] mx-auto overflow-hidden" style={{ height: "calc(100vh - 64px)" }}>
 
         <SidebarSimulacion
+          width={sidebarWidth}
+          setWidth={setSidebarWidth}
           rankingId={rankingId}
           setRankingId={handleRankingChange}
           anio={anio}

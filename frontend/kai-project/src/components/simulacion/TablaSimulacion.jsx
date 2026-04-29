@@ -1,8 +1,14 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSimulacion } from "../../hooks/useSimulacion";
+import { motion } from "framer-motion";
+import { useRef } from "react";
 
 export default function TablaSimulacion({ rankingId, anio, selectedUniversidades, onDataChange }) {
   const rawData = useSimulacion(rankingId, anio, selectedUniversidades);
+  const [width, setWidth] = useState(256); // 256px = w-64 inicial
+  const [isResizing, setIsResizing] = useState(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
   // { id_universidad: { id_metrica: valor_editado } }
   const [overrides, setOverrides] = useState({});
@@ -62,8 +68,39 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
   }, [filas, overrides]);
 
   useEffect(() => {
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+  
+      // Limitar ancho (UX importante)
+      const delta = e.clientX - startX.current;
+      const newWidth = Math.max(180, Math.min(500, startWidth.current + delta));
+      setWidth(newWidth);
+    }
+  
+    function handleMouseUp() {
+      setIsResizing(false);
+    }
+  
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  useEffect(() => {
+    document.body.style.cursor = isResizing ? "col-resize" : "default";
+  }, [isResizing]);
+
+  useEffect(() => {
     if (onDataChange) onDataChange({ filas, metricas, overrides });
   }, [filas, metricas, overrides]);
+
+  useEffect(() => {
+    document.body.style.userSelect = isResizing ? "none" : "auto";
+  }, [isResizing]);
   
   if (!anio) return (
     <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
@@ -81,29 +118,47 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
     <div className="flex flex-1 overflow-hidden">
 
       {/* Ranking dinámico */}
-      <div className="w-64 shrink-0 border-r border-outline/30 bg-[#1a1a1a] flex flex-col">
+      <div
+        style={{ width }}
+        className="shrink-0 border-r border-outline/30 bg-[#1a1a1a] flex flex-col relative"
+      >
+        <div
+          onMouseDown={(e) => {
+            setIsResizing(true);
+            startX.current = e.clientX;
+            startWidth.current = width;
+          }}
+          className="absolute top-0 right-0 h-full w-2 cursor-col-resize bg-white/10 hover:bg-white/30 transition"
+        />
         <div className="p-5 border-b border-outline/30">
           <p className="text-[10px] uppercase tracking-widest text-outlineSoft">Ranking Dinámico</p>
           <p className="text-[9px] text-outlineSoft/60 mt-1 italic">Ordenado por Score Total</p>
         </div>
-        <div className="flex flex-col overflow-y-auto">
+        <motion.div layout={!isResizing} className="flex flex-col overflow-y-auto">
           {ranking.map((r, i) => (
-            <div
+            <motion.div
               key={r.nombre}
-              className={`p-4 flex items-center justify-between border-b border-outline/10 ${i === 0 ? "border-l-2 border-l-white bg-white/5" : "hover:bg-white/5"}`}
+              layout={!isResizing}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ type: "spring", stiffness: 300, damping: 70 }}
+              className={`p-4 flex items-center justify-between border-b border-outline/10 ${
+                i === 0 ? "border-l-2 border-l-white bg-white/5" : "hover:bg-white/5"
+              }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <span className={`font-mono text-lg ${i === 0 ? "text-white" : "text-outlineSoft"}`}>
                     {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="text-xs font-semibold truncate max-w-[110px]">{r.nombre}</span>
-                </div>
-                <span className={`font-mono text-sm ${i === 0 ? "text-white" : "text-outlineSoft"}`}>
-                    {r.score.toFixed(1)}
-                </span>
-            </div>
+                <span className="text-xs font-semibold truncate flex-1">{r.nombre}</span>
+              </div>
+              <span className={`font-mono text-sm ${i === 0 ? "text-white" : "text-outlineSoft"}`}>
+                  {r.score.toFixed(1)}
+              </span>
+          </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {/* Tabla */}

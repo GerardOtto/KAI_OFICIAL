@@ -9,7 +9,8 @@ export default function Sidebar({
   setMetricaId,
   selectedUniversidades,
   setSelectedUniversidades,
-  onDownload
+  onDownload,
+  onDownloadExcel
 }) {
   const metricas = useMetricas(rankingId);
   const { universidades } = useUniversidades();
@@ -23,7 +24,7 @@ export default function Sidebar({
   }, [universidades, search]);
 
   return (
-    <aside className="w-80 shrink-0 bg-surface border-r border-outline/30 p-6">
+    <aside className="w-full h-full shrink-0 bg-surface border-r border-outline/30 p-6">
 
       <div className="flex flex-col gap-8">
 
@@ -116,6 +117,12 @@ export default function Sidebar({
           className="w-full py-3 px-4 border border-outline/50 text-white text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
           ↓ Descargar gráfico
+        </button>
+        <button
+          onClick={onDownloadExcel}
+          className="w-full py-3 px-4 border border-outline/50 text-white text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+        >
+          ↓ Descargar Excel
         </button>
 
       </div>
