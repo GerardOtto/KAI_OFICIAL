@@ -117,7 +117,18 @@ useEffect(() => {
           <LineChart data={chartData}>
             <CartesianGrid stroke="#333" strokeDasharray="3 3" />
             <XAxis dataKey="year" stroke="#aaa" />
-            <YAxis stroke="#aaa" domain={["auto", "auto"]} />
+            <YAxis
+              stroke="#aaa"
+              domain={["auto", "auto"]}
+              width={80}
+              label={{
+                value: "Puntaje obtenido",
+                angle: -90,
+                position: "insideLeft",
+                offset: 10,
+                style: { fill: "#aaa", fontSize: 11, textAnchor: "middle" }
+              }}
+            />
             <Tooltip content={<CustomTooltip />} />
 
             {universidades.map((uni, i) => (

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRankings } from "../hooks/useRankings";
 import { useAnios } from "../hooks/useAnios";
 import { useRankingResumen } from "../hooks/useRankingResumen";
@@ -27,13 +27,19 @@ export default function Ranking() {
     if (anios.length && !anio) setAnio(anios[0]);
   }, [anios]);
 
+  useEffect(() => {
+    if (anios.length && (!anio || !anios.includes(anio))) {
+      setAnio(anios[0]);
+      setPagina(1);
+    }
+  }, [anios]);
+
   const totalPaginas = Math.ceil(data.length / POR_PAGINA);
   const filasPagina = data.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
   const offsetGlobal = (pagina - 1) * POR_PAGINA;
 
   const handleRankingChange = (id) => {
     setRankingId(id);
-    setAnio(null);
     setPagina(1);
   };
 
@@ -45,13 +51,13 @@ export default function Ranking() {
         {/* Hero */}
         <section className="mb-16">
           <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-4">
-            Rankings Académicos
+            Rankings Institucionales
           </p>
           <h1 className="font-headline text-5xl font-bold text-white mb-4 tracking-tight max-w-5xl leading-tight">
-            Score total basado en Metodología
+            Clasificación de Universidades
           </h1>
           <p className="text-on-surface-variant max-w-4xl leading-relaxed text-sm">
-            Clasificación de instituciones de educación superior calculada a través de las metodologías públicas y los datos disponibles.
+            Posicionamiento institucional calculado a partir de los datos y pesos oficiales de cada ranking.
           </p>
         </section>
 
@@ -59,9 +65,7 @@ export default function Ranking() {
 
           {/* Sidebar */}
           <aside className="lg:col-span-3 space-y-2">
-            <div className="mb-4 px-4 py-2 bg-white/5 inline-block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-outlineSoft">Índices Disponibles</span>
-            </div>
+            <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3">Rankings Disponibles</p>
 
             <div className="flex flex-col gap-1">
               {rankings.map(r => (
@@ -82,29 +86,9 @@ export default function Ranking() {
               ))}
             </div>
 
-            {/* Descripción */}
-            {rankingActual && (
-              <div className="mt-8 bg-surfaceHigh p-6 space-y-4">
-                <h3 className="font-headline text-lg text-white">Sobre este Ranking</h3>
-                <p className="text-sm text-outlineSoft leading-relaxed">
-                  {data[0]?.descripcion_ranking || "Sin descripción disponible."}
-                </p>
-                <button
-                  disabled
-                  className="w-full mt-2 py-3 px-4 border border-outline/30 text-[10px] uppercase tracking-widest text-outlineSoft cursor-not-allowed opacity-50 flex items-center justify-center gap-2"
-                  title="Próximamente"
-                >
-                  <span>Ver metodología completa</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              </div>
-            )}
-
             {/* Selector de año */}
             {anios.length > 0 && (
-              <div className="mt-6">
+              <div className="mt-6 mb-8">
                 <label className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3 block">Año</label>
                 <div className="relative">
                   <select
@@ -119,6 +103,26 @@ export default function Ranking() {
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-outlineSoft text-xs">▼</div>
                 </div>
+              </div>
+            )}
+
+            {/* Descripción */}
+            {rankingActual && (
+              <div className="bg-surfaceHigh p-6 space-y-4">
+                <h3 className="font-headline text-lg text-white">Sobre este Ranking</h3>
+                <p className="text-sm text-outlineSoft leading-relaxed">
+                  {data[0]?.descripcion_ranking || "Sin descripción disponible."}
+                </p>
+                <button
+                  disabled
+                  className="w-full mt-2 py-3 px-4 border border-outline/30 text-[10px] uppercase tracking-widest text-outlineSoft cursor-not-allowed opacity-50 flex items-center justify-center gap-2"
+                  title="Próximamente"
+                >
+                  <span>Ver metodología completa</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </button>
               </div>
             )}
           </aside>
@@ -141,7 +145,7 @@ export default function Ranking() {
             {/* Estado vacío */}
             {!rankingId || !anio ? (
               <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-                Selecciona un ranking y un año para comenzar.
+                Selecciona un ranking para comenzar.
               </div>
             ) : loading ? (
               <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
@@ -149,7 +153,7 @@ export default function Ranking() {
               </div>
             ) : data.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-                No hay datos para este ranking y año.
+                No hay datos para este ranking en el año seleccionado.
               </div>
             ) : (
               <>

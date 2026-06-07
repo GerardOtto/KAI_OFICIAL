@@ -31,7 +31,7 @@ export default function Sidebar({
         {/* Ranking */}
         <div>
           <label className="text-[10px] uppercase text-outlineSoft mb-3 block">
-            Ranking Principal
+            Seleccionar Ranking
           </label>
           <select
             value={rankingId}
@@ -48,7 +48,7 @@ export default function Sidebar({
         {/* Métricas */}
         <div>
           <label className="text-[10px] uppercase text-outlineSoft mb-3 block">
-            Métrica (Dimensión)
+            Métrica / Dimensión
           </label>
           <div className="relative">
             <select
@@ -116,13 +116,13 @@ export default function Sidebar({
           onClick={onDownload}
           className="w-full py-3 px-4 border border-outline/50 text-white text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
-          ↓ Descargar gráfico
+          ↓ Descargar PDF
         </button>
         <button
           onClick={onDownloadExcel}
           className="w-full py-3 px-4 border border-outline/50 text-white text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
         >
-          ↓ Descargar Excel
+          ↓ Descargar XLSX
         </button>
 
       </div>
