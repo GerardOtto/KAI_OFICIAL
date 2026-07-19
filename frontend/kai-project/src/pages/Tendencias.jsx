@@ -10,6 +10,8 @@ export default function Tendencias() {
   const [metricaId, setMetricaId] = useState(1);
   const [selectedUniversidades, setSelectedUniversidades] = useState([]);
   const [trendsData, setTrendsData] = useState([]);
+  const [showProjection, setShowProjection] = useState(false);
+  const [projectionYears, setProjectionYears] = useState(3);
   const chartRef = useRef(null);
 
   const RANKING_NAMES = {
@@ -164,6 +166,10 @@ export default function Tendencias() {
             setMetricaId={setMetricaId}
             selectedUniversidades={selectedUniversidades}
             setSelectedUniversidades={setSelectedUniversidades}
+            showProjection={showProjection}
+            setShowProjection={setShowProjection}
+            projectionYears={projectionYears}
+            setProjectionYears={setProjectionYears}
           />
         </div>
         <main className="flex-grow min-w-0 p-10">
@@ -173,6 +179,8 @@ export default function Tendencias() {
               metricaId={metricaId}
               selectedUniversidades={selectedUniversidades}
               onDataReady={setTrendsData}
+              showProjection={showProjection}
+              projectionYears={projectionYears}
             />
           </div>
         </main>

@@ -10,7 +10,11 @@ export default function Sidebar({
   selectedUniversidades,
   setSelectedUniversidades,
   onDownload,
-  onDownloadExcel
+  onDownloadExcel,
+  showProjection,
+  setShowProjection,
+  projectionYears,
+  setProjectionYears
 }) {
   const metricas = useMetricas(rankingId);
   const { universidades } = useUniversidades();
@@ -109,6 +113,38 @@ export default function Sidebar({
               );
             })}
           </div>
+        </div>
+
+        {/* Proyección */}
+        <div>
+          <label className="text-[10px] uppercase text-outlineSoft mb-3 block">
+            Proyección de tendencia
+          </label>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="checkbox"
+              id="showProjection"
+              checked={showProjection}
+              onChange={(e) => setShowProjection(e.target.checked)}
+              className="accent-white"
+            />
+            <label htmlFor="showProjection" className="text-xs text-white cursor-pointer">
+              Mostrar proyección (regresión lineal)
+            </label>
+          </div>
+          {showProjection && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-outlineSoft">Años a proyectar</span>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={projectionYears}
+                onChange={(e) => setProjectionYears(Math.max(1, Math.min(10, Number(e.target.value))))}
+                className="w-16 bg-surfaceHigh border border-outline/50 text-white py-1 px-2 text-xs"
+              />
+            </div>
+          )}
         </div>
 
         {/* Descargar */}

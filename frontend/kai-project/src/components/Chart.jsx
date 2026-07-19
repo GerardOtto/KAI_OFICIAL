@@ -11,7 +11,11 @@ import {
 } from "recharts";
 
 import { useTrends } from "../hooks/useTrends";
-import { transformToRecharts } from "../utils/transformData";
+import { transformToRecharts, addProjections } from "../utils/transformData";
+import { computeProjectionStats } from "../utils/projectionStats";
+import ProjectionSummary from "./ProjectionSummary";
+import ProjectionStats from "./ProjectionStats";
+import ChartInfo from "./ChartInfo";
 
 const COLORS = [
   "#60A5FA", // blue
@@ -62,7 +66,7 @@ const CustomLegend = ({ universidades, colors, activeUni, setActiveUni }) => (
   </div>
 );
 
-export default function Chart({ rankingId, metricaId, selectedUniversidades, onDataReady }) {
+export default function Chart({ rankingId, metricaId, selectedUniversidades, onDataReady, showProjection, projectionYears }) {
   const { data } = useTrends(rankingId, metricaId);
 const [activeUni, setActiveUni] = useState(null);
 
@@ -75,12 +79,21 @@ useEffect(() => {
   if (onDataReady) onDataReady(filteredData);
 }, [filteredData]);
 
-  const chartData = useMemo(() => transformToRecharts(filteredData), [filteredData]);
-
   const universidades = useMemo(
     () => [...new Set(filteredData.map(d => d.universidad))],
     [filteredData]
   );
+
+  const baseChartData = useMemo(() => transformToRecharts(filteredData), [filteredData]);
+
+  const chartData = useMemo(() => {
+    return showProjection ? addProjections(baseChartData, universidades, projectionYears) : baseChartData;
+  }, [baseChartData, universidades, showProjection, projectionYears]);
+
+  const projectionStats = useMemo(() => {
+    if (!showProjection) return null;
+    return computeProjectionStats(baseChartData, universidades, projectionYears);
+  }, [baseChartData, universidades, showProjection, projectionYears]);
 
   if (!data.length) {
     return (
@@ -111,7 +124,18 @@ useEffect(() => {
   }
 
   return (
-    <div className="w-[100%] bg-[#1c1b1b] p-6 border border-gray-700">
+    <div className="relative w-[100%] bg-[#1c1b1b] p-6 border border-gray-700">
+      <ChartInfo />
+
+      {showProjection && projectionStats && (
+        <ProjectionSummary
+          bestGrowth={projectionStats.bestGrowth}
+          bestProjection={projectionStats.bestProjection}
+          avgR2={projectionStats.avgR2}
+          horizonYear={projectionStats.horizonYear}
+        />
+      )}
+
       <div className="w-[100%] h-[500px]">
         <ResponsiveContainer>
           <LineChart data={chartData}>
@@ -144,16 +168,42 @@ useEffect(() => {
                 onMouseLeave={() => setActiveUni(null)}
               />
             ))}
+
+            {showProjection && universidades.map((uni, i) => (
+              <Line
+                key={`${uni}_proy`}
+                type="monotone"
+                dataKey={`${uni}_proy`}
+                name={`${uni} (proyección)`}
+                stroke={COLORS[i % COLORS.length]}
+                strokeDasharray="6 4"
+                strokeWidth={activeUni === uni ? 4 : 2}
+                opacity={activeUni ? (uni === activeUni ? 1 : 0.15) : 0.7}
+                dot={false}
+                legendType="none"
+                onMouseEnter={() => setActiveUni(uni)}
+                onMouseLeave={() => setActiveUni(null)}
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      <CustomLegend
-        universidades={universidades}
-        colors={COLORS}
-        activeUni={activeUni}
-        setActiveUni={setActiveUni}
-      />
+      {!showProjection && (
+        <CustomLegend
+          universidades={universidades}
+          colors={COLORS}
+          activeUni={activeUni}
+          setActiveUni={setActiveUni}
+        />
+      )}
+
+      {showProjection && projectionStats && (
+        <ProjectionStats
+          stats={projectionStats.stats}
+          colors={COLORS}
+        />
+      )}
     </div>
   );
 }
