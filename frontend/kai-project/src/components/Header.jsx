@@ -1,82 +1,23 @@
-import { useState, useRef, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 const NAV = [
-  {
-    label: "Resumen",
-    to: "/ranking",
-    items: null
-  },
-  {
-    label: "Tendencias",
-    to: "/tendencias",
-    items: [
-      { label: "Tendencias históricas", to: "/tendencias" },
-      { label: "Pronóstico de tendencias", to: null },
-      { label: "Pronóstico inteligente", to: null },
-    ]
-  },
-  {
-    label: "Simulación",
-    to: "/simulacion",
-    items: [
-      { label: "Simulador de métricas", to: "/simulacion" },
-    ]
-  }
-  /*{ Aquí quiero aplicar el Universidad 1 vs 1 con los escudos, todas las métricas etc...
-    label: "Instituciones",
-    to: "",
-    items: null
-  },*/
+  { label: "Resumen", to: "/ranking" },
+  { label: "Tendencias", to: "/tendencias" },
+  { label: "Simulación", to: "/simulacion" },
+  { label: "Glosario", to: "/metricas" },
 ];
 
-function DropdownMenu({ items, onClose }) {
-  return (
-    <div className="absolute top-full left-0 mt-1 min-w-[220px] bg-[#1a1a1a] border border-outline/30 z-50 py-1 shadow-xl">
-      {items.map(item => (
-        item.to ? (
-          <NavLink
-            key={item.label}
-            to={item.to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `block px-5 py-3 text-[11px] uppercase tracking-widest transition-colors ${
-                isActive ? "text-white bg-white/10" : "text-outlineSoft hover:text-white hover:bg-white/5"
-              }`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ) : (
-          <div
-            key={item.label}
-            className="block px-5 py-3 text-[11px] uppercase tracking-widest text-outline/40 cursor-not-allowed select-none flex items-center justify-between"
-          >
-            <span>{item.label}</span>
-            <span className="text-[9px] normal-case tracking-normal text-outline/30 ml-3">Próximo</span>
-          </div>
-        )
-      ))}
-    </div>
-  );
-}
+const navLinkClass = ({ isActive }) =>
+  `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
+    isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
+  }`;
 
 export default function Header() {
-  const [openMenu, setOpenMenu] = useState(null);
   const navigate = useNavigate();
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpenMenu(null);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   return (
-    <header ref={ref} className="flex justify-between items-center px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
+    <header className="flex justify-between items-center px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
 
       <img
         src={logo}
@@ -86,54 +27,11 @@ export default function Header() {
       />
 
       <nav className="hidden md:flex items-center h-full gap-1">
-      {NAV.map(section => (
-  section.items === null ? (
-    <NavLink
-      key={section.label}
-      to={section.to}
-      className={({ isActive }) =>
-        `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-          isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
-        }`
-      }
-    >
-      {section.label}
-    </NavLink>
-  ) : (
-    <div key={section.label} className="relative h-full flex items-center">
-      <button
-        onClick={() => setOpenMenu(openMenu === section.label ? null : section.label)}
-        onMouseEnter={() => setOpenMenu(section.label)}
-        className={`flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-          openMenu === section.label ? "text-white" : "text-outlineSoft hover:text-white"
-        }`}
-      >
-        {section.label}
-        <svg
-          width="10" height="10" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          style={{ transition: "transform 0.2s", transform: openMenu === section.label ? "rotate(180deg)" : "rotate(0deg)" }}
-        >
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
-      {openMenu === section.label && (
-        <DropdownMenu items={section.items} onClose={() => setOpenMenu(null)} />
-      )}
-    </div>
-  )
-))}
-
-        <NavLink
-          to="/metricas"
-          className={({ isActive }) =>
-            `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-              isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
-            }`
-          }
-        >
-          Glosario
-        </NavLink>
+        {NAV.map(section => (
+          <NavLink key={section.label} to={section.to} className={navLinkClass}>
+            {section.label}
+          </NavLink>
+        ))}
       </nav>
 
       <div className="flex items-center gap-3">

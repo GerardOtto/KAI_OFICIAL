@@ -8,9 +8,12 @@ export default function ChartInfo() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Información del gráfico"
-        className="w-6 h-6 flex items-center justify-center rounded-full border border-outline/50 text-outlineSoft text-xs hover:border-white hover:text-white transition-colors"
+        className="relative w-7 h-7 flex items-center justify-center rounded-full border border-blue-400/60 bg-blue-400/10 text-blue-300 text-sm font-semibold hover:bg-blue-400/20 hover:text-white hover:scale-110 transition-all"
       >
-        i
+        {!open && (
+          <span className="absolute inset-0 rounded-full border border-blue-400/60 animate-ping" />
+        )}
+        <span className="relative">i</span>
       </button>
 
       {open && (
