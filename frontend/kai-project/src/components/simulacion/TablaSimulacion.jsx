@@ -108,12 +108,6 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
     </div>
   );
 
-  if (!selectedUniversidades.length) return (
-    <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-      Selecciona al menos una universidad.
-    </div>
-  );
-
   return (
     <div className="flex flex-1 overflow-hidden">
 
