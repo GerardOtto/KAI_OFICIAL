@@ -63,7 +63,9 @@ export default function Sidebar({
             >
               <option value="" disabled>Seleccionar métrica</option>
               {metricas.map((m) => (
-                <option key={m.id_metrica} value={m.id_metrica}>{m.nombre_metrica}</option>
+                <option key={m.id_metrica} value={m.id_metrica}>
+                  {m.disciplina && m.disciplina !== "General" ? `${m.nombre_metrica} — ${m.disciplina}` : m.nombre_metrica}
+                </option>
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-outlineSoft text-xs">▼</div>

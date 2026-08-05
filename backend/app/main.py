@@ -94,7 +94,7 @@ def get_metricas(ranking_id: int):
     db = SessionLocal()
     try:
         query = text("""
-            SELECT id_metrica, nombre_metrica
+            SELECT id_metrica, nombre_metrica, disciplina
             FROM metrica
             WHERE id_ranking = :ranking_id
         """)
