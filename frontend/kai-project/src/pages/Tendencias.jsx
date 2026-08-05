@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Chart from "../components/Chart";
+import { useRankings } from "../hooks/useRankings";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
@@ -14,12 +15,9 @@ export default function Tendencias() {
   const [projectionYears, setProjectionYears] = useState(3);
   const chartRef = useRef(null);
 
-  const RANKING_NAMES = {
-    1: "Times Higher Education",
-    2: "QS Latam",
-    3: "Scimago",
-    4: "Shanghai GRAS"
-  };
+  const rankings = useRankings();
+  const rankingName = rankings.find(r => r.id_ranking === rankingId)?.nombre_ranking || "";
+
   const handleDownloadExcel = () => {
     if (!trendsData.length) return;
   
@@ -33,13 +31,13 @@ export default function Tendencias() {
         Universidad: r.universidad,
         Año: r.anio,
         Valor: r.valor,
-        Ranking: RANKING_NAMES[rankingId]
+        Ranking: rankingName
       }));
   
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Tendencias");
-    XLSX.writeFile(wb, `tendencias_${RANKING_NAMES[rankingId]}.xlsx`);
+    XLSX.writeFile(wb, `tendencias_${rankingName}.xlsx`);
   };
 
   const handleDownload = async () => {
@@ -60,7 +58,7 @@ export default function Tendencias() {
     // Subtítulo ranking + métrica
     pdf.setFontSize(10);
     pdf.setTextColor(80, 80, 80);
-    pdf.text(`Ranking: ${RANKING_NAMES[rankingId]}`, margin, y);
+    pdf.text(`Ranking: ${rankingName}`, margin, y);
     y += 12;
 
     // Gráfico

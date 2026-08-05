@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
+import { useRankings } from "../hooks/useRankings";
 
 export default function Sidebar({
   rankingId,
@@ -18,6 +19,7 @@ export default function Sidebar({
 }) {
   const metricas = useMetricas(rankingId);
   const { universidades } = useUniversidades();
+  const rankings = useRankings();
   const [search, setSearch] = useState("");
 
   const universidadesFiltradas = useMemo(() => {
@@ -42,10 +44,9 @@ export default function Sidebar({
             onChange={(e) => { setRankingId(Number(e.target.value)); setMetricaId(null); }}
             className="w-full bg-surfaceHigh border border-outline/50 text-white py-3 px-4"
           >
-            <option value={1}>Times Higher Education</option>
-            <option value={2}>QS Latam</option>
-            <option value={3}>Scimago</option>
-            <option value={4}>Shanghai GRAS</option>
+            {rankings.map((r) => (
+              <option key={r.id_ranking} value={r.id_ranking}>{r.nombre_ranking}</option>
+            ))}
           </select>
         </div>
 
