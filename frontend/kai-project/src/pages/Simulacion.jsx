@@ -9,13 +9,15 @@ export default function Simulacion() {
   const [rankingId, setRankingId] = useState(1);
   const [anio, setAnio] = useState(null);
   const [selectedUniversidades, setSelectedUniversidades] = useState([]);
-  const [tablaData, setTablaData] = useState({ filas: [], metricas: [], overrides: {} });
+  const [disciplinaFiltro, setDisciplinaFiltro] = useState(null);
+  const [tablaData, setTablaData] = useState({ filas: [], metricas: [], overrides: {}, disciplinas: [] });
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const rankings = useRankings();
 
   const handleRankingChange = (id) => {
     setRankingId(id);
     setAnio(null);
+    setDisciplinaFiltro(null);
   };
 
   const rankingNombre = rankings.find(r => r.id_ranking === rankingId)?.nombre_ranking || `Ranking ${rankingId}`;
@@ -169,6 +171,9 @@ export default function Simulacion() {
           setAnio={setAnio}
           selectedUniversidades={selectedUniversidades}
           setSelectedUniversidades={setSelectedUniversidades}
+          disciplinas={tablaData.disciplinas}
+          disciplinaFiltro={disciplinaFiltro}
+          setDisciplinaFiltro={setDisciplinaFiltro}
         />
 
         <main className="flex-grow min-w-0 flex flex-col overflow-hidden">
@@ -205,6 +210,7 @@ export default function Simulacion() {
               rankingId={rankingId}
               anio={anio}
               selectedUniversidades={selectedUniversidades}
+              disciplinaFiltro={disciplinaFiltro}
               onDataChange={setTablaData}
             />
           </div>

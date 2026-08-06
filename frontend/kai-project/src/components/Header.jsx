@@ -6,6 +6,7 @@ const NAV = [
   { label: "Tendencias", to: "/tendencias" },
   { label: "Simulación", to: "/simulacion" },
   { label: "Glosario", to: "/metricas" },
+  { label: "Asistente", to: "/asistente" },
 ];
 
 const navLinkClass = ({ isActive }) =>

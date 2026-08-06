@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useRankings } from "../hooks/useRankings";
@@ -21,6 +21,32 @@ export default function Sidebar({
   const { universidades } = useUniversidades();
   const rankings = useRankings();
   const [search, setSearch] = useState("");
+  const [disciplinaFiltro, setDisciplinaFiltro] = useState(null);
+
+  const disciplinas = useMemo(
+    () => [...new Set(metricas.map((m) => m.disciplina).filter((d) => d && d !== "General"))].sort(),
+    [metricas]
+  );
+
+  const metricasFiltradas = useMemo(() => {
+    if (!disciplinaFiltro) return metricas;
+    return metricas.filter((m) => m.disciplina === disciplinaFiltro);
+  }, [metricas, disciplinaFiltro]);
+
+  // Cuenta cuántas variantes (mismo nombre + disciplina, distinto id) hay —
+  // ocurre cuando el peso de una métrica cambió de un año a otro (ej. Shanghai GRAS).
+  const conteoPorNombre = useMemo(() => {
+    const counts = {};
+    metricasFiltradas.forEach((m) => {
+      const key = `${m.nombre_metrica}|${m.disciplina}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [metricasFiltradas]);
+
+  useEffect(() => {
+    setDisciplinaFiltro(null);
+  }, [rankingId]);
 
   const universidadesFiltradas = useMemo(() => {
     if (!universidades) return [];
@@ -50,6 +76,25 @@ export default function Sidebar({
           </select>
         </div>
 
+        {/* Disciplina */}
+        {disciplinas.length > 0 && (
+          <div>
+            <label className="text-[10px] uppercase text-outlineSoft mb-3 block">
+              Disciplina
+            </label>
+            <select
+              value={disciplinaFiltro || ""}
+              onChange={(e) => { setDisciplinaFiltro(e.target.value || null); setMetricaId(null); }}
+              className="w-full bg-surfaceHigh border border-outline/50 text-white py-3 px-4"
+            >
+              <option value="">Todas las disciplinas</option>
+              {disciplinas.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Métricas */}
         <div>
           <label className="text-[10px] uppercase text-outlineSoft mb-3 block">
@@ -62,11 +107,20 @@ export default function Sidebar({
               className="w-full bg-surfaceHigh border border-outline/50 text-white py-3 px-4 text-xs uppercase tracking-widest focus:outline-none focus:border-white appearance-none"
             >
               <option value="" disabled>Seleccionar métrica</option>
-              {metricas.map((m) => (
-                <option key={m.id_metrica} value={m.id_metrica}>
-                  {m.disciplina && m.disciplina !== "General" ? `${m.nombre_metrica} — ${m.disciplina}` : m.nombre_metrica}
-                </option>
-              ))}
+              {metricasFiltradas.map((m) => {
+                const esDuplicada = conteoPorNombre[`${m.nombre_metrica}|${m.disciplina}`] > 1;
+                const rango = m.anio_min && m.anio_max
+                  ? (m.anio_min === m.anio_max ? ` (${m.anio_min})` : ` (${m.anio_min}–${m.anio_max})`)
+                  : "";
+                const base = !disciplinaFiltro && m.disciplina && m.disciplina !== "General"
+                  ? `${m.nombre_metrica} — ${m.disciplina}`
+                  : m.nombre_metrica;
+                return (
+                  <option key={m.id_metrica} value={m.id_metrica}>
+                    {esDuplicada ? `${base}${rango}` : base}
+                  </option>
+                );
+              })}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-outlineSoft text-xs">▼</div>
           </div>

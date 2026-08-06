@@ -8,6 +8,7 @@ import Ranking from "./pages/Ranking";
 import Tendencias from "./pages/Tendencias";
 import Simulacion from "./pages/Simulacion";
 import Metricas from "./pages/Metricas";
+import Asistente from "./pages/Asistente";
 
 
 
@@ -58,6 +59,7 @@ function AppContent() {
         <Route path="/tendencias" element={<Tendencias />} />
         <Route path="/simulacion" element={<Simulacion />} />
         <Route path="/metricas" element={<Metricas />} />
+        <Route path="/asistente" element={<Asistente />} />
         <Route path="*" element={<h1>404</h1>} />
       </Routes>
     </>

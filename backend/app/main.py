@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware # 1. Importa el middleware
+from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from .assistant import responder
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -30,6 +33,21 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "API funcionando"}
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+@app.post("/chat")
+def chat(req: ChatRequest):
+    mensajes = [{"role": m.role, "content": m.content} for m in req.messages]
+    return {"role": "assistant", "content": responder(mensajes)}
 
 @app.get("/universidad")
 def get_subrankings():
@@ -146,6 +164,7 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None):
                 u.nombre_universidad,
                 m.id_metrica,
                 m.nombre_metrica,
+                m.disciplina,
                 m.peso_metrica,
                 mu.valor_metrica,
                 mu.anio_metrica
@@ -231,6 +250,7 @@ def get_metricas_por_tipo(tipo: str):
                 m.descripcion_metrica,
                 m.peso_metrica,
                 m.tipo_metrica,
+                m.disciplina,
                 r.id_ranking,
                 r.nombre_ranking
             FROM metrica m
@@ -251,6 +271,7 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int):
                 m.id_metrica,
                 m.nombre_metrica,
                 m.tipo_metrica,
+                m.disciplina,
                 r.nombre_ranking,
                 mu.valor_metrica,
                 mu.anio_metrica
@@ -271,11 +292,13 @@ def get_metricas_con_datos(ranking_id: int):
     db = SessionLocal()
     try:
         result = db.execute(text("""
-            SELECT DISTINCT m.id_metrica, m.nombre_metrica
+            SELECT m.id_metrica, m.nombre_metrica, m.disciplina,
+                   MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max
             FROM metrica m
             JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id
-            ORDER BY m.nombre_metrica
+            GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina
+            ORDER BY m.nombre_metrica, m.disciplina
         """), {"ranking_id": ranking_id})
         return [dict(row._mapping) for row in result]
     finally:

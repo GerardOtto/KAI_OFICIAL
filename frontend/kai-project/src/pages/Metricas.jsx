@@ -37,6 +37,7 @@ export default function Metricas() {
   const [universidadId, setUniversidadId] = useState(null);
   const [anio, setAnio] = useState("");
   const [rankingFiltro, setRankingFiltro] = useState(null);
+  const [disciplinaFiltro, setDisciplinaFiltro] = useState(null);
   const [searchUni, setSearchUni] = useState("");
   const [showUniPicker, setShowUniPicker] = useState(false);
 
@@ -55,17 +56,28 @@ export default function Metricas() {
       .slice(0, 30);
   }, [universidades, searchUni]);
 
-  const metricasPorRanking = useMemo(() => {
-    const filtradas = rankingFiltro
+  const metricasPorRankingFiltro = useMemo(() => {
+    return rankingFiltro
       ? metricas.filter(m => m.id_ranking === rankingFiltro)
       : metricas;
+  }, [metricas, rankingFiltro]);
+
+  const disciplinas = useMemo(
+    () => [...new Set(metricasPorRankingFiltro.map(m => m.disciplina).filter(d => d && d !== "General"))].sort(),
+    [metricasPorRankingFiltro]
+  );
+
+  const metricasPorRanking = useMemo(() => {
+    const filtradas = disciplinaFiltro
+      ? metricasPorRankingFiltro.filter(m => m.disciplina === disciplinaFiltro)
+      : metricasPorRankingFiltro;
     return filtradas.reduce((acc, m) => {
       const key = m.id_ranking;
       if (!acc[key]) acc[key] = { nombre: m.nombre_ranking, id: key, items: [] };
       acc[key].items.push(m);
       return acc;
     }, {});
-  }, [metricas, rankingFiltro]);
+  }, [metricasPorRankingFiltro, disciplinaFiltro]);
 
   const valoresMap = useMemo(() =>
     valores.reduce((acc, v) => { acc[v.id_metrica] = v.valor_metrica; return acc; }, {}),
@@ -273,7 +285,7 @@ export default function Metricas() {
                 {tipos.map(tipo => (
                   <button
                     key={tipo}
-                    onClick={() => { setTipoActivo(tipo); setRankingFiltro(null); }}
+                    onClick={() => { setTipoActivo(tipo); setRankingFiltro(null); setDisciplinaFiltro(null); }}
                     className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-wider transition-colors flex items-center justify-between ${
                       tipoActivo === tipo
                         ? "bg-white text-black font-bold"
@@ -297,7 +309,7 @@ export default function Metricas() {
                 <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3">Filtrar por Ranking</p>
                 <div className="flex flex-col gap-1">
                   <button
-                    onClick={() => setRankingFiltro(null)}
+                    onClick={() => { setRankingFiltro(null); setDisciplinaFiltro(null); }}
                     className={`w-full text-left px-4 py-2.5 text-[11px] uppercase tracking-wider transition-colors ${
                       rankingFiltro === null ? "bg-white/15 text-white" : "text-outlineSoft hover:text-white hover:bg-white/5"
                     }`}
@@ -307,7 +319,7 @@ export default function Metricas() {
                   {rankings.map(r => (
                     <button
                       key={r.id_ranking}
-                      onClick={() => setRankingFiltro(r.id_ranking)}
+                      onClick={() => { setRankingFiltro(r.id_ranking); setDisciplinaFiltro(null); }}
                       className={`w-full text-left px-4 py-2.5 text-[11px] uppercase tracking-wider transition-colors ${
                         rankingFiltro === r.id_ranking ? "bg-white/15 text-white" : "text-outlineSoft hover:text-white hover:bg-white/5"
                       }`}
@@ -316,6 +328,23 @@ export default function Metricas() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Filtro disciplina */}
+            {tipoActivo && disciplinas.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3">Filtrar por Disciplina</p>
+                <select
+                  value={disciplinaFiltro || ""}
+                  onChange={e => setDisciplinaFiltro(e.target.value || null)}
+                  className="w-full bg-surfaceHigh border border-outline/50 text-white py-2.5 px-3 text-xs"
+                >
+                  <option value="">Todas las disciplinas</option>
+                  {disciplinas.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </div>
             )}
           </aside>
@@ -395,7 +424,12 @@ export default function Metricas() {
                               } ${sinDatos ? "bg-white/[0.02] opacity-40" : "bg-surfaceHigh"}`}
                             >
                               <div className="flex items-start justify-between gap-4">
-                                <h3 className="text-sm font-semibold text-white leading-snug">{m.nombre_metrica}</h3>
+                                <h3 className="text-sm font-semibold text-white leading-snug">
+                                  {m.nombre_metrica}
+                                  {!disciplinaFiltro && m.disciplina && m.disciplina !== "General" && (
+                                    <span className="text-outlineSoft font-normal"> — {m.disciplina}</span>
+                                  )}
+                                </h3>
                                 <div className="flex items-center gap-3 shrink-0">
                                   {tieneValor && (
                                     <span className="font-mono text-lg text-white">{valor}</span>

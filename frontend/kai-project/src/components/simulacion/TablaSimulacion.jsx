@@ -3,7 +3,7 @@ import { useSimulacion } from "../../hooks/useSimulacion";
 import { motion } from "framer-motion";
 import { useRef } from "react";
 
-export default function TablaSimulacion({ rankingId, anio, selectedUniversidades, onDataChange }) {
+export default function TablaSimulacion({ rankingId, anio, selectedUniversidades, disciplinaFiltro, onDataChange }) {
   const rawData = useSimulacion(rankingId, anio, selectedUniversidades);
   const [width, setWidth] = useState(256); // 256px = w-64 inicial
   const [isResizing, setIsResizing] = useState(false);
@@ -16,21 +16,27 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
   // Resetear overrides cuando cambia ranking/año
   useEffect(() => { setOverrides({}); }, [rankingId, anio]);
 
+  const disciplinas = useMemo(
+    () => [...new Set(rawData.map(r => r.disciplina).filter(d => d && d !== "General"))].sort(),
+    [rawData]
+  );
+
   const { metricas, filas } = useMemo(() => {
-    if (!rawData.length) return { metricas: [], filas: [] };
+    const data = disciplinaFiltro ? rawData.filter(r => r.disciplina === disciplinaFiltro) : rawData;
+    if (!data.length) return { metricas: [], filas: [] };
 
     // Métricas únicas ordenadas
     const metricaMap = {};
-    rawData.forEach(r => {
+    data.forEach(r => {
       if (!metricaMap[r.id_metrica]) {
-        metricaMap[r.id_metrica] = { id_metrica: r.id_metrica, nombre_metrica: r.nombre_metrica, peso_metrica: r.peso_metrica };
+        metricaMap[r.id_metrica] = { id_metrica: r.id_metrica, nombre_metrica: r.nombre_metrica, disciplina: r.disciplina, peso_metrica: r.peso_metrica };
       }
     });
     const metricas = Object.values(metricaMap);
 
     // Agrupar por universidad
     const uniMap = {};
-    rawData.forEach(r => {
+    data.forEach(r => {
       if (!uniMap[r.id_universidad]) {
         uniMap[r.id_universidad] = { id_universidad: r.id_universidad, nombre: r.nombre_universidad, valores: {} };
       }
@@ -39,7 +45,7 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
 
     const filas = Object.values(uniMap);
     return { metricas, filas };
-  }, [rawData]);
+  }, [rawData, disciplinaFiltro]);
 
   const getValor = (idUni, idMetrica, original) => {
     return overrides[idUni]?.[idMetrica] ?? original ?? 0;
@@ -95,8 +101,8 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
   }, [isResizing]);
 
   useEffect(() => {
-    if (onDataChange) onDataChange({ filas, metricas, overrides });
-  }, [filas, metricas, overrides]);
+    if (onDataChange) onDataChange({ filas, metricas, overrides, disciplinas });
+  }, [filas, metricas, overrides, disciplinas]);
 
   useEffect(() => {
     document.body.style.userSelect = isResizing ? "none" : "auto";
@@ -167,6 +173,9 @@ export default function TablaSimulacion({ rankingId, anio, selectedUniversidades
                 <th key={m.id_metrica} className="p-4 text-center border-r border-outline/30 min-w-[130px]">
                 <div className="text-[12px] text-white/80 uppercase tracking-tight mb-1">
                 {m.nombre_metrica}
+                {!disciplinaFiltro && m.disciplina && m.disciplina !== "General" && (
+                  <div className="text-[9px] normal-case tracking-normal text-outlineSoft/70 mt-0.5">{m.disciplina}</div>
+                )}
                 </div>
                 <div className="text-[18px] text-white/40">
                     {m.peso_metrica}%

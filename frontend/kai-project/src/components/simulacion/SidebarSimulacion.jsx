@@ -7,7 +7,8 @@ import { useUniversidades } from "../../hooks/useUniversidades";
 export default function SidebarSimulacion({
   rankingId, setRankingId,
   anio, setAnio,
-  selectedUniversidades, setSelectedUniversidades
+  selectedUniversidades, setSelectedUniversidades,
+  disciplinas = [], disciplinaFiltro, setDisciplinaFiltro
 }) {
   const [width, setWidth] = useState(320); // w-80 inicial
   const [isResizing, setIsResizing] = useState(false);
@@ -103,6 +104,25 @@ export default function SidebarSimulacion({
           <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-outlineSoft text-xs">▼</div>
         </div>
       </div>
+
+      {/* Disciplina */}
+      {disciplinas.length > 0 && (
+        <div>
+          <label className="text-[10px] uppercase text-outlineSoft mb-3 block tracking-widest">
+            Disciplina
+          </label>
+          <select
+            value={disciplinaFiltro || ""}
+            onChange={e => setDisciplinaFiltro(e.target.value || null)}
+            className="w-full bg-surfaceHigh border border-outline/50 text-white py-3 px-4 text-sm focus:outline-none focus:border-white"
+          >
+            <option value="">Todas las disciplinas</option>
+            {disciplinas.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Universidades */}
       <div className="flex flex-col gap-3 flex-1 min-h-0">
