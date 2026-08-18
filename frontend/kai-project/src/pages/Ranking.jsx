@@ -2,258 +2,257 @@ import { useState, useMemo, useEffect } from "react";
 import { useRankings } from "../hooks/useRankings";
 import { useAnios } from "../hooks/useAnios";
 import { useRankingResumen } from "../hooks/useRankingResumen";
+import { useRankingHistorico } from "../hooks/useRankingHistorico";
+import UniversidadLogo from "../components/UniversidadLogo";
+import ScoreBar from "../components/data/ScoreBar";
+import Sparkline from "../components/data/Sparkline";
+
+const PUCV_ID = 2;
+const GRID_COLS = "44px 1fr 210px 120px 150px";
+const GRID_COLS_COMPACT = "44px 1fr 210px 120px";
+
+const PlaceholderIcon = ({ nombre, size }) => (
+  <div
+    className="bg-white/[.08] flex items-center justify-center shrink-0"
+    style={{ width: size, height: size }}
+  >
+    <span style={{ fontSize: size * 0.45 }} className="text-white/[.55] font-medium">
+      {nombre?.charAt(0)?.toUpperCase() || "?"}
+    </span>
+  </div>
+);
+
+function exportarCSV(data, rankingNombre, anio) {
+  const filas = [
+    ["Posición", "Institución", "País", "Score"],
+    ...data.map((u, i) => [i + 1, u.nombre_universidad, u.pais_universidad, Number(u.score_total).toFixed(1)]),
+  ];
+  const csv = filas.map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `ranking_${rankingNombre}_${anio}.csv`.replace(/\s+/g, "_");
+  link.click();
+}
 
 export default function Ranking() {
   const rankings = useRankings();
   const [rankingId, setRankingId] = useState(null);
   const [anio, setAnio] = useState(null);
-  const [pagina, setPagina] = useState(1);
-  const POR_PAGINA = 15;
+  const [densidad, setDensidad] = useState("comoda"); // "comoda" | "compacta"
 
   const anios = useAnios(rankingId);
   const { data, loading } = useRankingResumen(rankingId, anio);
+  const { historicoMap } = useRankingHistorico(rankingId, anios);
 
   const rankingActual = useMemo(
     () => rankings.find(r => r.id_ranking === rankingId),
     [rankings, rankingId]
   );
 
-  // Setear defaults cuando cargan rankings/anios
-  useState(() => {
+  useEffect(() => {
     if (rankings.length && !rankingId) setRankingId(rankings[0].id_ranking);
-  }, [rankings]);
-
-  useState(() => {
-    if (anios.length && !anio) setAnio(anios[0]);
-  }, [anios]);
+  }, [rankings, rankingId]);
 
   useEffect(() => {
     if (anios.length && (!anio || !anios.includes(anio))) {
       setAnio(anios[0]);
-      setPagina(1);
     }
-  }, [anios]);
+  }, [anios, anio]);
 
-  const totalPaginas = Math.ceil(data.length / POR_PAGINA);
-  const filasPagina = data.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
-  const offsetGlobal = (pagina - 1) * POR_PAGINA;
+  const maxScore = useMemo(
+    () => data.reduce((max, u) => Math.max(max, Number(u.score_total) || 0), 0),
+    [data]
+  );
 
-  const handleRankingChange = (id) => {
-    setRankingId(id);
-    setPagina(1);
-  };
+  const handleRankingChange = (id) => setRankingId(id);
+
+  const esCompacta = densidad === "compacta";
+  const gridCols = esCompacta ? GRID_COLS_COMPACT : GRID_COLS;
 
   return (
     <div className="min-h-screen bg-background text-white">
+      <main className="max-w-[1600px] mx-auto px-8 pt-[26px] pb-20">
 
-      <main className="pt-10 pb-20 px-12 max-w-[1600px] mx-auto">
+        {/* Título + controles */}
+        <section className="flex items-start justify-between gap-6 flex-wrap mb-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
+              Rankings Institucionales
+            </p>
+            <h1 className="font-headline text-[30px] font-semibold text-white tracking-[-0.01em]">
+              Clasificación de Universidades
+            </h1>
+          </div>
 
-        {/* Hero */}
-        <section className="mb-16">
-          <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-4">
-            Rankings Institucionales
-          </p>
-          <h1 className="font-headline text-5xl font-bold text-white mb-4 tracking-tight max-w-5xl leading-tight">
-            Clasificación de Universidades
-          </h1>
-          <p className="text-on-surface-variant max-w-4xl leading-relaxed text-sm">
-            Posicionamiento institucional calculado a partir de los datos y pesos oficiales de cada ranking.
-          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative">
+              <select
+                value={anio || ""}
+                onChange={e => setAnio(Number(e.target.value))}
+                className="appearance-none bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 pl-3 pr-7 focus:outline-none focus:border-white/40"
+              >
+                {anios.map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-outlineSoft">▾</span>
+            </div>
+            <button
+              onClick={() => setDensidad(d => (d === "comoda" ? "compacta" : "comoda"))}
+              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors"
+            >
+              Densidad ⇕
+            </button>
+            <button
+              onClick={() => data.length && exportarCSV(data, rankingActual?.nombre_ranking || "", anio)}
+              disabled={!data.length}
+              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Exportar
+            </button>
+          </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Pestañas de ranking */}
+        <div className="flex gap-1.5 flex-wrap mb-4">
+          {rankings.map(r => (
+            <button
+              key={r.id_ranking}
+              onClick={() => handleRankingChange(r.id_ranking)}
+              className={`py-[9px] px-4 text-[11.5px] font-semibold border transition-colors ${
+                rankingId === r.id_ranking
+                  ? "bg-white text-[#111] border-white"
+                  : "bg-[#1c1c1c] text-[#9a9a9a] border-white/[.12] hover:text-white"
+              }`}
+            >
+              {r.nombre_ranking}
+            </button>
+          ))}
+        </div>
 
-          {/* Sidebar */}
-          <aside className="lg:col-span-3 space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3">Rankings Disponibles</p>
+        {/* Línea de contexto */}
+        <div className="flex items-end justify-between gap-4 pb-3 mb-2 border-b border-white/[.12]">
+          <p className="text-xs text-[#8a8a8a] max-w-[760px] leading-relaxed">
+            {rankingActual?.descripcion_ranking || data[0]?.descripcion_ranking || "Selecciona un ranking para ver su metodología."}
+          </p>
+          {data.length > 0 && (
+            <span className="text-[10px] uppercase tracking-widest text-outlineSoft shrink-0 font-mono">
+              {data.length} instituciones
+            </span>
+          )}
+        </div>
 
-            <div className="flex flex-col gap-1">
-              {rankings.map(r => (
-                <button
-                  key={r.id_ranking}
-                  onClick={() => handleRankingChange(r.id_ranking)}
-                  className={`w-full text-left p-4 flex justify-between items-center transition-colors text-sm uppercase tracking-wider ${
-                    rankingId === r.id_ranking
-                      ? "bg-white text-black font-bold"
-                      : "bg-surfaceHigh text-white hover:bg-white/10"
-                  }`}
-                >
-                  <span>{r.nombre_ranking}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                </button>
-              ))}
-            </div>
-
-            {/* Selector de año */}
-            {anios.length > 0 && (
-              <div className="mt-6 mb-8">
-                <label className="text-[10px] uppercase tracking-widest text-outlineSoft mb-3 block">Año</label>
-                <div className="relative">
-                  <select
-                    value={anio || ""}
-                    onChange={e => { setAnio(Number(e.target.value)); setPagina(1); }}
-                    className="w-full bg-surfaceHigh border border-outline/50 text-white py-3 px-4 text-sm focus:outline-none focus:border-white appearance-none"
-                  >
-                    <option value="" disabled>Seleccionar año</option>
-                    {anios.map(a => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-outlineSoft text-xs">▼</div>
-                </div>
+        {/* Estados */}
+        {!rankingId || !anio ? (
+          <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
+            Selecciona un ranking para comenzar.
+          </div>
+        ) : loading ? (
+          <div>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="grid items-center gap-4 py-[11px] px-3 border-t border-white/[.05]" style={{ gridTemplateColumns: gridCols }}>
+                <div className="h-4 w-6 bg-white/5 animate-pulse" />
+                <div className="h-4 w-2/3 bg-white/5 animate-pulse" />
+                <div className="h-4 w-full bg-white/5 animate-pulse" />
+                <div className="h-4 w-10 bg-white/5 animate-pulse ml-auto" />
+                {!esCompacta && <div className="h-4 w-full bg-white/5 animate-pulse" />}
               </div>
-            )}
-
-            {/* Descripción */}
-            {rankingActual && (
-              <div className="bg-surfaceHigh p-6 space-y-4">
-                <h3 className="font-headline text-lg text-white">Sobre este Ranking</h3>
-                <p className="text-sm text-outlineSoft leading-relaxed">
-                  {data[0]?.descripcion_ranking || "Sin descripción disponible."}
-                </p>
-                <button
-                  disabled
-                  className="w-full mt-2 py-3 px-4 border border-outline/30 text-[10px] uppercase tracking-widest text-outlineSoft cursor-not-allowed opacity-50 flex items-center justify-center gap-2"
-                  title="Próximamente"
-                >
-                  <span>Ver metodología completa</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </button>
-              </div>
-            )}
-          </aside>
-
-          {/* Contenido principal */}
-          <div className="lg:col-span-9 space-y-6">
-
-            {/* Info bar */}
-            <div className="flex items-center justify-between pb-4 border-b border-outline/20">
-              <span className="text-[10px] uppercase tracking-widest text-outlineSoft">
-                {rankingActual?.nombre_ranking || "Selecciona un ranking"}{anio ? ` · ${anio}` : ""}
-              </span>
-              {data.length > 0 && (
-                <span className="text-[10px] uppercase tracking-widest text-outlineSoft">
-                  {data.length} instituciones
+            ))}
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
+            No hay datos para este ranking en el año seleccionado.
+          </div>
+        ) : (
+          <>
+            {/* Encabezado */}
+            <div
+              className="grid items-center gap-4 py-2.5 px-3 sticky top-16 bg-background z-10 border-b border-white/[.12]"
+              style={{ gridTemplateColumns: gridCols }}
+            >
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Pos</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Institución</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Score en {rankingActual?.nombre_ranking}</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Δ año ant.</span>
+              {!esCompacta && (
+                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">
+                  Posición {anios[anios.length - 1]}—{String(anios[0]).slice(-2)}
                 </span>
               )}
             </div>
 
-            {/* Estado vacío */}
-            {!rankingId || !anio ? (
-              <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-                Selecciona un ranking para comenzar.
-              </div>
-            ) : loading ? (
-              <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-                Cargando...
-              </div>
-            ) : data.length === 0 ? (
-              <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-                No hay datos para este ranking en el año seleccionado.
-              </div>
-            ) : (
-              <>
-                {/* Tabla */}
-                <div className="bg-surfaceHigh overflow-hidden">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-white/5 border-b border-outline/20">
-                        <th className="p-5 text-[10px] uppercase tracking-[0.2em] text-outlineSoft font-normal w-20">Pos.</th>
-                        <th className="p-5 text-[10px] uppercase tracking-[0.2em] text-outlineSoft font-normal">Institución</th>
-                        <th className="p-5 text-[10px] uppercase tracking-[0.2em] text-outlineSoft font-normal">País</th>
-                        <th className="p-5 text-[10px] uppercase tracking-[0.2em] text-outlineSoft font-normal text-right">Score</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline/10">
-                      {filasPagina.map((uni, i) => {
-                        const pos = offsetGlobal + i + 1;
-                        const isTop3 = pos <= 3;
-                        return (
-                          <tr key={uni.id_universidad} className="hover:bg-white/[0.03] transition-colors">
-                            <td className="p-5">
-                              <span className={`font-headline text-2xl ${isTop3 ? "text-white" : "text-outlineSoft"}`}>
-                                {String(pos).padStart(2, "0")}
-                              </span>
-                            </td>
-                            <td className="p-5">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-white/5 flex items-center justify-center shrink-0">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-outlineSoft">
-                                    <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
-                                  </svg>
-                                </div>
-                                <div>
-                                  <div className={`font-headline text-base ${isTop3 ? "text-white" : "text-white/80"}`}>
-                                    {uni.nombre_universidad}
-                                  </div>
-                                  <div className="text-[10px] uppercase tracking-widest text-outlineSoft mt-0.5">
-                                    {uni.pais_universidad}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-5 text-sm text-outlineSoft">
-                              {uni.pais_universidad}
-                            </td>
-                            <td className="p-5 text-right">
-                              <span className={`font-headline text-xl ${isTop3 ? "text-white" : "text-outlineSoft"}`}>
-                                {Number(uni.score_total).toFixed(1)}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+            {/* Filas */}
+            <div>
+              {data.map((uni, i) => {
+                const pos = i + 1;
+                const esPropia = uni.id_universidad === PUCV_ID;
+                const hist = historicoMap[uni.id_universidad];
+                const posAnterior = hist?.posicionAnterior;
+                const delta = posAnterior != null ? posAnterior - pos : null;
 
-                {/* Paginación */}
-                {totalPaginas > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-6">
-                    <button
-                      onClick={() => setPagina(p => Math.max(1, p - 1))}
-                      disabled={pagina === 1}
-                      className="w-10 h-10 flex items-center justify-center border border-outline/30 hover:bg-white hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M15 18l-6-6 6-6"/>
-                      </svg>
-                    </button>
+                return (
+                  <div
+                    key={uni.id_universidad}
+                    className={`grid items-center gap-4 border-t border-white/[.05] transition-colors hover:bg-white/[.03] cursor-default ${
+                      esCompacta ? "py-2" : "py-[11px]"
+                    } px-3`}
+                    style={{
+                      gridTemplateColumns: gridCols,
+                      borderLeft: `2px solid ${esPropia ? "oklch(0.72 0.13 250)" : "transparent"}`,
+                      backgroundColor: esPropia ? "rgba(70,130,255,.07)" : undefined,
+                    }}
+                  >
+                    <span className={`font-mono text-[13px] tabular-nums ${esPropia ? "text-white" : "text-[#8a8a8a]"}`}>
+                      {String(pos).padStart(2, "0")}
+                    </span>
 
-                    {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                      const p = Math.min(Math.max(pagina - 2, 1) + i, totalPaginas);
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => setPagina(p)}
-                          className={`w-10 h-10 flex items-center justify-center text-sm transition-all ${
-                            p === pagina ? "bg-white text-black font-bold" : "bg-surfaceHigh hover:bg-white/10"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      );
-                    })}
+                    <div className="flex items-center gap-3 min-w-0">
+                      {!esCompacta && (
+                        <UniversidadLogo
+                          idUniversidad={uni.id_universidad}
+                          nombre={uni.nombre_universidad}
+                          size={22}
+                          fallback={<PlaceholderIcon nombre={uni.nombre_universidad} size={22} />}
+                        />
+                      )}
+                      <div className="min-w-0 flex items-baseline gap-2">
+                        <span className={`font-body font-semibold text-sm truncate ${esPropia ? "text-white" : "text-[#dcdcdc]"}`}>
+                          {uni.nombre_universidad}
+                        </span>
+                        <span className="text-[11px] text-[#6f6f6f] shrink-0">{uni.pais_universidad}</span>
+                      </div>
+                    </div>
 
-                    <button
-                      onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
-                      disabled={pagina === totalPaginas}
-                      className="w-10 h-10 flex items-center justify-center border border-outline/30 hover:bg-white hover:text-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 18l6-6-6-6"/>
-                      </svg>
-                    </button>
+                    <ScoreBar value={Number(uni.score_total) || 0} max={maxScore} isOwn={esPropia} />
+
+                    <span className="font-mono text-[12.5px] text-right tabular-nums">
+                      {delta == null || delta === 0 ? (
+                        <span className="text-[#6f6f6f]">—</span>
+                      ) : delta > 0 ? (
+                        <span className="text-positive">▲ {delta}</span>
+                      ) : (
+                        <span className="text-negative">▼ {Math.abs(delta)}</span>
+                      )}
+                    </span>
+
+                    {!esCompacta && (
+                      <Sparkline
+                        posiciones={hist?.historico?.map(h => h.posicion)}
+                        isOwn={esPropia}
+                        maxPos={Math.max(12, data.length)}
+                      />
+                    )}
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between mt-5 text-[11px] text-[#6f6f6f]">
+              <span>Mostrando 1–{data.length} · scroll continuo, sin paginación</span>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

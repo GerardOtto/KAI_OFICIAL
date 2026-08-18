@@ -1,12 +1,32 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 const NAV = [
   { label: "Resumen", to: "/ranking" },
   { label: "Tendencias", to: "/tendencias" },
-  { label: "Simulación", to: "/simulacion" },
+];
+
+const NAV_AFTER_SIM = [
+  { label: "Científicos", to: "/cientificos" },
+  { label: "Investigadores PUCV", to: "/investigadores-pucv" },
   { label: "Glosario", to: "/metricas" },
   { label: "Asistente", to: "/asistente" },
+];
+
+const MODOS_SIMULACION = [
+  {
+    modo: "unitaria",
+    label: "Unitaria",
+    sub: "Una institución · sliders",
+    desc: "Ajusta cada métrica de tu institución con un slider y mira el efecto en su score y posición.",
+  },
+  {
+    modo: "comparada",
+    label: "Comparada",
+    sub: "Varias instituciones · matriz",
+    desc: "Edita celda por celda una matriz de instituciones y métricas; el ranking se reordena en vivo.",
+  },
 ];
 
 const navLinkClass = ({ isActive }) =>
@@ -16,6 +36,20 @@ const navLinkClass = ({ isActive }) =>
 
 export default function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeTimer = useRef(null);
+
+  const enSimulacion = location.pathname.startsWith("/simulacion");
+  const modoActivo = location.pathname.split("/")[2];
+
+  const abrir = () => {
+    clearTimeout(closeTimer.current);
+    setMenuOpen(true);
+  };
+  const cerrarConDelay = () => {
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 120);
+  };
 
   return (
     <header className="flex justify-between items-center px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
@@ -29,6 +63,56 @@ export default function Header() {
 
       <nav className="hidden md:flex items-center h-full gap-1">
         {NAV.map(section => (
+          <NavLink key={section.label} to={section.to} className={navLinkClass}>
+            {section.label}
+          </NavLink>
+        ))}
+
+        <div
+          className="relative h-full flex items-center"
+          onMouseEnter={abrir}
+          onMouseLeave={cerrarConDelay}
+        >
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className={`relative flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
+              enSimulacion ? "text-white" : "text-outlineSoft hover:text-white"
+            }`}
+          >
+            Simulación
+            <span className="text-[8px] text-outlineSoft">▾</span>
+            {enSimulacion && (
+              <span className="absolute left-4 right-4 bottom-0 h-[2px] bg-white" />
+            )}
+          </button>
+
+          {menuOpen && (
+            <div className="absolute top-full left-0 w-[330px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
+              {MODOS_SIMULACION.map(m => (
+                <button
+                  key={m.modo}
+                  onClick={() => { navigate(`/simulacion/${m.modo}`); setMenuOpen(false); }}
+                  className={`w-full text-left px-3.5 py-3 transition-colors ${
+                    modoActivo === m.modo ? "bg-white/[.08]" : "hover:bg-white/[.05]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`font-body font-semibold text-[12.5px] ${modoActivo === m.modo ? "text-white" : "text-[#dcdcdc]"}`}>
+                      {m.label}
+                    </span>
+                    {modoActivo === m.modo && (
+                      <span className="text-[9px] text-accent">✓ actual</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-[#8a8a8a] mt-0.5">{m.sub}</div>
+                  <div className="text-[10.5px] leading-relaxed text-[#6f6f6f] mt-1">{m.desc}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {NAV_AFTER_SIM.map(section => (
           <NavLink key={section.label} to={section.to} className={navLinkClass}>
             {section.label}
           </NavLink>

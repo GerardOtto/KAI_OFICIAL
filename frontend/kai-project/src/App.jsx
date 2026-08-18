@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Lenis from "@studio-freight/lenis";
 
@@ -9,6 +9,8 @@ import Tendencias from "./pages/Tendencias";
 import Simulacion from "./pages/Simulacion";
 import Metricas from "./pages/Metricas";
 import Asistente from "./pages/Asistente";
+import Cientificos from "./pages/Cientificos";
+import InvestigadoresPUCV from "./pages/InvestigadoresPUCV";
 
 
 
@@ -57,8 +59,11 @@ function AppContent() {
         <Route path="/" element={<Landing />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/tendencias" element={<Tendencias />} />
-        <Route path="/simulacion" element={<Simulacion />} />
+        <Route path="/simulacion" element={<Navigate to="/simulacion/comparada" replace />} />
+        <Route path="/simulacion/:modo" element={<Simulacion />} />
         <Route path="/metricas" element={<Metricas />} />
+        <Route path="/cientificos" element={<Cientificos />} />
+        <Route path="/investigadores-pucv" element={<InvestigadoresPUCV />} />
         <Route path="/asistente" element={<Asistente />} />
         <Route path="*" element={<h1>404</h1>} />
       </Routes>

@@ -1,223 +1,216 @@
-import { useState } from "react";
-import jsPDF from "jspdf";
-import SidebarSimulacion from "../components/simulacion/SidebarSimulacion";
-import TablaSimulacion from "../components/simulacion/TablaSimulacion";
-import AgenteIA from "../components/simulacion/AgenteIA";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useRankings } from "../hooks/useRankings";
+import { useAnios } from "../hooks/useAnios";
+import { useUniversidades } from "../hooks/useUniversidades";
+import { useMetricas } from "../hooks/useMetricas";
+import SimulacionUnitaria from "../components/simulacion/SimulacionUnitaria";
+import SimulacionComparada from "../components/simulacion/SimulacionComparada";
+import AgenteIA from "../components/simulacion/AgenteIA";
+
+const MODOS = [
+  { modo: "unitaria", label: "Unitaria" },
+  { modo: "comparada", label: "Comparada" },
+];
 
 export default function Simulacion() {
+  const { modo: modoParam } = useParams();
+  const navigate = useNavigate();
+  const modo = MODOS.some(m => m.modo === modoParam) ? modoParam : "comparada";
+
   const [rankingId, setRankingId] = useState(1);
   const [anio, setAnio] = useState(null);
-  const [selectedUniversidades, setSelectedUniversidades] = useState([]);
+  const [institucionUnitaria, setInstitucionUnitaria] = useState(null);
+  const [institucionesComparada, setInstitucionesComparada] = useState([]);
   const [disciplinaFiltro, setDisciplinaFiltro] = useState(null);
-  const [tablaData, setTablaData] = useState({ filas: [], metricas: [], overrides: {}, disciplinas: [] });
-  const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [showPicker, setShowPicker] = useState(false);
+  const [searchUni, setSearchUni] = useState("");
+
   const rankings = useRankings();
+  const anios = useAnios(rankingId);
+  const { universidades } = useUniversidades();
+  const metricasRanking = useMetricas(rankingId);
+
+  const disciplinas = useMemo(
+    () => [...new Set(metricasRanking.map(m => m.disciplina).filter(d => d && d !== "General"))].sort(),
+    [metricasRanking]
+  );
+
+  useEffect(() => {
+    if (anios.length && (!anio || !anios.includes(anio))) setAnio(anios[0]);
+  }, [anios, anio]);
+
+  const rankingNombre = rankings.find(r => r.id_ranking === rankingId)?.nombre_ranking || "";
+
+  const unisFiltradas = useMemo(() => {
+    if (!universidades) return [];
+    return universidades.filter(u => u.nombre_universidad.toLowerCase().includes(searchUni.toLowerCase())).slice(0, 30);
+  }, [universidades, searchUni]);
 
   const handleRankingChange = (id) => {
     setRankingId(id);
     setAnio(null);
+    setInstitucionUnitaria(null);
+    setInstitucionesComparada([]);
     setDisciplinaFiltro(null);
   };
 
-  const rankingNombre = rankings.find(r => r.id_ranking === rankingId)?.nombre_ranking || `Ranking ${rankingId}`;
-
-  const getValor = (idUni, idMetrica, original) =>
-    tablaData.overrides[idUni]?.[idMetrica] ?? original ?? 0;
-
-  const calcScore = (fila) =>
-    tablaData.metricas.reduce((acc, m) => {
-      const val = parseFloat(getValor(fila.id_universidad, m.id_metrica, fila.valores[m.id_metrica])) || 0;
-      return acc + val * (parseFloat(m.peso_metrica) || 0);
-    }, 0);
-
-  const handleCSV = () => {
-    const { filas, metricas } = tablaData;
-    if (!filas.length) return;
-
-    const headers = ["Institución", ...metricas.map(m => `${m.nombre_metrica} (${m.peso_metrica}%)`), "Score Total"];
-    const rows = filas.map(f => [
-      f.nombre,
-      ...metricas.map(m => getValor(f.id_universidad, m.id_metrica, f.valores[m.id_metrica])),
-      calcScore(f).toFixed(2)
-    ]);
-
-    const csv = [
-      `Ranking:,${rankingNombre}`,
-      `Año:,${anio}`,
-      `Instituciones:,${filas.length}`,
-      "",
-      headers.join(","),
-      ...rows.map(r => r.join(","))
-    ].join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `simulacion_${rankingNombre}_${anio}.csv`;
-    link.click();
-  };
-
-  const handlePDF = () => {
-    const { filas, metricas } = tablaData;
-    if (!filas.length) return;
-
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const margin = 14;
-    let y = margin;
-
-    // Encabezado
-    pdf.setFontSize(18);
-    pdf.setTextColor(20, 20, 20);
-    pdf.text("KAI — Informe de Simulación", margin, y);
-    y += 8;
-
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(`Ranking: ${rankingNombre}   |   Año: ${anio}   |   Instituciones: ${filas.length}`, margin, y);
-    y += 10;
-
-    // Línea separadora
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(margin, y, pageW - margin, y);
-    y += 6;
-
-    // Cabecera tabla
-    const colW = Math.min(38, (pageW - margin * 2 - 50) / metricas.length);
-    const instW = 50;
-
-    pdf.setFontSize(7);
-
-    // Celda Institución
-    pdf.setFillColor(20, 20, 20);
-    pdf.setTextColor(255, 255, 255);
-    pdf.rect(margin, y, instW, 8, "F");
-    pdf.text("Institución", margin + 2, y + 5);
-
-    // Celdas métricas
-    metricas.forEach((m, i) => {
-    const x = margin + instW + i * colW;
-    pdf.setFillColor(20, 20, 20);
-    pdf.setTextColor(255, 255, 255); // reset explícito por cada celda
-    pdf.rect(x, y, colW, 8, "F");
-    pdf.text(m.nombre_metrica.slice(0, 12), x + 2, y + 5);
-    });
-
-    // Celda Score
-    const scoreX = margin + instW + metricas.length * colW;
-    pdf.setFillColor(40, 40, 40);
-    pdf.setTextColor(255, 255, 255); // reset explícito
-    pdf.rect(scoreX, y, 24, 8, "F");
-    pdf.text("Score", scoreX + 2, y + 5);
-    y += 8;
-
-    // Filas ordenadas por score
-    const filasOrdenadas = [...filas].sort((a, b) => calcScore(b) - calcScore(a));
-
-    filasOrdenadas.forEach((fila, idx) => {
-        if (y > 185) { pdf.addPage(); y = margin; }
-      
-        const rowH = 7;
-        const bgVal = idx % 2 === 0 ? 248 : 255;
-      
-        // Institución
-        pdf.setFillColor(bgVal, bgVal, bgVal);
-        pdf.setTextColor(20, 20, 20);
-        pdf.rect(margin, y, instW, rowH, "F");
-        pdf.setFontSize(7);
-        pdf.text(fila.nombre.slice(0, 28), margin + 2, y + 4.5);
-      
-        // Métricas
-        metricas.forEach((m, i) => {
-          const x = margin + instW + i * colW;
-          pdf.setFillColor(bgVal, bgVal, bgVal); // reset por cada celda
-          pdf.rect(x, y, colW, rowH, "F");
-          const val = getValor(fila.id_universidad, m.id_metrica, fila.valores[m.id_metrica]);
-          const modificado = tablaData.overrides[fila.id_universidad]?.[m.id_metrica] !== undefined;
-          pdf.setTextColor(modificado ? 100 : 20, modificado ? 80 : 20, modificado ? 180 : 20);
-          pdf.text(String(val), x + 2, y + 4.5);
-        });
-      
-        // Score
-        pdf.setFillColor(235, 235, 235);
-        pdf.setTextColor(20, 20, 20);
-        pdf.rect(scoreX, y, 24, rowH, "F");
-        pdf.setFont(undefined, "bold");
-        pdf.text(calcScore(fila).toFixed(1), scoreX + 2, y + 4.5);
-        pdf.setFont(undefined, "normal");
-        y += rowH;
-      });
-
-    // Nota valores modificados
-    y += 6;
-    pdf.setFontSize(7);
-    pdf.setTextColor(100, 80, 180);
-    pdf.text("* Valores en morado fueron modificados en la simulación.", margin, y);
-
-    pdf.save(`simulacion_${rankingNombre}_${anio}.pdf`);
-  };
+  const nombreUnitaria = universidades?.find(u => u.id_universidad === institucionUnitaria)?.nombre_universidad;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-white">
-      <div className="flex flex-grow w-full max-w-[1920px] mx-auto overflow-hidden" style={{ height: "calc(100vh - 64px)" }}>
+    <div className="min-h-screen bg-background text-white">
+      <main className="max-w-[1600px] mx-auto px-8 pt-[22px] pb-10">
 
-        <SidebarSimulacion
-          width={sidebarWidth}
-          setWidth={setSidebarWidth}
-          rankingId={rankingId}
-          setRankingId={handleRankingChange}
-          anio={anio}
-          setAnio={setAnio}
-          selectedUniversidades={selectedUniversidades}
-          setSelectedUniversidades={setSelectedUniversidades}
-          disciplinas={tablaData.disciplinas}
-          disciplinaFiltro={disciplinaFiltro}
-          setDisciplinaFiltro={setDisciplinaFiltro}
-        />
-
-        <main className="flex-grow min-w-0 flex flex-col overflow-hidden">
-
-          {/* Barra de acciones */}
-          {anio && selectedUniversidades.length > 0 && (
-            <div className="flex items-center justify-end gap-3 px-6 py-3 border-b border-outline/20 bg-background shrink-0">
-              <span className="text-[10px] uppercase tracking-widest text-outlineSoft mr-2">
-                {rankingNombre} · {anio}
-              </span>
+        {/* Título + tabs de modo */}
+        <section className="flex items-end justify-between gap-4 flex-wrap mb-1">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
+              Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}
+            </p>
+            <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
+              Simulación de escenarios
+            </h2>
+          </div>
+          <div className="flex gap-1.5">
+            {MODOS.map(m => (
               <button
-                onClick={handleCSV}
-                className="flex items-center gap-2 px-4 py-2 border border-outline/40 text-[10px] uppercase tracking-widest text-white hover:bg-white hover:text-black transition-all"
+                key={m.modo}
+                onClick={() => navigate(`/simulacion/${m.modo}`)}
+                className={`font-body font-semibold text-[11px] py-2 px-4 border transition-colors ${
+                  modo === m.modo ? "bg-white text-[#111] border-white" : "bg-[#1c1c1c] text-[#9a9a9a] border-white/[.14] hover:text-white"
+                }`}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Exportar CSV
+                {m.label}
               </button>
-              <button
-                onClick={handlePDF}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-black text-[10px] uppercase tracking-widest hover:bg-white/80 transition-all"
+            ))}
+          </div>
+        </section>
+
+        {/* Controles: ranking / año / instituciones */}
+        <div className="flex items-end gap-3 flex-wrap py-4 mb-2 border-b border-white/[.08]">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Ranking</p>
+            <select
+              value={rankingId}
+              onChange={e => handleRankingChange(Number(e.target.value))}
+              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
+            >
+              {rankings.map(r => (
+                <option key={r.id_ranking} value={r.id_ranking}>{r.nombre_ranking}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Año</p>
+            <select
+              value={anio || ""}
+              onChange={e => setAnio(Number(e.target.value))}
+              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
+            >
+              {anios.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+
+          {disciplinas.length > 0 && (
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Disciplina</p>
+              <select
+                value={disciplinaFiltro || ""}
+                onChange={e => setDisciplinaFiltro(e.target.value || null)}
+                className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Exportar PDF
-              </button>
+                <option value="">Todas</option>
+                {disciplinas.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
             </div>
           )}
 
-          <div className="flex-1 flex overflow-hidden">
-            <TablaSimulacion
-              rankingId={rankingId}
-              anio={anio}
-              selectedUniversidades={selectedUniversidades}
-              disciplinaFiltro={disciplinaFiltro}
-              onDataChange={setTablaData}
-            />
-          </div>
-          <AgenteIA />
-        </main>
+          <div className="relative">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">
+              {modo === "unitaria" ? "Institución" : `Instituciones (${institucionesComparada.length})`}
+            </p>
+            <button
+              onClick={() => setShowPicker(v => !v)}
+              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 min-w-[220px] text-left flex items-center justify-between gap-3 hover:border-white/30 transition-colors"
+            >
+              <span className="truncate">
+                {modo === "unitaria"
+                  ? nombreUnitaria || "Seleccionar..."
+                  : institucionesComparada.length ? `${institucionesComparada.length} seleccionadas` : "Seleccionar..."}
+              </span>
+              <span className="text-[8px] text-outlineSoft shrink-0">▾</span>
+            </button>
 
-      </div>
+            {showPicker && (
+              <div className="absolute top-full left-0 mt-1 w-[300px] bg-[#1a1a1a] border border-white/[.18] shadow-[0_12px_32px_rgba(0,0,0,.5)] z-30">
+                <div className="p-2 border-b border-white/[.1]">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Buscar..."
+                    value={searchUni}
+                    onChange={e => setSearchUni(e.target.value)}
+                    className="w-full bg-transparent text-white text-xs px-2 py-1.5 outline-none placeholder:text-outlineSoft"
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {unisFiltradas.map(u => {
+                    const seleccionada = modo === "unitaria"
+                      ? institucionUnitaria === u.id_universidad
+                      : institucionesComparada.includes(u.id_universidad);
+                    return (
+                      <button
+                        key={u.id_universidad}
+                        onClick={() => {
+                          if (modo === "unitaria") {
+                            setInstitucionUnitaria(u.id_universidad);
+                            setShowPicker(false);
+                          } else {
+                            setInstitucionesComparada(prev =>
+                              prev.includes(u.id_universidad) ? prev.filter(id => id !== u.id_universidad) : [...prev, u.id_universidad]
+                            );
+                          }
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                          seleccionada ? "bg-white/[.08] text-white" : "text-[#9a9a9a] hover:text-white hover:bg-white/[.04]"
+                        }`}
+                      >
+                        {u.nombre_universidad}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Cuerpo por modo */}
+        {modo === "unitaria" ? (
+          <SimulacionUnitaria
+            rankingId={rankingId}
+            anio={anio}
+            rankingNombre={rankingNombre}
+            universidadId={institucionUnitaria}
+            disciplinaFiltro={disciplinaFiltro}
+          />
+        ) : (
+          <SimulacionComparada
+            rankingId={rankingId}
+            anio={anio}
+            rankingNombre={rankingNombre}
+            selectedUniversidades={institucionesComparada}
+            disciplinaFiltro={disciplinaFiltro}
+          />
+        )}
+      </main>
+
+      <AgenteIA />
     </div>
   );
 }

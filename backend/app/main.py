@@ -287,6 +287,138 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int):
     finally:
         db.close()
 
+FUENTE_TOP2 = "Stanford/Elsevier - World's Top 2% Scientists"
+FUENTE_SCOPUS_PUCV = "Scopus - Censo institucional PUCV"
+
+@app.get("/cientificos-fuentes")
+def get_cientificos_fuentes():
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT fuente, count(*) AS total
+            FROM cientifico_metrica
+            GROUP BY fuente
+            ORDER BY fuente
+        """))
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+@app.get("/cientificos")
+def get_cientificos(
+    fuente: str = FUENTE_TOP2,
+    campo: str = None,
+    universidad_id: int = None,
+    q: str = None,
+    topico: str = None,
+):
+    db = SessionLocal()
+    try:
+        params = {"fuente": fuente}
+        filtros = ["cm.fuente = :fuente"]
+        if campo:
+            filtros.append("c.campo_principal = :campo")
+            params["campo"] = campo
+        if universidad_id:
+            filtros.append("c.id_universidad = :universidad_id")
+            params["universidad_id"] = universidad_id
+        if q:
+            filtros.append("c.nombre_cientifico ILIKE :q")
+            params["q"] = f"%{q}%"
+        if topico:
+            filtros.append("""
+                EXISTS (
+                    SELECT 1 FROM cientifico_topico ct
+                    WHERE ct.id_cientifico = c.id_cientifico
+                      AND ct.topico ILIKE :topico
+                )
+            """)
+            params["topico"] = f"%{topico}%"
+        where_clause = "WHERE " + " AND ".join(filtros)
+
+        query = text(f"""
+            SELECT
+                c.id_cientifico,
+                c.nombre_cientifico,
+                c.id_universidad,
+                u.nombre_universidad,
+                c.institucion_original,
+                c.pais_cientifico,
+                c.orcid,
+                c.campo_principal,
+                c.subcampo_principal,
+                c.anio_primera_publicacion,
+                c.anio_ultima_publicacion,
+                cm.fuente,
+                cm.anio_datos,
+                cm.rank_global,
+                cm.rank_global_ns,
+                cm.h_index,
+                cm.hm_index,
+                cm.citas_totales,
+                cm.num_articulos,
+                cm.composite_score,
+                cm.self_citation_pct,
+                COALESCE(tt.topics_top3, '[]'::json) AS topics_top3,
+                COALESCE(tt.topics_total, 0) AS topics_total
+            FROM cientifico c
+            JOIN cientifico_metrica cm ON cm.id_cientifico = c.id_cientifico
+            LEFT JOIN universidad u ON u.id_universidad = c.id_universidad
+            LEFT JOIN LATERAL (
+                SELECT
+                    (SELECT json_agg(row_to_json(top))
+                     FROM (
+                        SELECT ct.topico, ct.autor_documentos
+                        FROM cientifico_topico ct
+                        WHERE ct.id_cientifico = c.id_cientifico AND ct.fuente = cm.fuente
+                        ORDER BY ct.autor_documentos DESC NULLS LAST, ct.topico
+                        LIMIT 3
+                     ) top) AS topics_top3,
+                    (SELECT count(*) FROM cientifico_topico ct2
+                     WHERE ct2.id_cientifico = c.id_cientifico AND ct2.fuente = cm.fuente) AS topics_total
+            ) tt ON true
+            {where_clause}
+            ORDER BY cm.rank_global ASC NULLS LAST, cm.h_index DESC NULLS LAST
+        """)
+        result = db.execute(query, params)
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+@app.get("/cientificos/{id_cientifico}/topicos")
+def get_cientifico_topicos(id_cientifico: int, fuente: str = None):
+    db = SessionLocal()
+    try:
+        params = {"id_cientifico": id_cientifico}
+        fuente_clause = ""
+        if fuente:
+            fuente_clause = "AND fuente = :fuente"
+            params["fuente"] = fuente
+        result = db.execute(text(f"""
+            SELECT topico, fuente, anio_datos, autor_documentos, topico_fwci
+            FROM cientifico_topico
+            WHERE id_cientifico = :id_cientifico
+            {fuente_clause}
+            ORDER BY autor_documentos DESC NULLS LAST, topico
+        """), params)
+        return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+@app.get("/cientificos-campos")
+def get_cientificos_campos():
+    db = SessionLocal()
+    try:
+        result = db.execute(text("""
+            SELECT DISTINCT campo_principal
+            FROM cientifico
+            WHERE campo_principal IS NOT NULL
+            ORDER BY campo_principal
+        """))
+        return [row._mapping["campo_principal"] for row in result]
+    finally:
+        db.close()
+
 @app.get("/metricas-con-datos")
 def get_metricas_con_datos(ranking_id: int):
     db = SessionLocal()
