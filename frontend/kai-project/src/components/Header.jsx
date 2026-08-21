@@ -7,25 +7,38 @@ const NAV = [
   { label: "Tendencias", to: "/tendencias" },
 ];
 
-const NAV_AFTER_SIM = [
-  { label: "Científicos", to: "/cientificos" },
-  { label: "Investigadores PUCV", to: "/investigadores-pucv" },
+const NAV_AFTER_DROPDOWNS = [
   { label: "Glosario", to: "/metricas" },
   { label: "Asistente", to: "/asistente" },
 ];
 
-const MODOS_SIMULACION = [
+const OPCIONES_SIMULACION = [
   {
-    modo: "unitaria",
+    to: "/simulacion/unitaria",
     label: "Unitaria",
     sub: "Una institución · sliders",
     desc: "Ajusta cada métrica de tu institución con un slider y mira el efecto en su score y posición.",
   },
   {
-    modo: "comparada",
+    to: "/simulacion/comparada",
     label: "Comparada",
     sub: "Varias instituciones · matriz",
     desc: "Edita celda por celda una matriz de instituciones y métricas; el ranking se reordena en vivo.",
+  },
+];
+
+const OPCIONES_INVESTIGADORES = [
+  {
+    to: "/cientificos",
+    label: "Científicos",
+    sub: "Top 2% Mundial · Stanford/Elsevier",
+    desc: "Investigadores chilenos en el ranking global de mayor impacto bibliométrico (índice-c, citas, índice H).",
+  },
+  {
+    to: "/investigadores-pucv",
+    label: "Investigadores PUCV",
+    sub: "Censo institucional · Scopus",
+    desc: "Todos los autores PUCV indexados en Scopus, con índice H, documentos y áreas de investigación.",
   },
 ];
 
@@ -34,22 +47,66 @@ const navLinkClass = ({ isActive }) =>
     isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
   }`;
 
-export default function Header() {
+function NavDropdown({ label, opciones }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const closeTimer = useRef(null);
 
-  const enSimulacion = location.pathname.startsWith("/simulacion");
-  const modoActivo = location.pathname.split("/")[2];
+  const activo = opciones.some(o => location.pathname === o.to);
 
   const abrir = () => {
     clearTimeout(closeTimer.current);
-    setMenuOpen(true);
+    setOpen(true);
   };
   const cerrarConDelay = () => {
-    closeTimer.current = setTimeout(() => setMenuOpen(false), 120);
+    closeTimer.current = setTimeout(() => setOpen(false), 120);
   };
+
+  return (
+    <div className="relative h-full flex items-center" onMouseEnter={abrir} onMouseLeave={cerrarConDelay}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`relative flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
+          activo ? "text-white" : "text-outlineSoft hover:text-white"
+        }`}
+      >
+        {label}
+        <span className="text-[8px] text-outlineSoft">▾</span>
+        {activo && <span className="absolute left-4 right-4 bottom-0 h-[2px] bg-white" />}
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 w-[330px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
+          {opciones.map(o => {
+            const esActual = location.pathname === o.to;
+            return (
+              <button
+                key={o.to}
+                onClick={() => { navigate(o.to); setOpen(false); }}
+                className={`w-full text-left px-3.5 py-3 transition-colors ${
+                  esActual ? "bg-white/[.08]" : "hover:bg-white/[.05]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`font-body font-semibold text-[12.5px] ${esActual ? "text-white" : "text-[#dcdcdc]"}`}>
+                    {o.label}
+                  </span>
+                  {esActual && <span className="text-[9px] text-accent">✓ actual</span>}
+                </div>
+                <div className="text-[11px] text-[#8a8a8a] mt-0.5">{o.sub}</div>
+                <div className="text-[10.5px] leading-relaxed text-[#6f6f6f] mt-1">{o.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Header() {
+  const navigate = useNavigate();
 
   return (
     <header className="flex justify-between items-center px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
@@ -68,51 +125,10 @@ export default function Header() {
           </NavLink>
         ))}
 
-        <div
-          className="relative h-full flex items-center"
-          onMouseEnter={abrir}
-          onMouseLeave={cerrarConDelay}
-        >
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            className={`relative flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-              enSimulacion ? "text-white" : "text-outlineSoft hover:text-white"
-            }`}
-          >
-            Simulación
-            <span className="text-[8px] text-outlineSoft">▾</span>
-            {enSimulacion && (
-              <span className="absolute left-4 right-4 bottom-0 h-[2px] bg-white" />
-            )}
-          </button>
+        <NavDropdown label="Simulación" opciones={OPCIONES_SIMULACION} />
+        <NavDropdown label="Investigadores" opciones={OPCIONES_INVESTIGADORES} />
 
-          {menuOpen && (
-            <div className="absolute top-full left-0 w-[330px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
-              {MODOS_SIMULACION.map(m => (
-                <button
-                  key={m.modo}
-                  onClick={() => { navigate(`/simulacion/${m.modo}`); setMenuOpen(false); }}
-                  className={`w-full text-left px-3.5 py-3 transition-colors ${
-                    modoActivo === m.modo ? "bg-white/[.08]" : "hover:bg-white/[.05]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`font-body font-semibold text-[12.5px] ${modoActivo === m.modo ? "text-white" : "text-[#dcdcdc]"}`}>
-                      {m.label}
-                    </span>
-                    {modoActivo === m.modo && (
-                      <span className="text-[9px] text-accent">✓ actual</span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-[#8a8a8a] mt-0.5">{m.sub}</div>
-                  <div className="text-[10.5px] leading-relaxed text-[#6f6f6f] mt-1">{m.desc}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {NAV_AFTER_SIM.map(section => (
+        {NAV_AFTER_DROPDOWNS.map(section => (
           <NavLink key={section.label} to={section.to} className={navLinkClass}>
             {section.label}
           </NavLink>
