@@ -91,8 +91,7 @@ def get_trends(ranking_id: int, metrica_id: int, universidades: str = None):
 
         result = db.execute(text(base_query), params)
         rows = [dict(row._mapping) for row in result]
-
-        # 🔥 calcular min y max
+        
         valores = [r["valor"] for r in rows if r["valor"] is not None]
 
         min_val = min(valores) if valores else 0
@@ -128,7 +127,7 @@ def get_universidades():
     db = SessionLocal()
     try:
         result = db.execute(text("""
-            SELECT id_universidad, nombre_universidad
+            SELECT id_universidad, nombre_universidad, pais_universidad
             FROM universidad
             ORDER BY nombre_universidad
         """))
@@ -385,6 +384,64 @@ def get_cientificos(
     finally:
         db.close()
 
+@app.get("/cientificos-sugerencias")
+def get_cientificos_sugerencias(
+    fuente: str = FUENTE_TOP2,
+    q: str = None,
+    limite: int = 6,
+):
+    """Autocompletado del buscador de investigadores. Devuelve dos grupos:
+    nombres de investigador y áreas de investigación, ambos ordenados poniendo
+    primero las coincidencias por prefijo. Consulta ligera a propósito: no
+    arrastra métricas ni tópicos anidados como /cientificos."""
+    db = SessionLocal()
+    try:
+        termino = (q or "").strip()
+        if len(termino) < 2:
+            return {"investigadores": [], "topicos": []}
+
+        limite = max(1, min(limite, 20))
+        params = {
+            "fuente": fuente,
+            "like": f"%{termino}%",
+            "crudo": termino.lower(),
+            "limite": limite,
+        }
+
+        investigadores = db.execute(text("""
+            SELECT c.id_cientifico, c.nombre_cientifico, cm.h_index, cm.num_articulos
+            FROM cientifico c
+            JOIN cientifico_metrica cm ON cm.id_cientifico = c.id_cientifico
+            WHERE cm.fuente = :fuente
+              AND c.nombre_cientifico ILIKE :like
+            ORDER BY
+              CASE WHEN position(:crudo IN lower(c.nombre_cientifico)) = 1 THEN 0 ELSE 1 END,
+              cm.h_index DESC NULLS LAST,
+              c.nombre_cientifico
+            LIMIT :limite
+        """), params)
+
+        topicos = db.execute(text("""
+            SELECT ct.topico, count(DISTINCT ct.id_cientifico) AS investigadores
+            FROM cientifico_topico ct
+            WHERE ct.fuente = :fuente
+              AND ct.topico ILIKE :like
+            GROUP BY ct.topico
+            ORDER BY
+              CASE WHEN position(:crudo IN lower(ct.topico)) = 1 THEN 0 ELSE 1 END,
+              count(DISTINCT ct.id_cientifico) DESC,
+              ct.topico
+            LIMIT :limite
+        """), params)
+
+        return {
+            "investigadores": [dict(r._mapping) for r in investigadores],
+            "topicos": [dict(r._mapping) for r in topicos],
+        }
+    finally:
+        db.close()
+
+
 @app.get("/cientificos/{id_cientifico}/topicos")
 def get_cientifico_topicos(id_cientifico: int, fuente: str = None):
     db = SessionLocal()
@@ -424,14 +481,73 @@ def get_metricas_con_datos(ranking_id: int):
     db = SessionLocal()
     try:
         result = db.execute(text("""
-            SELECT m.id_metrica, m.nombre_metrica, m.disciplina,
+            SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
                    MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max
             FROM metrica m
             JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id
-            GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina
+            GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica
             ORDER BY m.nombre_metrica, m.disciplina
         """), {"ranking_id": ranking_id})
         return [dict(row._mapping) for row in result]
+    finally:
+        db.close()
+
+
+@app.get("/tendencias-comparacion")
+def get_tendencias_comparacion(
+    ranking_id: int,
+    anio: int,
+    metricas: str = None,
+    universidades: str = None,
+):
+    """Vista 'Comparación anual' de Tendencias: N instituciones x M métricas en un
+    único año. Devuelve además el techo observado de cada métrica (su máximo
+    histórico dentro del ranking) para poder normalizar en un mismo eje métricas
+    que conviven en escalas distintas (0-100, 0-5, conteos de papers)."""
+    db = SessionLocal()
+    try:
+        params = {"ranking_id": ranking_id, "anio": anio}
+
+        met_filter = ""
+        if metricas:
+            params["met_ids"] = [int(x) for x in metricas.split(",") if x.strip()]
+            met_filter = "AND m.id_metrica = ANY(:met_ids)"
+
+        uni_filter = ""
+        if universidades:
+            params["uni_ids"] = [int(x) for x in universidades.split(",") if x.strip()]
+            uni_filter = "AND u.id_universidad = ANY(:uni_ids)"
+
+        query = text(f"""
+            WITH techos AS (
+                SELECT mu.id_metrica, MAX(mu.valor_metrica) AS techo
+                FROM metrica_universidad mu
+                JOIN metrica m ON m.id_metrica = mu.id_metrica
+                WHERE m.id_ranking = :ranking_id
+                GROUP BY mu.id_metrica
+            )
+            SELECT
+                m.id_metrica,
+                m.nombre_metrica,
+                m.peso_metrica,
+                m.disciplina,
+                t.techo,
+                u.id_universidad,
+                u.nombre_universidad,
+                mu.valor_metrica AS valor
+            FROM metrica m
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN universidad u ON u.id_universidad = mu.id_universidad
+            JOIN techos t ON t.id_metrica = m.id_metrica
+            WHERE m.id_ranking = :ranking_id
+              AND mu.anio_metrica = :anio
+              AND mu.valor_metrica IS NOT NULL
+              {met_filter}
+              {uni_filter}
+            ORDER BY m.id_metrica, u.nombre_universidad
+        """)
+
+        return [dict(row._mapping) for row in db.execute(query, params)]
     finally:
         db.close()

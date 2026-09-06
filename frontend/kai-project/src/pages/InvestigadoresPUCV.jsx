@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useCientificos } from "../hooks/useCientificos";
 import UniversidadLogo from "../components/UniversidadLogo";
+import BuscadorAutocomplete from "../components/cientificos/BuscadorAutocomplete";
 
 const FUENTE_SCOPUS_PUCV = "Scopus - Censo institucional PUCV";
 const LOTE = 20;
@@ -15,14 +16,50 @@ const PlaceholderIcon = () => (
   </div>
 );
 
+const Chip = ({ etiqueta, valor, onQuitar }) => (
+  <span className="flex items-center gap-2 pl-2.5 pr-1.5 py-[6px] bg-white/[.06] border border-white/[.14] max-w-full">
+    <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f] flex-none">{etiqueta}</span>
+    <span className="font-body text-[11.5px] text-[#e6e6e6] truncate max-w-[420px]">{valor}</span>
+    <button
+      onClick={onQuitar}
+      title={`Quitar filtro por ${etiqueta.toLowerCase()}`}
+      className="w-4 h-4 flex items-center justify-center text-[13px] text-[#8a8a8a] hover:text-white transition-colors flex-none"
+    >
+      ×
+    </button>
+  </span>
+);
+
 export default function InvestigadoresPUCV() {
-  const [search, setSearch] = useState("");
-  const [topicoQuery, setTopicoQuery] = useState("");
+  // `texto` es solo lo que hay escrito en la barra: alimenta el autocompletado y
+  // nada más. El listado depende exclusivamente de los filtros aplicados, que se
+  // fijan al elegir una sugerencia o al pulsar Enter, nunca al teclear.
+  const [texto, setTexto] = useState("");
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroArea, setFiltroArea] = useState("");
   const [cursor, setCursor] = useState(LOTE);
 
-  const { data, loading } = useCientificos({ fuente: FUENTE_SCOPUS_PUCV, q: search, topico: topicoQuery });
+  const { data, loading } = useCientificos({
+    fuente: FUENTE_SCOPUS_PUCV,
+    q: filtroNombre,
+    topico: filtroArea,
+  });
 
-  useEffect(() => { setCursor(LOTE); }, [search, topicoQuery]);
+  const aplicarNombre = (nombre) => {
+    setTexto(nombre);
+    setFiltroNombre(nombre);
+    setFiltroArea("");
+  };
+
+  const aplicarArea = (area) => {
+    setTexto("");
+    setFiltroNombre("");
+    setFiltroArea(area);
+  };
+
+  const limpiarFiltros = () => { setTexto(""); setFiltroNombre(""); setFiltroArea(""); };
+
+  useEffect(() => { setCursor(LOTE); }, [filtroNombre, filtroArea]);
 
   const visibles = useMemo(() => data.slice(0, cursor), [data, cursor]);
   const hayMas = cursor < data.length;
@@ -41,33 +78,37 @@ export default function InvestigadoresPUCV() {
               Investigadores
             </h2>
           </div>
-          <input
-            type="text"
-            placeholder="Nombre, topic o unidad..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-[260px] bg-[#1c1c1c] border border-white/[.14] text-white text-xs px-3 py-2.5 outline-none focus:border-white/40"
+          <BuscadorAutocomplete
+            className="w-[340px] max-w-full"
+            fuente={FUENTE_SCOPUS_PUCV}
+            valor={texto}
+            onCambio={setTexto}
+            placeholder="Buscar investigador o área…"
+            onElegirInvestigador={aplicarNombre}
+            onElegirTopico={aplicarArea}
+            onEnviar={aplicarNombre}
           />
         </section>
 
-        {/* Filtro por topic */}
-        <div className="mb-6 flex items-center gap-3 flex-wrap">
-          <input
-            type="text"
-            placeholder="Filtrar por área de investigación (ej: salmon, optimization, education...)"
-            value={topicoQuery}
-            onChange={e => setTopicoQuery(e.target.value)}
-            className="w-[420px] max-w-full bg-[#1c1c1c] border border-white/[.14] text-white text-xs px-3 py-2.5 outline-none focus:border-white/40"
-          />
-          {(search || topicoQuery) && (
+        {/* Filtros aplicados. Como teclear ya no altera el listado, los chips son
+            la única señal de qué está filtrando: se muestran ambos, incluido el
+            nombre, porque la barra puede tener texto distinto al filtro vigente. */}
+        {(filtroNombre || filtroArea) && (
+          <div className="mb-6 flex items-center gap-2 flex-wrap">
+            {filtroNombre && (
+              <Chip etiqueta="Nombre" valor={filtroNombre} onQuitar={() => setFiltroNombre("")} />
+            )}
+            {filtroArea && (
+              <Chip etiqueta="Área" valor={filtroArea} onQuitar={() => setFiltroArea("")} />
+            )}
             <button
-              onClick={() => { setSearch(""); setTopicoQuery(""); }}
+              onClick={limpiarFiltros}
               className="text-[10px] uppercase tracking-wider px-3 py-2 bg-white/[.04] border border-white/[.12] text-[#c4c4c4] hover:text-white transition-colors"
             >
               Limpiar filtros
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">Cargando...</div>
@@ -75,7 +116,7 @@ export default function InvestigadoresPUCV() {
           <div className="flex flex-col items-center justify-center h-64 gap-3">
             <span className="text-outlineSoft text-sm">No se encontraron investigadores con esos filtros.</span>
             <button
-              onClick={() => { setSearch(""); setTopicoQuery(""); }}
+              onClick={limpiarFiltros}
               className="text-[10px] uppercase tracking-wider px-3 py-2 bg-white/[.04] border border-white/[.12] text-[#c4c4c4] hover:text-white transition-colors"
             >
               Limpiar filtros
