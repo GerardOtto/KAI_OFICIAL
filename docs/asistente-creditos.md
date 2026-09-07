@@ -8,12 +8,20 @@ de responder y cómo cargar saldo para la compra de tokens.
 - **Frontend:** [`frontend/kai-project/src/pages/Asistente.jsx`](../frontend/kai-project/src/pages/Asistente.jsx).
 - **Modelo en uso:** `claude-opus-5` con `effort: "medium"` y 5 herramientas que consultan la base de datos.
 
-> **Estado al 6 de septiembre de 2026:** la clave configurada en `backend/.env`
-> está bien formada (108 caracteres, prefijo `sk-ant-api03-`, sin espacios) pero la
-> API responde `401 — API key is invalid`. **El bloqueo actual es la clave, no el
-> saldo.** Hasta reemplazarla no es posible consultar el saldo de la cuenta, porque
-> para leerlo hace falta una credencial válida. Ve a la sección
-> [Reemplazar la clave](#2-reemplazar-la-clave-de-api).
+> Este documento cubre **el motor Claude**. El asistente tiene además un segundo
+> motor, Gemini, mucho más barato por token, que el usuario puede elegir al
+> abrir una conversación: ver [asistente-motores.md](asistente-motores.md).
+> Si Claude se queda sin créditos, una conversación nueva con Gemini sigue
+> funcionando.
+
+> **Estado al 7 de septiembre de 2026:** la clave de `backend/.env` **ya es
+> válida** —la API la acepta—, pero la cuenta **no tiene créditos**: una consulta
+> real devuelve el error de saldo agotado. El bloqueo actual es el saldo, no la
+> clave. Ve a [Cargar créditos](#3-cargar-créditos).
+>
+> Mientras tanto, el asistente **sigue funcionando con el motor Gemini**, que
+> tiene su propia clave y facturación: basta abrir una conversación nueva y
+> elegirlo. Ver [asistente-motores.md](asistente-motores.md).
 
 ---
 

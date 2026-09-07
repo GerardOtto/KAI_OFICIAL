@@ -44,6 +44,7 @@ Cuenta de Google  ───┘
 | PATCH | `/conversaciones/{id}` | sí | Renombrar |
 | DELETE | `/conversaciones/{id}` | sí | Eliminar |
 | GET | `/uso` | sí | Consumo del mes y límites |
+| GET | `/motores` | no | Motores del asistente y cuáles están configurados |
 | POST | `/chat` | sí | Consultar al asistente |
 
 Los módulos de rankings, tendencias, simulación e investigadores **siguen siendo
@@ -112,6 +113,10 @@ Cada consulta al asistente pertenece a una conversación del usuario:
 
 - La primera consulta crea la conversación y toma su título de las primeras
   palabras del mensaje.
+- Cada conversación queda ligada a **un motor** (Claude o Gemini) al crearse y no
+  puede cambiarlo después; para pasar una pregunta al otro modelo se deriva a una
+  conversación nueva. El porqué y cómo, en
+  [asistente-motores.md](asistente-motores.md#2-por-qué-un-motor-no-se-puede-cambiar-a-mitad-de-conversación).
 - El historial se reconstruye **en el servidor**, no se recibe del cliente. Así
   el cliente no puede inyectar turnos falsos ni inflar el contexto que se
   factura, y la conversación sobrevive a un cambio de dispositivo.

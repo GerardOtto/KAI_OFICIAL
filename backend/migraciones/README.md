@@ -7,6 +7,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | Archivo | Qué hace | Local | Railway |
 |---|---|---|---|
 | `001_usuarios_y_conversaciones.sql` | Autenticación, cuentas de Google, planes, conversaciones y consumo de tokens | aplicada | aplicada (07-09-2026) |
+| `002_motor_por_conversacion.sql` | Motor del asistente (Claude o Gemini) fijado por conversación | aplicada | aplicada (07-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -96,6 +97,8 @@ Además de la migración, el servicio de backend necesita estas variables
 | `JWT_SECRET` | **sí** | Sin ella, todo `/auth/*` responde 503. Genera una distinta de la local |
 | `JWT_HORAS_VALIDEZ` | no | Por defecto 12 |
 | `GOOGLE_CLIENT_ID` | no | Sin ella el botón de Google no aparece |
+| `GEMINI_API_KEY` | no | Sin ella el motor Gemini se muestra deshabilitado. Ver `docs/asistente-motores.md` |
+| `GEMINI_MODEL` | no | Por defecto `gemini-3.1-flash-lite` |
 
 Para generar un secreto:
 

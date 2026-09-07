@@ -53,10 +53,42 @@ export function useConversaciones(autenticado) {
   return { conversaciones, cargando, recargar, eliminar, renombrar, abrir };
 }
 
-/** Envía un mensaje al asistente. Devuelve la respuesta y la cuota actualizada. */
-export async function enviarMensaje(mensaje, idConversacion) {
+/** Catálogo de motores del asistente y cuál usar por defecto.
+ *
+ * El servidor es la única fuente: qué motores existen y cuáles tienen su clave
+ * configurada depende del despliegue, no del cliente.
+ */
+export function useMotores() {
+  const [motores, setMotores] = useState([]);
+  const [porDefecto, setPorDefecto] = useState("claude");
+
+  useEffect(() => {
+    let vigente = true;
+    pedir("/motores")
+      .then((d) => {
+        if (!vigente) return;
+        setMotores(d.motores || []);
+        if (d.por_defecto) setPorDefecto(d.por_defecto);
+      })
+      .catch((e) => console.error(e));
+    return () => { vigente = false; };
+  }, []);
+
+  return { motores, porDefecto };
+}
+
+/** Envía un mensaje al asistente. Devuelve la respuesta y la cuota actualizada.
+ *
+ * `motor` solo se envía al abrir una conversación nueva; en una existente el
+ * servidor usa el que quedó fijado y rechaza un motor distinto con un 409.
+ */
+export async function enviarMensaje(mensaje, idConversacion, motor) {
   return pedir("/chat", {
     method: "POST",
-    body: JSON.stringify({ mensaje, id_conversacion: idConversacion ?? null }),
+    body: JSON.stringify({
+      mensaje,
+      id_conversacion: idConversacion ?? null,
+      motor: idConversacion == null ? motor : null,
+    }),
   });
 }

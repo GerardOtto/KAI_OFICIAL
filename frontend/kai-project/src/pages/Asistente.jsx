@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ChatSidebar from "../components/asistente/ChatSidebar";
 import { useAuth } from "../auth/AuthContext";
-import { useConversaciones, enviarMensaje } from "../hooks/useConversaciones";
+import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
 
 const hora = (fecha) =>
   new Date(fecha).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -24,6 +24,13 @@ const SparkleIcon = () => (
   </svg>
 );
 
+const ForkIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6" cy="4" r="2" /><circle cx="18" cy="4" r="2" /><circle cx="12" cy="20" r="2" />
+    <path d="M6 6v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6M12 12v6" />
+  </svg>
+);
+
 const SUGERENCIAS = [
   "¿Qué rankings hay cargados y qué período cubre cada uno?",
   "Compara el índice de citas de la PUCV en THE Latam entre 2019 y 2024.",
@@ -33,13 +40,30 @@ const SUGERENCIAS = [
 export default function Asistente() {
   const { usuario, cuota, setCuota, refrescar } = useAuth();
   const { conversaciones, recargar, eliminar, abrir } = useConversaciones(!!usuario);
+  const { motores, porDefecto } = useMotores();
 
   const [idConversacion, setIdConversacion] = useState(null);
+  const [motor, setMotor] = useState(null);
   const [mensajes, setMensajes] = useState([]);
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // El motor queda fijado en cuanto la conversación existe en el servidor.
+  const motorBloqueado = idConversacion !== null;
+  const disponibles = useMemo(() => motores.filter((m) => m.disponible), [motores]);
+  const motorActivo = motores.find((m) => m.id === motor) || null;
+
+  // Elección inicial: el motor por defecto del servidor y, si ese no tiene su
+  // clave configurada, el primero que sí la tenga. Solo aplica mientras no haya
+  // una conversación abierta, cuyo motor manda sobre cualquier preferencia.
+  useEffect(() => {
+    if (motorBloqueado || disponibles.length === 0) return;
+    if (motor && disponibles.some((m) => m.id === motor)) return;
+    setMotor(disponibles.some((m) => m.id === porDefecto) ? porDefecto : disponibles[0].id);
+  }, [disponibles, porDefecto, motor, motorBloqueado]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -50,6 +74,7 @@ export default function Asistente() {
     try {
       const datos = await abrir(id);
       setIdConversacion(id);
+      setMotor(datos.motor);
       setMensajes(datos.mensajes.map((m) => ({
         id: m.id_mensaje,
         role: m.rol,
@@ -69,6 +94,23 @@ export default function Asistente() {
     setError("");
   };
 
+  /** Lleva un mensaje a una conversación nueva con otro motor.
+   *
+   * Es la única forma de cambiar de modelo: la conversación actual se conserva
+   * intacta en el historial y la nueva empieza con el contexto limpio, sin
+   * arrastrar turnos producidos por el otro proveedor. La conversación no se
+   * crea aquí, sino al enviar: así una derivación abandonada no deja una
+   * conversación vacía en el historial.
+   */
+  const derivar = (texto, motorDestino) => {
+    setIdConversacion(null);
+    setMensajes([]);
+    setMotor(motorDestino);
+    setInput(texto);
+    setError("");
+    inputRef.current?.focus();
+  };
+
   const borrar = async (id) => {
     try {
       await eliminar(id);
@@ -81,6 +123,7 @@ export default function Asistente() {
   const enviar = async (texto) => {
     const contenido = (texto ?? input).trim();
     if (!contenido || cargando) return;
+    if (!motor) { setError("Todavía no hay un motor seleccionado."); return; }
 
     setError("");
     setInput("");
@@ -91,7 +134,7 @@ export default function Asistente() {
     setCargando(true);
 
     try {
-      const r = await enviarMensaje(contenido, idConversacion);
+      const r = await enviarMensaje(contenido, idConversacion, motor);
       if (r.cuota) setCuota(r.cuota);
 
       if (!r.ok) {
@@ -133,6 +176,10 @@ export default function Asistente() {
   };
 
   const sinCupo = cuota?.excedido;
+  // Ningún motor tiene su clave configurada en el servidor: no hay a quién
+  // preguntar, y conviene decirlo antes de que el usuario escriba.
+  const sinMotor = motores.length > 0 && disponibles.length === 0;
+  const bloqueado = sinCupo || sinMotor;
 
   return (
     <div className="flex bg-background text-white" style={{ height: "calc(100vh - 64px)" }}>
@@ -143,6 +190,10 @@ export default function Asistente() {
         onNewChat={nuevaConversacion}
         onDelete={borrar}
         cuota={cuota}
+        motores={motores}
+        motor={motor}
+        onMotor={setMotor}
+        motorBloqueado={motorBloqueado}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
@@ -159,13 +210,19 @@ export default function Asistente() {
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f]">
                   Consulto la base de datos real; no invento cifras
                 </p>
+                {motorActivo && (
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f] mt-1">
+                    Motor: {motorActivo.nombre} · {motorActivo.etiqueta_costo}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-2 w-full max-w-lg">
                 {SUGERENCIAS.map((s) => (
                   <button
                     key={s}
                     onClick={() => enviar(s)}
-                    className="text-left px-4 py-3 border border-outline/30 text-[12px] text-[#c4c4c4] hover:border-white/40 hover:text-white transition-colors"
+                    disabled={bloqueado}
+                    className="text-left px-4 py-3 border border-outline/30 text-[12px] text-[#c4c4c4] hover:border-white/40 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {s}
                   </button>
@@ -176,11 +233,28 @@ export default function Asistente() {
 
           {mensajes.map((m) =>
             m.role === "user" ? (
-              <div key={m.id} className="flex flex-col items-end gap-2">
+              <div key={m.id} className="group flex flex-col items-end gap-2">
                 <div className="max-w-3xl bg-surfaceHigh border border-outline/40 px-6 py-4">
                   <p className="text-white/90 leading-relaxed">{m.content}</p>
                 </div>
-                <span className="text-[10px] uppercase tracking-widest text-outlineSoft">{m.time}</span>
+                <div className="flex items-center gap-3">
+                  {/* Derivar: la misma pregunta, en una conversación nueva con el
+                      otro motor. Es la vía prevista para cambiar de modelo, ya
+                      que dentro de una conversación el motor no cambia. */}
+                  {disponibles
+                    .filter((mo) => mo.id !== motor)
+                    .map((mo) => (
+                      <button
+                        key={mo.id}
+                        onClick={() => derivar(m.content, mo.id)}
+                        title={`Reenviar esta consulta a ${mo.nombre} en una conversación nueva`}
+                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-outlineSoft opacity-0 group-hover:opacity-100 hover:text-white transition-all"
+                      >
+                        <ForkIcon /> Derivar a {mo.nombre}
+                      </button>
+                    ))}
+                  <span className="text-[10px] uppercase tracking-widest text-outlineSoft">{m.time}</span>
+                </div>
               </div>
             ) : (
               <div key={m.id} className="flex flex-col gap-2">
@@ -223,16 +297,23 @@ export default function Asistente() {
           )}
 
           <div className={`flex items-center gap-3 bg-surfaceHigh border px-4 py-3 ${
-            sinCupo ? "border-negative/40" : "border-outline/50"
+            bloqueado ? "border-negative/40" : "border-outline/50"
           }`}>
-            <span className="text-[11px] font-mono text-outlineSoft shrink-0">KAI_PROMPT_</span>
+            <span className="text-[11px] font-mono text-outlineSoft shrink-0">
+              {motorActivo ? `KAI_${motorActivo.nombre.toUpperCase()}_` : "KAI_PROMPT_"}
+            </span>
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              disabled={cargando || sinCupo}
-              placeholder={sinCupo ? "Cuota agotada" : "Consultar rankings…"}
+              disabled={cargando || bloqueado}
+              placeholder={
+                sinMotor ? "Ningún motor configurado en el servidor"
+                  : sinCupo ? "Cuota agotada"
+                    : "Consultar rankings…"
+              }
               className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-outlineSoft/70 disabled:cursor-not-allowed"
             />
             <button className="text-outlineSoft cursor-not-allowed" title="Adjuntar (próximamente)">
@@ -241,7 +322,7 @@ export default function Asistente() {
             <button
               onClick={() => enviar()}
               className="text-white hover:text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              disabled={!input.trim() || cargando || sinCupo}
+              disabled={!input.trim() || cargando || bloqueado}
               title="Enviar"
             >
               <SendIcon />
@@ -249,7 +330,10 @@ export default function Asistente() {
           </div>
 
           <div className="flex items-center justify-between mt-3 text-[9px] uppercase tracking-widest text-outlineSoft flex-wrap gap-2">
-            <span>Datos: rankings, métricas y universidades</span>
+            <span>
+              Datos: rankings, métricas y universidades
+              {motorActivo && ` · ${motorActivo.modelo}`}
+            </span>
             {cuota && (
               <span className="font-mono">
                 {cuota.tokens_total.toLocaleString("es-CL")}

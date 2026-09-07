@@ -7,14 +7,6 @@ const GraduationCapIcon = () => (
   </svg>
 );
 
-const BrainIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9.5 4a2.5 2.5 0 0 0-2.5 2.5v.5A2.5 2.5 0 0 0 4.5 9.5v1A2.5 2.5 0 0 0 3 13a2.5 2.5 0 0 0 2 2.45V17a3 3 0 0 0 3 3h1.5" />
-    <path d="M14.5 4a2.5 2.5 0 0 1 2.5 2.5v.5a2.5 2.5 0 0 1 2.5 2.5v1a2.5 2.5 0 0 1 1.5 2 2.5 2.5 0 0 1-2 2.45V17a3 3 0 0 1-3 3h-1.5" />
-    <path d="M9.5 4v16M14.5 4v16" />
-  </svg>
-);
-
 const SearchIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -43,8 +35,82 @@ function cuando(iso) {
   return f.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" });
 }
 
+const LockIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="4" y="11" width="16" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);
+
+/** Selección del motor para la próxima conversación.
+ *
+ * Con una conversación abierta el selector queda bloqueado y solo informa del
+ * motor que le corresponde: el motor se fija al crearla y no puede cambiar,
+ * porque el historial no es intercambiable entre proveedores. Para cambiarlo hay
+ * que empezar un chat nuevo o derivar un mensaje.
+ */
+function SelectorMotor({ motores, motor, onMotor, bloqueado }) {
+  if (motores.length === 0) return null;
+  const activo = motores.find((m) => m.id === motor);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[9px] uppercase tracking-widest text-outlineSoft">Motor de análisis</p>
+        {bloqueado && (
+          <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-outlineSoft">
+            <LockIcon /> Fijado
+          </span>
+        )}
+      </div>
+
+      {bloqueado ? (
+        <div className="p-3 bg-surfaceHigh border border-outline/40">
+          <p className="text-xs font-semibold text-white truncate">
+            {activo?.nombre || motor} · {activo?.modelo || "—"}
+          </p>
+          <p className="text-[10px] text-outlineSoft leading-relaxed mt-1">
+            Una conversación no cambia de motor. Empieza un chat nuevo para usar otro.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-1">
+            {motores.map((m) => {
+              const activa = m.id === motor;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => m.disponible && onMotor(m.id)}
+                  disabled={!m.disponible}
+                  title={m.disponible ? m.descripcion : `${m.nombre} no está configurado en el servidor`}
+                  className={`px-3 py-2.5 border text-left transition-colors ${
+                    activa
+                      ? "bg-white text-black border-white"
+                      : "bg-surfaceHigh border-outline/40 text-white/80 hover:border-white/50"
+                  } ${m.disponible ? "" : "opacity-40 cursor-not-allowed"}`}
+                >
+                  <span className="block text-xs font-bold uppercase tracking-wider">{m.nombre}</span>
+                  <span className={`block text-[9px] uppercase tracking-widest mt-0.5 ${
+                    activa ? "text-black/60" : "text-outlineSoft"
+                  }`}>
+                    {m.disponible ? m.etiqueta_costo : "Sin configurar"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {activo && (
+            <p className="text-[10px] text-outlineSoft leading-relaxed">{activo.descripcion}</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ChatSidebar({
   conversaciones = [], activeId, onSelect, onNewChat, onDelete, cuota,
+  motores = [], motor, onMotor, motorBloqueado,
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [confirmar, setConfirmar] = useState(null);
@@ -71,15 +137,12 @@ export default function ChatSidebar({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 p-3 bg-surfaceHigh border border-outline/40">
-          <div className="w-8 h-8 shrink-0 flex items-center justify-center border border-outline/50 text-outlineSoft">
-            <BrainIcon />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] uppercase tracking-widest text-outlineSoft">Motor de análisis</p>
-            <p className="text-xs font-semibold text-white truncate">Claude Opus 5 · con acceso a datos</p>
-          </div>
-        </div>
+        <SelectorMotor
+          motores={motores}
+          motor={motor}
+          onMotor={onMotor}
+          bloqueado={motorBloqueado}
+        />
 
         <div className="flex flex-col gap-3 flex-1 min-h-0">
           <div className="flex items-baseline justify-between">
@@ -131,9 +194,17 @@ export default function ChatSidebar({
                       </div>
                       <span className="text-[9px] text-outlineSoft shrink-0">{cuando(c.fecha_actualizacion)}</span>
                     </div>
-                    <p className="text-[10px] text-outlineSoft truncate pl-6">
-                      {c.ultimo_mensaje || `${c.n_mensajes} mensajes`}
-                    </p>
+                    <div className="flex items-center gap-2 pl-6 min-w-0">
+                      {/* El motor va en cada fila porque, al no poder cambiarse
+                          dentro de la conversación, determina qué se puede
+                          esperar de ella antes de abrirla. */}
+                      <span className="shrink-0 px-1.5 py-px border border-outline/50 font-mono text-[8px] uppercase tracking-widest text-outlineSoft">
+                        {motores.find((m) => m.id === c.motor)?.nombre || c.motor || "—"}
+                      </span>
+                      <p className="text-[10px] text-outlineSoft truncate">
+                        {c.ultimo_mensaje || `${c.n_mensajes} mensajes`}
+                      </p>
+                    </div>
                   </button>
 
                   {borrando ? (

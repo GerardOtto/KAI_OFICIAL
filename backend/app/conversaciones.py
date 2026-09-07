@@ -23,7 +23,7 @@ def titulo_desde_mensaje(texto: str) -> str:
 
 def listar_conversaciones(db, id_usuario: int) -> list[dict]:
     filas = db.execute(text("""
-        SELECT c.id_conversacion, c.titulo, c.fecha_creacion, c.fecha_actualizacion,
+        SELECT c.id_conversacion, c.titulo, c.motor, c.fecha_creacion, c.fecha_actualizacion,
                (SELECT count(*) FROM mensaje m WHERE m.id_conversacion = c.id_conversacion) AS n_mensajes,
                (SELECT m.contenido FROM mensaje m
                  WHERE m.id_conversacion = c.id_conversacion
@@ -35,11 +35,13 @@ def listar_conversaciones(db, id_usuario: int) -> list[dict]:
     return [dict(f._mapping) for f in filas]
 
 
-def crear_conversacion(db, id_usuario: int, titulo: str) -> int:
+def crear_conversacion(db, id_usuario: int, titulo: str, motor: str) -> int:
+    """Crea una conversación ligada a un motor. El motor se fija aquí y ya no
+    cambia: ver la nota en `motores.py` sobre por qué no se puede alternar."""
     return db.execute(text("""
-        INSERT INTO conversacion (id_usuario, titulo)
-        VALUES (:u, :t) RETURNING id_conversacion
-    """), {"u": id_usuario, "t": titulo}).scalar()
+        INSERT INTO conversacion (id_usuario, titulo, motor)
+        VALUES (:u, :t, :mo) RETURNING id_conversacion
+    """), {"u": id_usuario, "t": titulo, "mo": motor}).scalar()
 
 
 def obtener_conversacion(db, id_conversacion: int, id_usuario: int) -> dict | None:
@@ -47,7 +49,7 @@ def obtener_conversacion(db, id_conversacion: int, id_usuario: int) -> dict | No
     pertenece al usuario. La comprobación de propiedad va en el WHERE: así una
     conversación ajena es indistinguible de una inexistente."""
     cab = db.execute(text("""
-        SELECT id_conversacion, titulo, fecha_creacion, fecha_actualizacion
+        SELECT id_conversacion, titulo, motor, fecha_creacion, fecha_actualizacion
         FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u
     """), {"c": id_conversacion, "u": id_usuario}).first()
     if cab is None:
@@ -61,6 +63,18 @@ def obtener_conversacion(db, id_conversacion: int, id_usuario: int) -> dict | No
     datos = dict(cab._mapping)
     datos["mensajes"] = [dict(m._mapping) for m in mensajes]
     return datos
+
+
+def motor_de_conversacion(db, id_conversacion: int, id_usuario: int) -> str | None:
+    """Motor de una conversación del usuario, o None si no existe o es ajena.
+
+    Comprueba la propiedad y devuelve el motor en una sola consulta: es lo único
+    que necesita `/chat`, que de otro modo cargaría todos los mensajes solo para
+    validar el acceso.
+    """
+    return db.execute(text("""
+        SELECT motor FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u
+    """), {"c": id_conversacion, "u": id_usuario}).scalar()
 
 
 def eliminar_conversacion(db, id_conversacion: int, id_usuario: int) -> bool:

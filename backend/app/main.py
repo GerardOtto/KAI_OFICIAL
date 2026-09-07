@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-from .assistant import responder
-from . import auth, conversaciones as conv
+from . import auth, conversaciones as conv, motores
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -302,9 +301,20 @@ def uso(usuario: dict = Depends(auth.usuario_actual)):
 # Asistente
 # ---------------------------------------------------------------------------
 
+@app.get("/motores")
+def listar_motores():
+    """Motores disponibles para el asistente.
+
+    Es público a propósito: la pantalla de acceso puede así anunciar con qué
+    modelos cuenta la herramienta antes de que el usuario inicie sesión.
+    """
+    return {"motores": motores.catalogo_publico(), "por_defecto": motores.POR_DEFECTO}
+
+
 class ChatRequest(BaseModel):
     mensaje: str
     id_conversacion: int | None = None
+    motor: str | None = None
 
 
 @app.post("/chat")
@@ -314,6 +324,10 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     El historial se reconstruye desde la base de datos, no se recibe del cliente:
     así el cliente no puede inyectar turnos falsos ni inflar el contexto que se
     factura, y la conversación sobrevive a un recambio de dispositivo.
+
+    El motor solo se elige al crear la conversación. En una ya existente se usa
+    el que quedó guardado y se rechaza cualquier intento de cambiarlo, porque el
+    historial no es intercambiable entre proveedores (ver `motores.py`).
     """
     texto = (req.mensaje or "").strip()
     if not texto:
@@ -327,18 +341,35 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
             raise HTTPException(status_code=429, detail=bloqueo)
 
         if req.id_conversacion is None:
+            motor = req.motor or motores.POR_DEFECTO
+            if not motores.existe(motor):
+                raise HTTPException(status_code=400, detail=f"El motor '{motor}' no existe.")
+            if not motores.disponible(motor):
+                raise HTTPException(
+                    status_code=503,
+                    detail=(f"El motor {motores.nombre(motor)} no está configurado en el servidor. "
+                            "Ver docs/asistente-motores.md."))
             id_conversacion = conv.crear_conversacion(
-                db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto))
+                db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto), motor)
         else:
-            if conv.obtener_conversacion(db, req.id_conversacion, usuario["id_usuario"]) is None:
+            motor = conv.motor_de_conversacion(db, req.id_conversacion, usuario["id_usuario"])
+            if motor is None:
                 raise HTTPException(status_code=404, detail="Conversación no encontrada.")
+            if req.motor and req.motor != motor:
+                # 409: la petición es válida pero incompatible con el estado del
+                # recurso. El cliente debe derivar el mensaje a una conversación
+                # nueva en vez de reintentar esta.
+                raise HTTPException(
+                    status_code=409,
+                    detail=(f"Esta conversación usa {motores.nombre(motor)} y no puede cambiar de "
+                            "motor. Deriva el mensaje a una conversación nueva."))
             id_conversacion = req.id_conversacion
 
         id_mensaje_usuario = conv.guardar_mensaje(db, id_conversacion, "user", texto)
         historial = conv.historial_para_modelo(db, id_conversacion)
         db.commit()
 
-        resultado = responder(historial)
+        resultado = motores.responder(motor, historial)
 
         era_nueva = req.id_conversacion is None
         if resultado["ok"]:
@@ -361,6 +392,8 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
             "content": resultado["texto"],
             "ok": resultado["ok"],
             "id_conversacion": id_conversacion,
+            "motor": motor,
+            "modelo": resultado["modelo"],
             "uso": {
                 "tokens_entrada": resultado["tokens_entrada"],
                 "tokens_salida": resultado["tokens_salida"],
