@@ -1,15 +1,17 @@
 import { useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useAuth } from "../auth/AuthContext";
+import AuthModal from "./AuthModal";
 
 const NAV = [
-  { label: "Resumen", to: "/ranking" },
+  { label: "Asistente", to: "/asistente" },
   { label: "Tendencias", to: "/tendencias" },
 ];
 
 const NAV_AFTER_DROPDOWNS = [
   { label: "Glosario", to: "/metricas" },
-  { label: "Asistente", to: "/asistente" },
+  { label: "Resumen", to: "/ranking" },
 ];
 
 const OPCIONES_SIMULACION = [
@@ -105,6 +107,95 @@ function NavDropdown({ label, opciones }) {
   );
 }
 
+function MenuUsuario() {
+  const { usuario, cuota, cerrarSesion } = useAuth();
+  const [abierto, setAbierto] = useState(false);
+  const [modal, setModal] = useState(false);
+  const navigate = useNavigate();
+
+  if (!usuario) {
+    return (
+      <>
+        <button
+          onClick={() => setModal(true)}
+          className="px-3.5 py-2 border border-white/20 text-[10px] uppercase tracking-widest text-[#c4c4c4] hover:bg-white hover:text-black hover:border-white transition-colors"
+        >
+          Iniciar sesión
+        </button>
+        {modal && <AuthModal onClose={() => setModal(false)} />}
+      </>
+    );
+  }
+
+  const iniciales = usuario.nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+  const pct = cuota?.tokens_mensuales
+    ? Math.min(100, (cuota.tokens_total / cuota.tokens_mensuales) * 100)
+    : 0;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAbierto(v => !v)}
+        title={usuario.correo}
+        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center overflow-hidden"
+      >
+        {usuario.avatar
+          ? <img src={usuario.avatar} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          : <span className="font-body font-semibold text-[10px] text-white">{iniciales}</span>}
+      </button>
+
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
+          <div className="absolute top-full right-0 mt-2 w-[266px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] z-40">
+            <div className="px-4 py-3 border-b border-white/[.08]">
+              <p className="font-body font-semibold text-[12.5px] text-white truncate">{usuario.nombre}</p>
+              <p className="font-body text-[11px] text-[#8a8a8a] truncate">{usuario.correo}</p>
+              <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#6f6f6f] mt-1.5">
+                Plan {usuario.nombre_plan || usuario.plan}
+                {usuario.con_google && " · Google"}
+              </p>
+            </div>
+
+            {cuota && (
+              <div className="px-4 py-3 border-b border-white/[.08]">
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f]">Tokens del mes</span>
+                  <span className="font-mono text-[10px] text-[#c4c4c4]">
+                    {cuota.tokens_total.toLocaleString("es-CL")}
+                    {cuota.tokens_mensuales != null && ` / ${cuota.tokens_mensuales.toLocaleString("es-CL")}`}
+                  </span>
+                </div>
+                <div className="h-[3px] bg-white/[.08]">
+                  <div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                </div>
+                {cuota.mensajes_por_dia != null && (
+                  <p className="font-mono text-[9px] text-[#6f6f6f] mt-1.5">
+                    {cuota.mensajes_hoy} de {cuota.mensajes_por_dia} consultas hoy
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => { setAbierto(false); navigate("/asistente"); }}
+              className="w-full text-left px-4 py-2.5 font-body text-[12px] text-[#dcdcdc] hover:bg-white/[.05] transition-colors"
+            >
+              Mis conversaciones
+            </button>
+            <button
+              onClick={() => { setAbierto(false); cerrarSesion(); navigate("/"); }}
+              className="w-full text-left px-4 py-2.5 font-body text-[12px] text-[#dcdcdc] hover:bg-white/[.05] transition-colors border-t border-white/[.08]"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Header() {
   const navigate = useNavigate();
 
@@ -136,15 +227,7 @@ export default function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
-        <button
-          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-          title="Perfil"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
-        </button>
+        <MenuUsuario />
         <button
           className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
           title="Configuración"

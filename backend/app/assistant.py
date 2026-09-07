@@ -1,8 +1,12 @@
+import logging
+
 import anthropic
 from anthropic import Anthropic, beta_tool
 from sqlalchemy import text
 
 from .db import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 MODEL = "claude-opus-5"
 
@@ -141,7 +145,50 @@ TOOLS = [
 ]
 
 
-def responder(mensajes: list[dict]) -> str:
+CONSOLA_BILLING = "platform.claude.com/settings/billing"
+
+# El saldo agotado llega como 400 invalid_request_error; el texto exacto lo fija
+# Anthropic, así que se comprueban varias señales. Ver docs/asistente-creditos.md.
+SENALES_SIN_CREDITO = ("credit balance", "insufficient credit", "purchase credits", "plans & billing")
+
+# Distinto del anterior: aquí hay saldo, pero se alcanzó un tope de gasto que
+# alguien configuró en la consola. También llega como 400.
+SENALES_TOPE_PROPIO = ("you have reached your specified api usage limits",
+                       "you have reached your specified workspace api usage limits")
+
+
+def _detalle_error(e) -> str:
+    """Texto del error en minúsculas, para buscar señales sin reventar si falta."""
+    try:
+        return str(e).lower()
+    except Exception:
+        return ""
+
+
+def _es_tope_de_gasto_mensual(e) -> bool:
+    """Un 429 puede ser rate limit (se reintenta en segundos) o el tope mensual de
+    gasto de la organización (no se recupera hasta el día 1 del mes siguiente).
+    La API los distingue con error.details.error_code."""
+    cuerpo = getattr(e, "body", None)
+    if isinstance(cuerpo, dict):
+        detalles = (cuerpo.get("error") or {}).get("details") or {}
+        if detalles.get("error_code") == "enforced_spend_limit_reached":
+            return True
+    return "enforced_spend_limit_reached" in _detalle_error(e)
+
+
+def _resultado(texto: str, entrada: int = 0, salida: int = 0, ok: bool = True) -> dict:
+    """Forma única de respuesta del asistente: texto, consumo y si fue exitosa.
+
+    Los mensajes de error también viajan por aquí, con consumo cero, para que
+    la capa superior no tenga que distinguir entre respuesta y fallo al mostrar.
+    """
+    return {"texto": texto, "tokens_entrada": entrada, "tokens_salida": salida,
+            "modelo": MODEL, "ok": ok}
+
+
+def responder(mensajes: list[dict]) -> dict:
+    entrada = salida = 0
     try:
         runner = client.beta.messages.tool_runner(
             model=MODEL,
@@ -154,21 +201,77 @@ def responder(mensajes: list[dict]) -> str:
         final = None
         for message in runner:
             final = message
+            # El ciclo de herramientas hace varias llamadas a la API; el consumo
+            # es la suma de todas, no solo el de la última.
+            uso = getattr(message, "usage", None)
+            if uso is not None:
+                entrada += (getattr(uso, "input_tokens", 0) or 0)
+                entrada += (getattr(uso, "cache_read_input_tokens", 0) or 0)
+                entrada += (getattr(uso, "cache_creation_input_tokens", 0) or 0)
+                salida += (getattr(uso, "output_tokens", 0) or 0)
+
+    # El orden importa: las tres primeras son subclases de APIStatusError y deben
+    # ir antes que ella, de lo más específico a lo más general.
     except anthropic.AuthenticationError:
-        return "La clave de la API de Claude no es válida o falta en el backend. Revisa ANTHROPIC_API_KEY en backend/.env."
-    except anthropic.RateLimitError:
-        return "El asistente recibió demasiadas solicitudes en poco tiempo. Espera unos segundos y vuelve a intentar."
+        return _resultado(("La clave de la API de Claude no es válida, fue revocada o expiró. "
+                "Hay que generar una nueva y ponerla en ANTHROPIC_API_KEY (backend/.env). "
+                "Ver docs/asistente-creditos.md."), ok=False)
+    except anthropic.PermissionDeniedError:
+        return _resultado(("La clave de la API no tiene permiso para usar este modelo o su workspace está "
+                f"deshabilitado. Revisa los permisos de la clave en {CONSOLA_BILLING.split('/')[0]}."), ok=False)
+    except anthropic.NotFoundError:
+        return _resultado((f"El modelo '{MODEL}' no existe o no está habilitado para esta cuenta. "
+                "Revisa el identificador del modelo en backend/app/assistant.py."), ok=False)
+    except anthropic.RateLimitError as e:
+        # Un 429 no siempre es un pico de tráfico: también es el tope de gasto
+        # mensual de la organización, que no se recupera reintentando.
+        if _es_tope_de_gasto_mensual(e):
+            return _resultado(("La organización alcanzó su tope de gasto mensual en la API. El acceso se "
+                    "restablece el día 1 del mes siguiente, o antes si se sube el límite en "
+                    f"{CONSOLA_BILLING} (ver docs/asistente-creditos.md)."), ok=False)
+        return _resultado("El asistente recibió demasiadas solicitudes en poco tiempo. Espera unos segundos y vuelve a intentar.", ok=False)
     except anthropic.BadRequestError as e:
-        if "credit balance" in str(e).lower():
-            return "La cuenta de Anthropic no tiene créditos disponibles. Ve a console.anthropic.com/settings/billing para recargar saldo."
-        return "El asistente rechazó la solicitud (parámetros inválidos). Intenta reformular tu consulta."
+        detalle = _detalle_error(e)
+        if any(s in detalle for s in SENALES_SIN_CREDITO):
+            return _resultado(("La cuenta de Anthropic se quedó sin créditos. Hay que recargar saldo en "
+                    f"{CONSOLA_BILLING} (ver docs/asistente-creditos.md)."), ok=False)
+        if any(s in detalle for s in SENALES_TOPE_PROPIO):
+            return _resultado(("Se alcanzó el límite de gasto configurado manualmente para esta cuenta o "
+                    f"workspace. Súbelo o quítalo en {CONSOLA_BILLING} (ver docs/asistente-creditos.md)."), ok=False)
+        return _resultado("El asistente rechazó la solicitud (parámetros inválidos). Intenta reformular tu consulta.", ok=False)
+    except anthropic.APITimeoutError:
+        return _resultado("El asistente tardó demasiado en responder. Vuelve a intentarlo con una consulta más acotada.", ok=False)
     except anthropic.APIConnectionError:
-        return "No se pudo conectar con la API de Claude. Verifica la conexión a internet del servidor."
+        return _resultado("No se pudo conectar con la API de Claude. Verifica la conexión a internet del servidor.", ok=False)
     except anthropic.APIStatusError as e:
-        return f"El servicio de IA respondió con un error (código {e.status_code}). Intenta de nuevo más tarde."
+        # 402 billing_error: el SDK de Python no tiene clase propia para este
+        # código, así que se distingue aquí. Es un problema de medio de pago,
+        # no de saldo consumido.
+        if e.status_code == 402:
+            return _resultado(("Hay un problema con la facturación o el medio de pago de la cuenta de "
+                    f"Anthropic. Revisa los datos de pago en {CONSOLA_BILLING} "
+                    "(ver docs/asistente-creditos.md)."), ok=False)
+        if e.status_code >= 500:
+            return _resultado((f"El servicio de IA está caído o sobrecargado (código {e.status_code}). "
+                    "Intenta de nuevo en unos minutos."), ok=False)
+        return _resultado(f"El servicio de IA respondió con un error (código {e.status_code}): {e.message}", ok=False)
+    except Exception as e:
+        # Red de seguridad: si falla una herramienta (por ejemplo, la base de datos
+        # caída) la excepción no debe propagarse y convertirse en un 500 opaco,
+        # porque el frontend lo mostraría como "no se pudo contactar al asistente".
+        logger.exception("Fallo inesperado en el asistente")
+        return _resultado(
+            f"El asistente falló al procesar la consulta ({type(e).__name__}). "
+            "Revisa los logs del backend; puede ser un problema con la base de datos.",
+            entrada, salida, ok=False)
 
     if final is None:
-        return "No se obtuvo respuesta del modelo."
+        return _resultado("No se obtuvo respuesta del modelo.", entrada, salida, ok=False)
+
+    if getattr(final, "stop_reason", None) == "refusal":
+        return _resultado("El modelo declinó responder a esa consulta por sus políticas de uso. Reformúlala.", entrada, salida, ok=False)
 
     texto = next((b.text for b in final.content if b.type == "text"), "")
-    return texto or "El modelo no devolvió una respuesta de texto."
+    if not texto:
+        return _resultado("El modelo no devolvió una respuesta de texto.", entrada, salida, ok=False)
+    return _resultado(texto, entrada, salida, ok=True)

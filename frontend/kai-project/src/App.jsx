@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import Lenis from "@studio-freight/lenis";
 
 import Header from "./components/Header";
+import { AuthProvider } from "./auth/AuthContext";
+import RutaProtegida from "./auth/RutaProtegida";
 import Landing from "./pages/Landing";
 import Ranking from "./pages/Ranking";
 import Tendencias from "./pages/Tendencias";
@@ -64,7 +66,14 @@ function AppContent() {
         <Route path="/metricas" element={<Metricas />} />
         <Route path="/cientificos" element={<Cientificos />} />
         <Route path="/investigadores-pucv" element={<InvestigadoresPUCV />} />
-        <Route path="/asistente" element={<Asistente />} />
+        <Route
+          path="/asistente"
+          element={
+            <RutaProtegida motivo="El asistente consume tokens de un servicio de IA de pago, por lo que su uso se controla por cuenta. Al iniciar sesión también se guardan tus conversaciones.">
+              <Asistente />
+            </RutaProtegida>
+          }
+        />
         <Route path="*" element={<h1>404</h1>} />
       </Routes>
     </>
@@ -74,7 +83,9 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </BrowserRouter>
   );
 }
