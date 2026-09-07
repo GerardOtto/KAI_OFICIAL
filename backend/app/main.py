@@ -18,12 +18,23 @@ SessionLocal = sessionmaker(bind=engine)
 app = FastAPI()
 
 
+# Orígenes de producción: lista explícita, sin barra final.
+ORIGENES_PRODUCCION = [
+    "https://kaioficial-production.up.railway.app",
+]
+
+# En desarrollo se acepta cualquier puerto de localhost. Motivo: si el puerto
+# habitual de Vite (5173) está ocupado, el servidor arranca en el siguiente y,
+# con una lista fija, el backend responde 200 pero sin la cabecera
+# 'Access-Control-Allow-Origin'. El navegador descarta entonces todas las
+# respuestas y la aplicación entera parece caída, con un síntoma que no señala
+# su causa. Aceptar cualquier puerto local elimina ese modo de fallo.
+REGEX_LOCALHOST = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://kaioficial-production.up.railway.app" # Sin el "/" final
-    ],
+    allow_origins=ORIGENES_PRODUCCION,
+    allow_origin_regex=REGEX_LOCALHOST,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
