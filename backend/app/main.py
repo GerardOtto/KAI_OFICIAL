@@ -1,10 +1,16 @@
+import logging
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware # 1. Importa el middleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -31,6 +37,32 @@ ORIGENES_PRODUCCION = [
 # su causa. Aceptar cualquier puerto local elimina ese modo de fallo.
 REGEX_LOCALHOST = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
 
+
+class ErroresConCORS(BaseHTTPMiddleware):
+    """Convierte cualquier excepción no controlada en un JSON 500.
+
+    Sin esto, una excepción la atrapa el middleware de errores de Starlette, que
+    está POR FUERA del de CORS: la respuesta 500 sale sin la cabecera
+    'Access-Control-Allow-Origin', el navegador la descarta y el cliente solo ve
+    «Failed to fetch», sin rastro del error real. Al capturarla aquí —por dentro
+    de CORS— la respuesta sí lleva las cabeceras y el error llega al cliente.
+    """
+
+    async def dispatch(self, request, call_next):
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception("Error no controlado en %s %s", request.method, request.url.path)
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Error interno del servidor. Revisa los registros del backend."},
+            )
+
+
+# El orden importa: add_middleware antepone, así que el último añadido queda por
+# fuera. CORS debe ser el más externo para poder añadir cabeceras a la respuesta
+# de error que genera el middleware de arriba.
+app.add_middleware(ErroresConCORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGENES_PRODUCCION,
