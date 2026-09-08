@@ -145,22 +145,34 @@ def historial_para_modelo(db, id_conversacion: int, max_mensajes: int = 20) -> l
 # --- Consumo y cuota -------------------------------------------------------
 
 def consumo_del_mes(db, id_usuario: int) -> dict:
-    """Tokens consumidos por el usuario en el mes calendario en curso."""
-    fila = db.execute(text("""
-        SELECT COALESCE(SUM(m.tokens_entrada), 0) AS entrada,
+    """Tokens consumidos en el mes en curso, desglosados por motor.
+
+    El desglose es por `conversacion.motor` y no por `mensaje.modelo`: el motor
+    es el dato contra el que se cobra la cuota y no cambia dentro de una
+    conversación, mientras que el identificador del modelo puede variar entre
+    mensajes si se actualiza la versión configurada.
+    """
+    filas = db.execute(text("""
+        SELECT c.motor,
+               COALESCE(SUM(m.tokens_entrada), 0) AS entrada,
                COALESCE(SUM(m.tokens_salida), 0)  AS salida,
                count(*) FILTER (WHERE m.rol = 'assistant') AS respuestas
         FROM mensaje m
         JOIN conversacion c ON c.id_conversacion = m.id_conversacion
         WHERE c.id_usuario = :u
           AND m.fecha_creacion >= date_trunc('month', CURRENT_DATE)
-    """), {"u": id_usuario}).first()
-    return {
-        "tokens_entrada": int(fila.entrada),
-        "tokens_salida": int(fila.salida),
-        "tokens_total": int(fila.entrada) + int(fila.salida),
-        "respuestas": int(fila.respuestas),
-    }
+        GROUP BY c.motor
+    """), {"u": id_usuario})
+
+    por_motor = {}
+    for f in filas:
+        por_motor[f.motor] = {
+            "tokens_entrada": int(f.entrada),
+            "tokens_salida": int(f.salida),
+            "tokens_total": int(f.entrada) + int(f.salida),
+            "respuestas": int(f.respuestas),
+        }
+    return por_motor
 
 
 def mensajes_de_hoy(db, id_usuario: int) -> int:
@@ -172,37 +184,92 @@ def mensajes_de_hoy(db, id_usuario: int) -> int:
     """), {"u": id_usuario}).scalar())
 
 
+# Cada motor tiene su propia cuota mensual, en la columna que le corresponde del
+# plan. Convenio de valores: None = sin límite, 0 = motor no incluido en el plan.
+COLUMNA_DE_CUOTA = {"claude": "tokens_claude_mes", "gemini": "tokens_gemini_mes"}
+
+VACIO = {"tokens_entrada": 0, "tokens_salida": 0, "tokens_total": 0, "respuestas": 0}
+
+
 def estado_de_cuota(db, usuario: dict) -> dict:
-    """Estado de consumo frente a los límites del plan del usuario."""
+    """Estado de consumo frente a los límites del plan del usuario.
+
+    El límite diario de consultas es común a todos los motores; el de tokens es
+    de cada uno. Un motor con tope 0 no está incluido en el plan, que es distinto
+    de haberlo agotado: en el primer caso hay que cambiar de plan y en el segundo
+    basta esperar al mes siguiente.
+    """
     consumo = consumo_del_mes(db, usuario["id_usuario"])
     hoy = mensajes_de_hoy(db, usuario["id_usuario"])
 
-    tope_tokens = usuario.get("tokens_mensuales")
-    tope_diario = usuario.get("mensajes_por_dia")
+    # Si el usuario no trae plan, la consulta lo dejó todo en NULL y NULL
+    # significa «sin límite»: sin esta comprobación, una cuenta con el plan
+    # borrado o sin asignar tendría acceso ilimitado a todo. Ante la duda, el
+    # plan más restrictivo.
+    sin_plan = usuario.get("nombre_plan") is None
+    if sin_plan:
+        usuario = {**usuario, "nombre_plan": "Sin plan", "mensajes_por_dia": 0,
+                   "tokens_claude_mes": 0, "tokens_gemini_mes": 0,
+                   "precio_mensual_usd": 0}
 
-    tokens_restantes = None if tope_tokens is None else max(0, tope_tokens - consumo["tokens_total"])
+    tope_diario = usuario.get("mensajes_por_dia")
     mensajes_restantes = None if tope_diario is None else max(0, tope_diario - hoy)
 
+    motores = {}
+    for motor, columna in COLUMNA_DE_CUOTA.items():
+        usado = consumo.get(motor, VACIO)
+        tope = usuario.get(columna)
+        incluido = tope is None or tope > 0
+        restantes = None if tope is None else max(0, tope - usado["tokens_total"])
+        motores[motor] = {
+            **usado,
+            "incluido": incluido,
+            "tokens_mensuales": tope,
+            "tokens_restantes": restantes,
+            "disponible": incluido and restantes != 0 and mensajes_restantes != 0,
+        }
+
+    total = sum(m["tokens_total"] for m in motores.values())
     return {
-        **consumo,
-        "mensajes_hoy": hoy,
         "plan": usuario.get("plan_usuario"),
         "nombre_plan": usuario.get("nombre_plan"),
-        "tokens_mensuales": tope_tokens,
-        "tokens_restantes": tokens_restantes,
+        "precio_mensual_usd": float(usuario["precio_mensual_usd"] or 0)
+                              if usuario.get("precio_mensual_usd") is not None else 0.0,
+        "mensajes_hoy": hoy,
         "mensajes_por_dia": tope_diario,
         "mensajes_restantes": mensajes_restantes,
-        "excedido": (tokens_restantes == 0) or (mensajes_restantes == 0),
+        "tokens_total": total,
+        "motores": motores,
+        # `excedido` significa que no queda ningún motor con el que consultar; es
+        # lo que la interfaz usa para deshabilitar el campo de entrada.
+        "excedido": not any(m["disponible"] for m in motores.values()),
     }
 
 
-def motivo_de_bloqueo(cuota: dict) -> str | None:
-    """Mensaje explicativo si el usuario no puede seguir consultando, o None."""
-    if cuota.get("tokens_restantes") == 0:
-        return ("Alcanzaste el límite mensual de tokens de tu plan "
-                f"({cuota['tokens_mensuales']:,} tokens). Se restablece el día 1 del próximo mes."
-                .replace(",", "."))
+def _miles(n: int) -> str:
+    return f"{n:,}".replace(",", ".")
+
+
+def motivo_de_bloqueo(cuota: dict, motor: str) -> tuple[int, str] | None:
+    """Por qué no se puede consultar con ese motor, o None si sí se puede.
+
+    Devuelve el código HTTP junto al mensaje, porque los dos motivos piden
+    acciones distintas: 403 cuando el plan no incluye el motor —hay que
+    contratar otro— y 429 cuando la cuota se agotó —hay que esperar—.
+    """
+    estado = cuota["motores"].get(motor)
+    if estado is None:
+        return 400, f"El motor '{motor}' no existe."
+
+    if not estado["incluido"]:
+        return 403, (f"Tu plan «{cuota.get('nombre_plan') or cuota.get('plan')}» no incluye este motor. "
+                     "Puedes seguir consultando con el motor gratuito o cambiar de plan.")
+
     if cuota.get("mensajes_restantes") == 0:
-        return (f"Alcanzaste el límite diario de {cuota['mensajes_por_dia']} consultas de tu plan. "
-                "Se restablece mañana.")
+        return 429, (f"Alcanzaste el límite diario de {cuota['mensajes_por_dia']} consultas de tu plan. "
+                     "Se restablece mañana.")
+
+    if estado["tokens_restantes"] == 0:
+        return 429, (f"Agotaste los {_miles(estado['tokens_mensuales'])} tokens mensuales de este motor "
+                     "en tu plan. Se restablecen el día 1 del próximo mes.")
     return None

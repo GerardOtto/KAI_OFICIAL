@@ -301,14 +301,51 @@ def uso(usuario: dict = Depends(auth.usuario_actual)):
 # Asistente
 # ---------------------------------------------------------------------------
 
-@app.get("/motores")
-def listar_motores():
-    """Motores disponibles para el asistente.
+@app.get("/planes")
+def listar_planes():
+    """Planes que se ofrecen, para la portada. Público y sin sesión."""
+    db = SessionLocal()
+    try:
+        filas = db.execute(text("""
+            SELECT codigo_plan, nombre_plan, descripcion, precio_mensual_usd,
+                   tokens_claude_mes, tokens_gemini_mes, mensajes_por_dia
+            FROM plan WHERE publico ORDER BY orden
+        """))
+        return [
+            {**dict(f._mapping), "precio_mensual_usd": float(f.precio_mensual_usd)}
+            for f in filas
+        ]
+    finally:
+        db.close()
 
-    Es público a propósito: la pantalla de acceso puede así anunciar con qué
-    modelos cuenta la herramienta antes de que el usuario inicie sesión.
+
+@app.get("/motores")
+def listar_motores(usuario: dict | None = Depends(auth.usuario_opcional)):
+    """Motores del asistente y si se pueden usar ahora mismo.
+
+    Es público a propósito: la portada anuncia con qué modelos cuenta la
+    herramienta antes de que nadie inicie sesión. Con sesión, además informa de
+    si el plan del usuario incluye cada motor, para que el selector pueda
+    mostrarlo bloqueado en vez de dejar que la consulta falle al enviarse.
     """
-    return {"motores": motores.catalogo_publico(), "por_defecto": motores.POR_DEFECTO}
+    catalogo = motores.catalogo_publico()
+
+    if usuario is not None:
+        db = SessionLocal()
+        try:
+            cuota = conv.estado_de_cuota(db, usuario)
+        finally:
+            db.close()
+        for m in catalogo:
+            estado = cuota["motores"].get(m["id"], {})
+            m["incluido_en_plan"] = estado.get("incluido", False)
+            m["disponible_ahora"] = m["disponible"] and estado.get("disponible", False)
+    else:
+        for m in catalogo:
+            m["incluido_en_plan"] = None
+            m["disponible_ahora"] = m["disponible"]
+
+    return {"motores": catalogo, "por_defecto": motores.POR_DEFECTO}
 
 
 class ChatRequest(BaseModel):
@@ -335,11 +372,7 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
 
     db = SessionLocal()
     try:
-        cuota = conv.estado_de_cuota(db, usuario)
-        bloqueo = conv.motivo_de_bloqueo(cuota)
-        if bloqueo:
-            raise HTTPException(status_code=429, detail=bloqueo)
-
+        # 1) Qué motor atiende este turno.
         if req.id_conversacion is None:
             motor = req.motor or motores.POR_DEFECTO
             if not motores.existe(motor):
@@ -349,8 +382,6 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
                     status_code=503,
                     detail=(f"El motor {motores.nombre(motor)} no está configurado en el servidor. "
                             "Ver docs/asistente-motores.md."))
-            id_conversacion = conv.crear_conversacion(
-                db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto), motor)
         else:
             motor = conv.motor_de_conversacion(db, req.id_conversacion, usuario["id_usuario"])
             if motor is None:
@@ -363,6 +394,21 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
                     status_code=409,
                     detail=(f"Esta conversación usa {motores.nombre(motor)} y no puede cambiar de "
                             "motor. Deriva el mensaje a una conversación nueva."))
+
+        # 2) Si el plan permite usarlo y queda cuota. Se comprueba después de
+        #    conocer el motor porque la cuota es de cada uno por separado, y
+        #    antes de escribir nada, para no dejar rastro de un turno rechazado.
+        cuota = conv.estado_de_cuota(db, usuario)
+        bloqueo = conv.motivo_de_bloqueo(cuota, motor)
+        if bloqueo:
+            codigo, mensaje = bloqueo
+            raise HTTPException(status_code=codigo, detail=mensaje)
+
+        # 3) La conversación se crea solo cuando el turno va a ejecutarse.
+        if req.id_conversacion is None:
+            id_conversacion = conv.crear_conversacion(
+                db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto), motor)
+        else:
             id_conversacion = req.id_conversacion
 
         id_mensaje_usuario = conv.guardar_mensaje(db, id_conversacion, "user", texto)

@@ -58,10 +58,14 @@ export function useConversaciones(autenticado) {
  * El servidor es la única fuente: qué motores existen y cuáles tienen su clave
  * configurada depende del despliegue, no del cliente.
  */
-export function useMotores() {
+export function useMotores(recargarCon) {
   const [motores, setMotores] = useState([]);
   const [porDefecto, setPorDefecto] = useState("claude");
 
+  // `recargarCon` vuelve a pedir el catálogo cuando cambia algo que altera la
+  // respuesta: con sesión iniciada, /motores informa además de si el plan del
+  // usuario incluye cada motor, así que un cambio de plan o de sesión debe
+  // reflejarse sin recargar la página.
   useEffect(() => {
     let vigente = true;
     pedir("/motores")
@@ -72,9 +76,24 @@ export function useMotores() {
       })
       .catch((e) => console.error(e));
     return () => { vigente = false; };
-  }, []);
+  }, [recargarCon]);
 
   return { motores, porDefecto };
+}
+
+/** Planes que se ofrecen, para la portada. No requiere sesión. */
+export function usePlanes() {
+  const [planes, setPlanes] = useState([]);
+
+  useEffect(() => {
+    let vigente = true;
+    pedir("/planes")
+      .then((d) => { if (vigente) setPlanes(d || []); })
+      .catch((e) => console.error(e));
+    return () => { vigente = false; };
+  }, []);
+
+  return planes;
 }
 
 /** Envía un mensaje al asistente. Devuelve la respuesta y la cuota actualizada.

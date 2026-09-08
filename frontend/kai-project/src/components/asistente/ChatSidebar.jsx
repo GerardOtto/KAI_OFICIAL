@@ -79,6 +79,15 @@ function SelectorMotor({ motores, motor, onMotor, bloqueado }) {
   if (motores.length === 0) return null;
   const activo = motores.find((m) => m.id === motor);
 
+  /** Por qué un motor no se puede elegir. El orden importa: primero lo que el
+   *  usuario puede resolver contratando, después lo que solo depende del
+   *  servidor. `incluido_en_plan` llega en null cuando no hay sesión. */
+  const impedimento = (m) => {
+    if (!m.disponible) return "Sin configurar en el servidor";
+    if (m.incluido_en_plan === false) return "No incluido en tu plan";
+    return null;
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -104,23 +113,27 @@ function SelectorMotor({ motores, motor, onMotor, bloqueado }) {
           <div className="grid grid-cols-2 gap-1">
             {motores.map((m) => {
               const activa = m.id === motor;
+              const impedido = impedimento(m);
               return (
                 <button
                   key={m.id}
-                  onClick={() => m.disponible && onMotor(m.id)}
-                  disabled={!m.disponible}
-                  title={m.disponible ? m.descripcion : `${m.nombre} no está configurado en el servidor`}
+                  onClick={() => !impedido && onMotor(m.id)}
+                  disabled={!!impedido}
+                  title={impedido ? `${m.nombre}: ${impedido.toLowerCase()}` : m.descripcion}
                   className={`px-3 py-2.5 border text-left transition-colors ${
                     activa
                       ? "bg-white text-black border-white"
                       : "bg-surfaceHigh border-outline/40 text-white/80 hover:border-white/50"
-                  } ${m.disponible ? "" : "opacity-40 cursor-not-allowed"}`}
+                  } ${impedido ? "opacity-40 cursor-not-allowed" : ""}`}
                 >
-                  <span className="block text-xs font-bold uppercase tracking-wider">{m.nombre}</span>
+                  <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    {m.nombre}
+                    {impedido && <LockIcon />}
+                  </span>
                   <span className={`block text-[9px] uppercase tracking-widest mt-0.5 ${
                     activa ? "text-black/60" : "text-outlineSoft"
                   }`}>
-                    {m.disponible ? m.etiqueta_costo : "Sin configurar"}
+                    {impedido || m.etiqueta_costo}
                   </span>
                 </button>
               );
@@ -128,6 +141,14 @@ function SelectorMotor({ motores, motor, onMotor, bloqueado }) {
           </div>
           {activo && (
             <p className="text-[10px] text-outlineSoft leading-relaxed">{activo.descripcion}</p>
+          )}
+          {motores.some((m) => m.incluido_en_plan === false && m.disponible) && (
+            <p className="text-[10px] text-outlineSoft leading-relaxed border-l-2 border-outline pl-2">
+              Tu plan no incluye todos los motores.{" "}
+              <a href="/#planes" className="text-white underline underline-offset-2 hover:text-white/70">
+                Ver planes
+              </a>
+            </p>
           )}
         </>
       )}
@@ -274,26 +295,50 @@ export default function ChatSidebar({
       </div>
 
       {cuota && (
-        <div className="px-6 pb-6 pt-4 border-t border-outline/20 flex flex-col gap-2">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[9px] uppercase tracking-widest text-outlineSoft">
+        <div className="px-6 pb-6 pt-4 border-t border-outline/20 flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[9px] uppercase tracking-widest text-outlineSoft truncate">
               Plan {cuota.nombre_plan || cuota.plan}
             </span>
-            <span className="font-mono text-[9px] text-[#8a8a8a]">
-              {cuota.tokens_total.toLocaleString("es-CL")}
-              {cuota.tokens_mensuales != null && ` / ${cuota.tokens_mensuales.toLocaleString("es-CL")}`}
-            </span>
+            {cuota.precio_mensual_usd > 0 && (
+              <span className="font-mono text-[9px] text-[#6f6f6f] shrink-0">
+                US$ {cuota.precio_mensual_usd}/mes
+              </span>
+            )}
           </div>
-          <div className="h-[3px] bg-white/[.08]">
-            <div
-              className={`h-full transition-[width] duration-500 ${cuota.excedido ? "bg-negative" : "bg-accent"}`}
-              style={{
-                width: cuota.tokens_mensuales
-                  ? `${Math.min(100, (cuota.tokens_total / cuota.tokens_mensuales) * 100)}%`
-                  : "0%",
-              }}
-            />
-          </div>
+
+          {/* Una barra por motor: la cuota es de cada uno, así que un solo
+              contador no diría cuál se agotó ni cuál queda libre. */}
+          {motores.map((m) => {
+            const e = cuota.motores?.[m.id];
+            if (!e) return null;
+            const pct = e.tokens_mensuales
+              ? Math.min(100, (e.tokens_total / e.tokens_mensuales) * 100)
+              : 0;
+            return (
+              <div key={m.id} className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[9px] uppercase tracking-widest text-outlineSoft">{m.nombre}</span>
+                  <span className="font-mono text-[9px] text-[#8a8a8a] shrink-0">
+                    {!e.incluido
+                      ? "no incluido"
+                      : e.tokens_mensuales == null
+                        ? "sin límite"
+                        : `${e.tokens_total.toLocaleString("es-CL")} / ${e.tokens_mensuales.toLocaleString("es-CL")}`}
+                  </span>
+                </div>
+                <div className="h-[3px] bg-white/[.08]">
+                  <div
+                    className={`h-full transition-[width] duration-500 ${
+                      !e.incluido ? "bg-outline" : e.tokens_restantes === 0 ? "bg-negative" : "bg-accent"
+                    }`}
+                    style={{ width: e.incluido ? `${pct}%` : "100%" }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+
           {cuota.mensajes_restantes != null && (
             <span className="font-mono text-[9px] text-[#6f6f6f]">
               {cuota.mensajes_restantes} consultas restantes hoy

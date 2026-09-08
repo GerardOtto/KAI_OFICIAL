@@ -164,20 +164,14 @@ Activar la facturación en el proyecto de Google Cloud pasa la clave al nivel de
 pago: suben los límites y el contenido deja de usarse para entrenamiento. Con los
 precios de la tabla, el gasto sería de céntimos al mes salvo un uso intenso.
 
-**La cuota del usuario cuenta los tokens igual en ambos motores.** Es decir, un
-usuario del plan gratuito agota sus 200.000 tokens mensuales a la misma velocidad
-use el motor que use, aunque a la institución le cueste cincuenta veces menos.
-Se hizo así por claridad: un contador único es comprensible y auditable, mientras
-que ponderar por costo obligaría a explicar en la interfaz por qué el mismo
-mensaje descuenta cantidades distintas.
+**Cada motor tiene su propia cuota mensual**, definida en el plan del usuario. No
+hay una bolsa común: con la diferencia de precio entre ambos, un saldo único
+haría que dos usuarios que consumen la misma cifra le costaran a la plataforma
+cantidades muy distintas según qué motor eligieran.
 
-Si más adelante se quiere que el motor barato rinda más cuota, el cambio está
-acotado: `mensaje.modelo` ya guarda con qué modelo se generó cada respuesta, así
-que basta ponderar la suma en `consumo_del_mes()`
-([`conversaciones.py`](../backend/app/conversaciones.py)) sin migrar ningún dato.
-
-El resto del control de cuotas —planes, límite diario, qué ocurre al agotarlas—
-está en [autenticacion.md](autenticacion.md#4-consumo-de-tokens-y-cuotas).
+El plan gratuito incluye Gemini pero **no Claude**, que solo entra en los planes
+de pago; el rol de administrador tiene acceso completo y sin topes. El catálogo,
+los precios y el cálculo del margen están en **[planes.md](planes.md)**.
 
 ---
 

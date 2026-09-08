@@ -41,7 +41,9 @@ const SUGERENCIAS = [
 export default function Asistente() {
   const { usuario, cuota, setCuota, refrescar } = useAuth();
   const { conversaciones, recargar, eliminar, abrir } = useConversaciones(!!usuario);
-  const { motores, porDefecto } = useMotores();
+  // El catálogo se vuelve a pedir cuando cambia el plan: /motores informa de si
+  // el plan incluye cada motor, y esa respuesta caduca al cambiar de plan.
+  const { motores, porDefecto } = useMotores(cuota?.plan);
 
   const [idConversacion, setIdConversacion] = useState(null);
   const [motor, setMotor] = useState(null);
@@ -54,7 +56,13 @@ export default function Asistente() {
 
   // El motor queda fijado en cuanto la conversación existe en el servidor.
   const motorBloqueado = idConversacion !== null;
-  const disponibles = useMemo(() => motores.filter((m) => m.disponible), [motores]);
+  // Elegibles: configurados en el servidor Y incluidos en el plan del usuario.
+  // Es la lista con la que se elige motor por defecto y se ofrece derivar; un
+  // motor que el plan no cubre no debe aparecer como opción y fallar al enviar.
+  const disponibles = useMemo(
+    () => motores.filter((m) => m.disponible && m.incluido_en_plan !== false),
+    [motores],
+  );
   const motorActivo = motores.find((m) => m.id === motor) || null;
 
   // Elección inicial: el motor por defecto del servidor y, si ese no tiene su
@@ -335,11 +343,17 @@ export default function Asistente() {
               Datos: rankings, métricas y universidades
               {motorActivo && ` · ${motorActivo.modelo}`}
             </span>
-            {cuota && (
+            {cuota && motorActivo && cuota.motores?.[motorActivo.id] && (
               <span className="font-mono">
-                {cuota.tokens_total.toLocaleString("es-CL")}
-                {cuota.tokens_mensuales != null && ` / ${cuota.tokens_mensuales.toLocaleString("es-CL")}`} tokens este mes
-                {cuota.mensajes_restantes != null && ` · ${cuota.mensajes_restantes} consultas restantes hoy`}
+                {(() => {
+                  const e = cuota.motores[motorActivo.id];
+                  const tokens = e.tokens_mensuales == null
+                    ? `${e.tokens_total.toLocaleString("es-CL")} tokens este mes (sin límite)`
+                    : `${e.tokens_total.toLocaleString("es-CL")} / ${e.tokens_mensuales.toLocaleString("es-CL")} tokens de ${motorActivo.nombre} este mes`;
+                  return cuota.mensajes_restantes != null
+                    ? `${tokens} · ${cuota.mensajes_restantes} consultas restantes hoy`
+                    : tokens;
+                })()}
               </span>
             )}
           </div>

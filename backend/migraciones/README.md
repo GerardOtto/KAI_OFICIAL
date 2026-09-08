@@ -8,6 +8,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 |---|---|---|---|
 | `001_usuarios_y_conversaciones.sql` | Autenticación, cuentas de Google, planes, conversaciones y consumo de tokens | aplicada | aplicada (07-09-2026) |
 | `002_motor_por_conversacion.sql` | Motor del asistente (Claude o Gemini) fijado por conversación | aplicada | aplicada (07-09-2026) |
+| `003_planes_por_tokens.sql` | Planes con cuota de tokens por motor, precio mensual y tope diario | aplicada | aplicada (07-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las

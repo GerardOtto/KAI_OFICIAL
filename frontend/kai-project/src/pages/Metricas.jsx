@@ -17,6 +17,13 @@ const DownloadIcon = () => (
 
 const LEYENDA_PESOS = [3, 8, 13, 20, 30];
 
+/** Rankings que no se muestran en el glosario.
+ *
+ *  «QS por Disciplina» desglosa un mismo ranking en 55 disciplinas, y el Resumen
+ *  no está separado por disciplinas: en una matriz cuyas filas son dimensiones
+ *  transversales, esa columna no aporta nada que no diga ya QS Global. */
+const RANKINGS_OCULTOS = new Set(["QS por Disciplina"]);
+
 function alphaForPeso(peso) {
   const clamped = Math.min(peso, 25);
   return 0.08 + (clamped / 25) * 0.42;
@@ -32,7 +39,16 @@ function formatNumero(v) {
 export default function Metricas() {
   const tipos = useTiposMetrica();
   const { universidades } = useUniversidades();
-  const rankings = useRankings();
+  const todosLosRankings = useRankings();
+
+  const rankings = useMemo(
+    () => todosLosRankings.filter(r => !RANKINGS_OCULTOS.has(r.nombre_ranking)),
+    [todosLosRankings]
+  );
+  const idsVisibles = useMemo(
+    () => new Set(rankings.map(r => r.id_ranking)),
+    [rankings]
+  );
 
   const [universidadId, setUniversidadId] = useState(null);
   const [anio, setAnio] = useState("");
@@ -56,32 +72,133 @@ export default function Metricas() {
 
   // Dimensiones (filas), ordenadas por cuántas métricas reales agrupan
   const dimensiones = useMemo(() => {
-    return [...tipos].sort((a, b) => (matriz[b]?.length || 0) - (matriz[a]?.length || 0));
-  }, [tipos, matriz]);
+    const cuantas = (t) => (matriz[t] || []).filter(m => idsVisibles.has(m.id_ranking)).length;
+    return [...tipos].sort((a, b) => cuantas(b) - cuantas(a));
+  }, [tipos, matriz, idsVisibles]);
 
-  // Para cada (dimensión, ranking): metricas que caen ahí, peso sumado, y la
-  // métrica de mayor peso como "representativa" para el valor de la celda.
+  // Perfil de cada ranking: qué disciplinas cubre y cuánto peso reparte en cada
+  // una. Hace falta para saber si un ranking es multidisciplinario y para poder
+  // expresar el peso de una dimensión como cuota dentro de su disciplina.
+  const perfilRanking = useMemo(() => {
+    const acc = {};
+    Object.values(matriz).flat().forEach(m => {
+      const disciplina = m.disciplina || "General";
+      const r = (acc[m.id_ranking] ||= { disciplinas: new Set(), pesoPorDisciplina: new Map() });
+      r.disciplinas.add(disciplina);
+      r.pesoPorDisciplina.set(
+        disciplina,
+        (r.pesoPorDisciplina.get(disciplina) || 0) + Number(m.peso_metrica || 0)
+      );
+    });
+    return acc;
+  }, [matriz]);
+
+  /** Datos de una celda (dimensión × ranking).
+   *
+   *  Un ranking multidisciplinario como Shanghai GRAS trae una metodología
+   *  distinta por disciplina: 836 métricas repartidas en 57. Sumar sus pesos
+   *  daba porcentajes como 37.580 % y, como valor, el de una métrica suelta de
+   *  una disciplina cualquiera. Aquí el peso se calcula como la **cuota que la
+   *  dimensión ocupa dentro de su disciplina**, promediada entre disciplinas:
+   *  queda entre 0 y 100 y es comparable con el resto de columnas. Al ser un
+   *  cociente entre pesos de la misma disciplina, además es robusto frente a las
+   *  filas duplicadas que trae la fuente.
+   */
   const celda = (tipo, idRanking) => {
     const items = (matriz[tipo] || []).filter(m => m.id_ranking === idRanking);
     if (items.length === 0) return null;
-    const pesoTotal = items.reduce((s, m) => s + Number(m.peso_metrica || 0), 0);
-    const principal = [...items].sort((a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0))[0];
-    const valor = valoresMap[principal.id_metrica];
-    const tooltip = items
-      .map(m => `${m.nombre_metrica} (${m.peso_metrica}%)${valoresMap[m.id_metrica] != null ? `: ${formatNumero(valoresMap[m.id_metrica])}` : ""}`)
-      .join("\n");
-    return { pesoTotal, valor, tooltip, items };
+
+    const perfil = perfilRanking[idRanking];
+    const nDisciplinas = perfil?.disciplinas.size ?? 1;
+
+    if (nDisciplinas <= 1) {
+      const peso = items.reduce((s, m) => s + Number(m.peso_metrica || 0), 0);
+      const principal = [...items].sort(
+        (a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0))[0];
+      return {
+        peso,
+        multi: false,
+        valor: valoresMap[principal.id_metrica] ?? null,
+        principal: principal.nombre_metrica,
+        metricas: items.map(m => ({
+          nombre: m.nombre_metrica,
+          peso: Number(m.peso_metrica || 0),
+          valor: valoresMap[m.id_metrica] ?? null,
+        })),
+      };
+    }
+
+    // Cuota de la dimensión dentro de cada disciplina, promediada entre todas.
+    const pesoDimPorDisciplina = new Map();
+    items.forEach(m => {
+      const d = m.disciplina || "General";
+      pesoDimPorDisciplina.set(d, (pesoDimPorDisciplina.get(d) || 0) + Number(m.peso_metrica || 0));
+    });
+    let sumaCuotas = 0;
+    pesoDimPorDisciplina.forEach((pesoDim, d) => {
+      const totalDisciplina = perfil.pesoPorDisciplina.get(d) || 0;
+      if (totalDisciplina > 0) sumaCuotas += (pesoDim / totalDisciplina) * 100;
+    });
+    const peso = sumaCuotas / nDisciplinas;
+
+    // Las métricas se agrupan por nombre: la misma métrica repetida en 57
+    // disciplinas es una sola línea. Su peso se calcula igual que el de la
+    // dimensión —cuota dentro de la disciplina, promediada—, no sumando: sumarlo
+    // devolvería al desglose los porcentajes de miles que se acaban de corregir.
+    // Así los pesos de las métricas suman exactamente el de la dimensión.
+    const porNombre = new Map();
+    items.forEach(m => {
+      const d = m.disciplina || "General";
+      const totalDisciplina = perfil.pesoPorDisciplina.get(d) || 0;
+      const e = porNombre.get(m.nombre_metrica)
+        || { nombre: m.nombre_metrica, cuota: 0, suma: 0, conValor: 0 };
+      if (totalDisciplina > 0) e.cuota += (Number(m.peso_metrica || 0) / totalDisciplina) * 100;
+      const v = Number(valoresMap[m.id_metrica]);
+      if (valoresMap[m.id_metrica] != null && !Number.isNaN(v)) { e.suma += v; e.conValor += 1; }
+      porNombre.set(m.nombre_metrica, e);
+    });
+    const metricas = [...porNombre.values()]
+      .map(e => ({
+        nombre: e.nombre,
+        peso: e.cuota / nDisciplinas,
+        conValor: e.conValor,
+        valor: e.conValor ? e.suma / e.conValor : null,
+      }))
+      .sort((a, b) => b.peso - a.peso);
+    const principal = metricas[0];
+
+    return {
+      peso,
+      multi: true,
+      nDisciplinas,
+      disciplinasConDato: principal?.conValor ?? 0,
+      valor: principal?.valor ?? null,
+      principal: principal?.nombre,
+      metricas,
+    };
   };
 
   const contextoCargado = universidadId && anio;
 
+  // Si ninguna columna visible es multidisciplinaria, la nota sobre el promedio
+  // sobra: explicaría una marca que no aparece en ninguna celda.
+  const hayMultidisciplinar = useMemo(
+    () => rankings.some(r => (perfilRanking[r.id_ranking]?.disciplinas.size ?? 1) > 1),
+    [rankings, perfilRanking]
+  );
+
+  /** Métricas de una dimensión, sin los rankings ocultos del glosario: lo que se
+   *  exporta debe coincidir con lo que se ve. */
+  const metricasVisibles = (tipo) =>
+    (matriz[tipo] || []).filter(m => idsVisibles.has(m.id_ranking));
+
   const handleCSV = () => {
     const filas = [
-      ["Dimensión", "Ranking", "Métrica", "Peso (%)", ...(contextoCargado ? ["Valor"] : [])],
+      ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", ...(contextoCargado ? ["Valor"] : [])],
     ];
     dimensiones.forEach(tipo => {
-      (matriz[tipo] || []).forEach(m => {
-        const fila = [tipo, m.nombre_ranking, m.nombre_metrica, m.peso_metrica];
+      metricasVisibles(tipo).forEach(m => {
+        const fila = [tipo, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica];
         if (contextoCargado) fila.push(valoresMap[m.id_metrica] ?? "");
         filas.push(fila);
       });
@@ -109,7 +226,7 @@ export default function Metricas() {
     pdf.line(margin, y, pageW - margin, y); y += 6;
 
     dimensiones.forEach(tipo => {
-      const items = matriz[tipo] || [];
+      const items = metricasVisibles(tipo);
       if (!items.length) return;
       if (y > 190) { pdf.addPage(); y = margin; }
       pdf.setFontSize(11); pdf.setTextColor(20, 20, 20); pdf.setFont(undefined, "bold");
@@ -122,7 +239,12 @@ export default function Metricas() {
         pdf.setFillColor(bg, bg, bg);
         pdf.rect(margin, y, pageW - margin * 2, 6, "F");
         pdf.setFontSize(8); pdf.setTextColor(20, 20, 20);
-        pdf.text(`${m.nombre_ranking} · ${m.nombre_metrica}`, margin + 2, y + 4);
+        // La disciplina va en la línea solo cuando distingue: en los rankings de
+        // una sola disciplina sería «General» repetido en cada fila.
+        const etiqueta = m.disciplina && m.disciplina !== "General"
+          ? `${m.nombre_ranking} · ${m.disciplina} · ${m.nombre_metrica}`
+          : `${m.nombre_ranking} · ${m.nombre_metrica}`;
+        pdf.text(etiqueta, margin + 2, y + 4);
         pdf.text(`${m.peso_metrica}%`, pageW - margin - 30, y + 4);
         if (contextoCargado && valoresMap[m.id_metrica] != null) {
           pdf.text(String(valoresMap[m.id_metrica]), pageW - margin - 15, y + 4);
@@ -150,8 +272,16 @@ export default function Metricas() {
             </h2>
             <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed">
               Intensidad = peso de la métrica en ese ranking. Número = valor {universidadNombre || "de la institución seleccionada"}.
-              Celda vacía = el ranking no mide esa dimensión.
+              Celda vacía = el ranking no mide esa dimensión. Pasa el cursor por una celda para ver su desglose.
             </p>
+            {hayMultidisciplinar && (
+              <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed mt-1.5">
+                La marca <span className="font-mono text-white border border-white/20 px-1">prom</span>{" "}
+                señala un ranking multidisciplinario: su peso es la cuota que la dimensión ocupa
+                dentro de una disciplina, promediada entre todas, y el valor es el promedio de la
+                métrica principal. Sumar las disciplinas daría porcentajes de varios miles.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -267,10 +397,10 @@ export default function Metricas() {
                       return (
                         <HeatCell
                           key={r.id_ranking}
-                          peso={c?.pesoTotal ?? null}
-                          valor={c?.valor ?? null}
+                          datos={c}
+                          dimension={tipo}
+                          ranking={r.nombre_ranking}
                           valorFormateado={c ? formatNumero(c.valor) : null}
-                          titulo={c?.tooltip}
                         />
                       );
                     })}

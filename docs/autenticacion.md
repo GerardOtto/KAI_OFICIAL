@@ -142,31 +142,20 @@ los tokens de lectura y escritura de caché.
 
 ### Planes
 
-| Plan | Tokens por mes | Consultas por día |
-|---|---|---|
-| `free` | 200.000 | 30 |
-| `institucional` | 5.000.000 | sin límite |
-| `ilimitado` | sin límite | sin límite |
-| `admin` | sin límite | sin límite |
+La cuota es **de cada motor por separado**, porque un token de Claude cuesta unas
+veinte veces más que uno de Gemini y una bolsa común desligaría el precio del
+costo. Las cuentas nuevas quedan en `free`, que incluye Gemini pero no Claude.
 
-Las cuentas nuevas quedan en `free`. Los valores están en la tabla `plan` y se
-cambian con SQL, sin tocar el código:
-
-```sql
-UPDATE plan SET tokens_mensuales = 500000 WHERE codigo_plan = 'free';
-UPDATE usuario SET plan_usuario = 'institucional' WHERE correo_usuario = 'alguien@pucv.cl';
-```
-
-Con `claude-opus-5` a 5 USD por millón de tokens de entrada y 25 de salida, el
-plan gratuito de 200.000 tokens equivale aproximadamente a **1 a 3 USD al mes por
-usuario**, según la proporción entre entrada y salida. Conviene revisarlo antes
-de abrir el registro a cualquiera.
+El catálogo, los precios, el cálculo del margen y cómo cambiar cualquiera de los
+dos están en **[planes.md](planes.md)**.
 
 ### Qué ocurre al alcanzar el límite
 
-`POST /chat` responde **429** con el motivo, y el frontend deshabilita el campo
-de entrada mostrando la razón. El límite mensual se restablece el día 1; el
-diario, al día siguiente.
+`POST /chat` responde **403** si el plan no incluye el motor —se resuelve
+contratando— y **429** si la cuota se agotó —se resuelve esperando—. El frontend
+muestra el motivo y deshabilita lo que corresponda. El límite mensual se
+restablece el día 1; el diario, al día siguiente. Agotar un motor no bloquea el
+otro.
 
 ---
 
