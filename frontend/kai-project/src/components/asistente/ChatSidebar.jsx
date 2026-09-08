@@ -25,6 +25,33 @@ const TrashIcon = () => (
   </svg>
 );
 
+/** Quita la notación Markdown para la vista previa de una fila del historial.
+ *
+ * La respuesta guardada viene en Markdown, pero aquí se muestra como una línea
+ * de texto recortada: sin esto se leerían los asteriscos y las barras de las
+ * tablas. No se renderiza el Markdown de verdad porque una tabla o una lista no
+ * caben en un renglón; lo que se quiere es la frase, en limpio.
+ */
+function sinFormato(texto) {
+  return (texto || "")
+    .replace(/```[\s\S]*?```/g, " ")           // bloques de código
+    .replace(/`([^`]+)`/g, "$1")               // código en línea
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // enlaces e imágenes: solo el texto
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")        // encabezados
+    .replace(/^\s{0,3}>\s?/gm, "")             // citas
+    .replace(/^\s{0,3}([-*+]|\d+[.)])\s+/gm, "") // viñetas y numeración
+    .replace(/^\s*\|?[\s:|-]{6,}\|?\s*$/gm, " ") // separadores de tabla
+    .replace(/\|/g, " ")                       // barras de tabla
+    // Negrita, cursiva y tachado. El guion bajo suelto NO se toca: aquí abundan
+    // los identificadores de métricas como `citations_per_faculty`, y quitarlo
+    // los dejaría irreconocibles. La cursiva con guion bajo es rara en la salida
+    // de un modelo; el daño de tratarla sería mayor que el de ignorarla.
+    .replace(/(\*\*|__|\*|~~)/g, "")
+    .replace(/<[^>]*>/g, " ")                  // HTML crudo, que tampoco se renderiza
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Fecha relativa breve, para no repetir la fecha completa en cada fila. */
 function cuando(iso) {
   const f = new Date(iso);
@@ -202,7 +229,7 @@ export default function ChatSidebar({
                         {motores.find((m) => m.id === c.motor)?.nombre || c.motor || "—"}
                       </span>
                       <p className="text-[10px] text-outlineSoft truncate">
-                        {c.ultimo_mensaje || `${c.n_mensajes} mensajes`}
+                        {sinFormato(c.ultimo_mensaje) || `${c.n_mensajes} mensajes`}
                       </p>
                     </div>
                   </button>

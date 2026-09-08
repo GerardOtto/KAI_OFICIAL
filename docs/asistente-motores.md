@@ -139,6 +139,31 @@ Medido sobre una consulta real —«¿qué rankings hay cargados?», que obliga 
 modelo a llamar a una herramienta y leer su resultado— el motor Gemini consumió
 1.192 tokens de entrada y 54 de salida: **0,00038 USD**.
 
+### El nivel gratuito de Gemini
+
+Esos precios son los del **nivel de pago**. La API de Gemini tiene además un
+**nivel gratuito**, y una clave recién creada en AI Studio empieza ahí: por eso
+el motor funciona sin haber cargado saldo. La API de Claude no tiene equivalente
+—es de prepago puro—, y esa es toda la diferencia entre que uno responda y el
+otro no cuando no se ha pagado nada.
+
+Lo gratuito no sale gratis del todo. Dos condiciones a tener presentes:
+
+- **Google usa el contenido del nivel gratuito para mejorar sus productos.** En
+  el nivel de pago, no. Aquí eso significa las preguntas de los usuarios y los
+  resultados de las consultas a la base. Los datos de rankings son públicos,
+  pero las preguntas pueden no serlo: «¿en qué métrica conviene que invirtamos
+  para subir en THE?» dice bastante sobre la estrategia de la institución.
+- **Los límites de uso son bajos** (peticiones por minuto y por día). Al
+  superarlos la API responde 429 y el motor lo traduce a un aviso que sugiere
+  usar el otro. Las cifras vigentes de la clave se consultan en
+  <https://aistudio.google.com/> → *Rate limits*; no están publicadas de forma
+  estática porque dependen del proyecto.
+
+Activar la facturación en el proyecto de Google Cloud pasa la clave al nivel de
+pago: suben los límites y el contenido deja de usarse para entrenamiento. Con los
+precios de la tabla, el gasto sería de céntimos al mes salvo un uso intenso.
+
 **La cuota del usuario cuenta los tokens igual en ambos motores.** Es decir, un
 usuario del plan gratuito agota sus 200.000 tokens mensuales a la misma velocidad
 use el motor que use, aunque a la institución le cueste cincuenta veces menos.

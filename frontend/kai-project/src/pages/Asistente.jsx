@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ChatSidebar from "../components/asistente/ChatSidebar";
+import Markdown from "../components/asistente/Markdown";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
 
@@ -259,16 +260,16 @@ export default function Asistente() {
             ) : (
               <div key={m.id} className="flex flex-col gap-2">
                 <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 shrink-0 flex items-center justify-center border mt-1 ${
-                    m.fallo ? "border-negative/50 text-negative" : "bg-surfaceHigh border-outline/50 text-white"
-                  }`}>
+                  <div className="w-8 h-8 shrink-0 flex items-center justify-center border mt-1 bg-surfaceHigh border-outline/50 text-white">
                     <SparkleIcon />
                   </div>
-                  <p className={`leading-relaxed max-w-3xl whitespace-pre-wrap ${
-                    m.fallo ? "text-negative" : "text-white/80"
-                  }`}>
-                    {m.content}
-                  </p>
+                  {/* La respuesta del modelo viene en Markdown: negritas,
+                      listas y, sobre todo, tablas comparativas. El mensaje del
+                      usuario, en cambio, se muestra literal.
+                      `min-w-0` permite que el contenedor se encoja por debajo de
+                      su contenido, que es lo que deja a una tabla ancha
+                      desplazarse dentro del mensaje en vez de estirar la página. */}
+                  <Markdown className="max-w-3xl min-w-0">{m.content}</Markdown>
                 </div>
                 {m.tokens != null && m.tokens > 0 && (
                   <span className="pl-11 font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f]">
