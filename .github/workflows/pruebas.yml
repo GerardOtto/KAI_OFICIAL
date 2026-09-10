@@ -1,0 +1,64 @@
+name: Pruebas
+
+# Ejecuta las baterías de verificación del backend en cada empuje y en cada
+# solicitud de incorporación. Solo se ejecutan las que no llaman a ningún
+# proveedor de lenguaje: las que sí lo hacen consumen cuota y credenciales, y se
+# lanzan a mano (`python pruebas/ejecutar.py --en-vivo`).
+#
+# Las sondas de navegador no se incluyen aquí: necesitan la aplicación compilada
+# y servida, y un navegador con el protocolo de depuración abierto. Se ejecutan a
+# mano según `backend/pruebas/README.md`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kai_pruebas
+        ports: ["5432:5432"]
+        # Sin esta comprobación el trabajo seguiría antes de que la base acepte
+        # conexiones, y la restauración fallaría de forma intermitente.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kai_pruebas
+      # Las baterías sustituyen el proveedor por un doble; la clave solo sirve
+      # para que el motor figure como configurado y nunca se usa.
+      GEMINI_API_KEY: clave-de-prueba
+      JWT_SECRET: secreto-solo-para-pruebas
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r backend/requirements.txt
+
+      - name: Cargar los datos de prueba
+        # El volcado trae el esquema completo y los datos académicos, sin ninguna
+        # fila de las tablas de cuentas, conversaciones, mensajes ni
+        # notificaciones. Ver backend/pruebas/README.md.
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
+
+      - name: Ejecutar las baterías
+        working-directory: backend
+        run: python pruebas/ejecutar.py

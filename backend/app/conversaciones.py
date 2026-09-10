@@ -175,6 +175,28 @@ def consumo_del_mes(db, id_usuario: int) -> dict:
     return por_motor
 
 
+# Espacio de nombres de los cerrojos consultivos, para no colisionar con otros
+# usos de `pg_advisory_lock` que pudieran añadirse más adelante.
+ESPACIO_CUOTA = 4001
+
+
+def bloquear_cuota(db, id_usuario: int) -> None:
+    """Serializa por usuario la comprobación de cuota y la escritura del turno.
+
+    Sin esto, la cuota se comprueba y se consume en dos pasos separados: varias
+    peticiones simultáneas del mismo usuario leen el mismo recuento antes de que
+    ninguna haya escrito, y todas se creen dentro del límite. Medido con un tope
+    diario de cinco y doce peticiones a la vez, se aceptaban ocho.
+
+    El cerrojo es de transacción: se libera solo, al confirmar el mensaje del
+    usuario, de modo que no se retiene durante la llamada al proveedor —que es
+    lenta— sino únicamente durante la ventana de comprobar y escribir. Y es por
+    usuario, así que no serializa el tráfico de usuarios distintos.
+    """
+    db.execute(text("SELECT pg_advisory_xact_lock(:espacio, :u)"),
+               {"espacio": ESPACIO_CUOTA, "u": id_usuario})
+
+
 def mensajes_de_hoy(db, id_usuario: int) -> int:
     return int(db.execute(text("""
         SELECT count(*) FROM mensaje m

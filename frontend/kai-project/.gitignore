@@ -10,7 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-prueba
 *.local
+
+# Capturas que generan las sondas de navegador
+pruebas/capturas/
 
 # Editor directories and files
 .vscode/*

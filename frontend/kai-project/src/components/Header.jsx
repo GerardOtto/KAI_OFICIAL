@@ -107,6 +107,58 @@ function NavDropdown({ label, opciones }) {
   );
 }
 
+// Todos los destinos en una sola lista, para el menú compacto de pantallas
+// estrechas. Se deriva de las mismas constantes que el nav ancho, de modo que
+// añadir una sección no obligue a acordarse de tocar dos sitios.
+const DESTINOS = [
+  ...NAV,
+  ...OPCIONES_SIMULACION.map(o => ({ label: `Simulación · ${o.label}`, to: o.to })),
+  ...OPCIONES_INVESTIGADORES.map(o => ({ label: `Investigadores · ${o.label}`, to: o.to })),
+  ...NAV_AFTER_DROPDOWNS,
+];
+
+function MenuCompacto() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <div className="relative lg:hidden">
+      <button
+        onClick={() => setAbierto(v => !v)}
+        aria-label="Menú de navegación"
+        aria-expanded={abierto}
+        className="flex items-center gap-1.5 px-3 py-2 border border-white/20 text-[10px] uppercase tracking-widest text-[#c4c4c4] hover:bg-white hover:text-black hover:border-white transition-colors"
+      >
+        Menú
+        <span className="text-[8px]">▾</span>
+      </button>
+
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
+          <div className="absolute top-full left-0 mt-2 w-[250px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
+            {DESTINOS.map(d => {
+              const esActual = location.pathname === d.to;
+              return (
+                <button
+                  key={d.to}
+                  onClick={() => { navigate(d.to); setAbierto(false); }}
+                  className={`w-full text-left px-3 py-2 font-body text-[12px] transition-colors ${
+                    esActual ? "bg-white/[.08] text-white" : "text-[#dcdcdc] hover:bg-white/[.05]"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MenuUsuario() {
   const { usuario, cuota, cerrarSesion } = useAuth();
   const [abierto, setAbierto] = useState(false);
@@ -209,7 +261,14 @@ export default function Header() {
         style={{ height: "36px", filter: "invert(1)", mixBlendMode: "screen", cursor: "pointer" }}
       />
 
-      <nav className="hidden md:flex items-center h-full gap-1">
+      {/* Desde `lg` y no desde `md`: medido, el nav ocupa 672 px y el encabezado
+          completo necesita 940, de modo que entre 768 y 940 desbordaba la página
+          horizontalmente en todas las vistas. Condensarlo hasta caber en 768
+          exigía recortar el texto a 10 px sin espaciado, ilegible para el uso al
+          que va destinado. Los menús desplegables se posicionan de forma
+          absoluta dentro del nav, así que tampoco cabía hacerlo desplazable sin
+          recortarlos. */}
+      <nav className="hidden lg:flex items-center h-full gap-1">
         {NAV.map(section => (
           <NavLink key={section.label} to={section.to} className={navLinkClass}>
             {section.label}
@@ -227,6 +286,9 @@ export default function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
+        {/* Sustituye al nav ancho por debajo de `lg`. Antes de esto no había
+            navegación alguna en pantallas estrechas. */}
+        <MenuCompacto />
         <MenuUsuario />
         <button
           className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"

@@ -4,6 +4,11 @@ El asistente de KAI puede responder con dos modelos distintos. La elección no e
 un detalle de configuración del servidor: la hace el usuario en cada
 conversación, según el tipo de pregunta.
 
+Los dos tienen las mismas capacidades: consultan toda la base de datos académica
+—rankings, metodologías, métricas, universidades, series históricas y el censo de
+científicos— y buscan en internet lo que no está cargado. Lo que los distingue es
+la profundidad del razonamiento y el precio.
+
 | Motor | Modelo | Para qué | Costo relativo |
 |---|---|---|---|
 | **Claude** (por defecto) | `claude-opus-5` | Razonamiento profundo: comparaciones entre rankings, preguntas de varios pasos, interpretación de tendencias | Alto |
@@ -19,21 +24,139 @@ conversación, según el tipo de pregunta.
 
 ## 1. Qué comparten y qué no
 
-Los dos motores ejecutan **exactamente las mismas cinco herramientas** sobre la
-misma base de datos, con la misma instrucción de sistema. Están definidas una
-sola vez, en `herramientas.py`, como funciones normales de Python; de ahí se
-derivan los dos formatos de declaración que exigen los proveedores. Si una
-consulta SQL cambia, cambia para ambos: no hay dos versiones que puedan
-desincronizarse.
+Los dos motores ejecutan **exactamente las mismas diez herramientas** sobre la
+misma base de datos, con la misma instrucción de sistema, y los dos pueden
+además **buscar en internet**. Las herramientas están definidas una sola vez, en
+`herramientas.py`, como funciones normales de Python; de ahí se derivan los dos
+formatos de declaración que exigen los proveedores. Si una consulta SQL cambia,
+cambia para ambos: no hay dos versiones que puedan desincronizarse.
 
 Lo único propio de cada módulo es la traducción al protocolo del proveedor y la
 de sus errores. Ambos devuelven la misma estructura —texto, tokens de entrada,
-tokens de salida, modelo, motor y si la llamada fue exitosa—, de modo que el
-endpoint `/chat` no necesita saber cuál respondió.
+tokens de salida, modelo, motor, número de búsquedas web y si la llamada fue
+exitosa—, de modo que el endpoint `/chat` no necesita saber cuál respondió.
 
 ---
 
-## 2. Por qué un motor no se puede cambiar a mitad de conversación
+## 2. Qué sabe el asistente: contexto y alcance
+
+La instrucción de sistema (`herramientas.py`, `BASE_SYSTEM_PROMPT`) define un
+analista de inteligencia académica, no un asistente genérico: habla en español,
+para autoridades universitarias y analistas institucionales, y prefiere decir que
+un dato no permite sostener una conclusión antes que rellenar.
+
+Lo que más condiciona sus respuestas son las dos reglas de procedencia:
+
+1. **La base de datos manda** en todo lo que contiene. Nunca se inventan cifras,
+   nombres ni identificadores: si no lo devolvió una herramienta, no se afirma.
+2. **Internet cubre el resto**: ediciones o años que no están cargados, rankings
+   ausentes, cambios recientes de metodología, definiciones oficiales, contexto
+   internacional. Se priorizan las fuentes oficiales de cada entidad
+   (`timeshighereducation.com`, `topuniversities.com`, `scimagoir.com`,
+   `shanghairanking.com`) por encima de agregadores y prensa.
+
+Cuando una respuesta mezcla ambas, **el asistente marca el origen de cada cifra**
+y, si el sitio oficial y la base discrepan, lo muestra y explica la causa
+probable en lugar de elegir en silencio.
+
+Al arrancar el turno se le pega al prompt un **panorama de lo que hay cargado**,
+calculado desde la propia base (`contexto_de_datos()`): cuántos rankings, con qué
+métricas y disciplinas, cuántas universidades y qué años cubre cada uno. Así sabe
+de antemano qué puede responder con datos propios y qué tiene que buscar fuera,
+sin gastar un turno de herramientas en averiguarlo. Se cachea por proceso, porque
+solo cambia cuando se cargan datos nuevos.
+
+También se le advierten dos trampas de estos datos, que ya habían producido
+lecturas equivocadas: que **los pesos de las métricas cambiaron entre ediciones**
+(sumar pesos de años distintos no significa nada) y que **Shanghai GRAS y QS por
+Disciplina son multidisciplinarios** (agregarlos sin fijar disciplina infla las
+cifras).
+
+### Lo que no puede ver
+
+Las herramientas alcanzan el dominio académico completo y nada más. Las tablas
+`usuario`, `conversacion`, `mensaje`, `notificacion` y `plan` quedan fuera por
+diseño, y la herramienta de SQL libre rechaza la consulta entera si las menciona
+—escritas como sea, entre comillas o dentro de una subconsulta—. Si se le
+pregunta por datos de usuarios, responde que quedan fuera de su alcance.
+
+### Las diez herramientas
+
+| Herramienta | Para qué |
+|---|---|
+| `listar_rankings` | Catálogo con nivel, categoría, editor, métricas, universidades y años |
+| `detalle_ranking` | Descripción y metodología completas, disciplinas y años con datos |
+| `buscar_metricas` | Métricas de un ranking con tipo, peso y **en qué años rige ese peso** |
+| `buscar_universidades` | Búsqueda por nombre o país; devuelve el id y su cobertura |
+| `consultar_valores` | Corte transversal: qué sacó cada universidad en cada indicador de un año |
+| `consultar_tendencia` | Serie histórica de una métrica |
+| `consultar_ranking_resumen` | Score ponderado por universidad, con disciplina opcional |
+| `buscar_cientificos` | Censo bibliométrico: h-index, citas, artículos, ranking global |
+| `perfil_cientifico` | Ficha completa de un científico con sus indicadores y tópicos |
+| `consulta_sql` | Salida de emergencia: SQL de solo lectura sobre las tablas académicas |
+
+Las búsquedas por texto ignoran mayúsculas **y tildes**: la base guarda
+«Pontificia Universidad Catolica de Valparaiso» sin acentos, pero tanto el
+usuario como el modelo escriben «Católica».
+
+### `consulta_sql`: por qué existe y cómo está contenida
+
+Enumerar una herramienta por pregunta posible es imposible, así que hay una que
+acepta SQL. Su contención tiene cuatro capas, y ninguna basta sola:
+
+1. Solo se admite **una** sentencia que empiece por `SELECT` o `WITH`.
+2. Se rechazan las palabras que escriben o leen el sistema, y el catálogo interno
+   de PostgreSQL.
+3. Se rechaza cualquier mención de las tablas vetadas, y toda relación citada
+   tras `FROM`/`JOIN` debe estar en la lista blanca.
+4. La consulta se ejecuta en una **transacción de solo lectura** con un timeout
+   de 8 segundos. Esta es la única garantía que no depende de acertar con una
+   expresión regular: la impone el motor de la base.
+
+Un error de SQL vuelve al modelo como resultado de la herramienta, para que
+corrija la consulta y reintente.
+
+---
+
+## 3. La búsqueda en internet
+
+En los dos proveedores la búsqueda **la ejecuta el servidor del proveedor**, no
+este backend: el modelo la invoca, el proveedor busca y devuelve el resultado ya
+incorporado al turno. No hay que contratar ni configurar ningún buscador aparte,
+y el backend nunca abre una conexión saliente a internet por su cuenta.
+
+| | Claude | Gemini |
+|---|---|---|
+| Herramientas | `web_search_20260209` y `web_fetch_20260209` | `google_search` y `url_context` |
+| Cómo se declaran | Entradas sueltas en la lista de `tools` | **Dentro del mismo objeto `Tool`** que las funciones propias |
+| Requisito extra | Ninguno | `tool_config.include_server_side_tool_invocations = True` |
+| Cómo llega la ejecución | Bloques de resultado en la respuesta | Partes `toolCall`/`toolResponse`, distintas de las `functionCall` |
+| Tope por turno | `CLAUDE_MAX_BUSQUEDAS` (5 por defecto) | Lo decide el proveedor |
+
+Dos detalles de implementación que no son evidentes:
+
+- **En Claude**, el `tool_runner` del SDK separa por sí mismo las herramientas
+  que sabe ejecutar aquí de las que solo tiene que declarar, así que basta con
+  añadir las de servidor a la lista. Como la respuesta final llega partida en
+  varios bloques de texto con los resultados de búsqueda intercalados, se
+  **concatenan todos**: quedarse con el primero devolvía la respuesta a medias.
+- **En Gemini**, combinar herramientas integradas con funciones propias solo está
+  disponible en los modelos **Gemini 3** y sigue en *Preview*. Si el proveedor
+  rechazara la combinación, el motor se repliega a las herramientas de base de
+  datos, responde igualmente y recuerda el rechazo para no repetir la llamada
+  fallida en cada turno.
+
+### Costo
+
+Las búsquedas **se facturan por uso, aparte de los tokens**. La respuesta de
+`/chat` incluye `uso.busquedas` para que ese gasto sea visible; **no se descuenta
+de la cuota de tokens del plan**, que sigue midiendo solo tokens. Si el uso
+crece, conviene revisarlo: es la vía por la que un turno puede costar bastante
+más de lo que sugieren sus tokens.
+
+---
+
+## 4. Por qué un motor no se puede cambiar a mitad de conversación
 
 Cada conversación queda ligada a un motor **al crearse** y ya no lo cambia. No es
 una restricción arbitraria: el historial de una conversación no es
@@ -70,7 +193,7 @@ se queda corta, y se deriva la misma pregunta a Claude.
 
 ---
 
-## 3. Configurar el motor Gemini
+## 5. Configurar el motor Gemini
 
 El motor Gemini está implementado y solo le falta la credencial. Sin ella la
 aplicación funciona igual: el motor aparece en el selector marcado **«Sin
@@ -111,10 +234,14 @@ base de datos—. El identificador es configurable precisamente porque esto camb
 GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
-Dos comprobaciones antes de cambiarlo, ambas aprendidas a la fuerza:
+Tres comprobaciones antes de cambiarlo, todas aprendidas a la fuerza:
 
 - **Que el modelo admita *function calling***. Uno que no lo haga arrancará sin
   error y fallará en la primera consulta.
+- **Que sea de la generación Gemini 3.** Combinar la búsqueda de Google con las
+  funciones propias solo está disponible ahí. En un modelo anterior el motor
+  seguiría funcionando, pero replegado a la base de datos y sin acceso a
+  internet.
 - **Que la API lo sirva de verdad.** Que aparezca en `models.list()` del SDK no
   basta: `gemini-2.5-flash-lite` sigue listado y es más barato (0,10 / 0,40 USD),
   pero la API responde *«no longer available to new users»* y remite a la
@@ -125,7 +252,7 @@ los modelos vigentes, en la [lista de modelos](https://ai.google.dev/gemini-api/
 
 ---
 
-## 4. Costo y cuotas
+## 6. Costo y cuotas
 
 Precios por millón de tokens:
 
@@ -138,6 +265,16 @@ La entrada cuesta **20 veces menos** y la salida, **algo más de 16 veces menos*
 Medido sobre una consulta real —«¿qué rankings hay cargados?», que obliga al
 modelo a llamar a una herramienta y leer su resultado— el motor Gemini consumió
 1.192 tokens de entrada y 54 de salida: **0,00038 USD**.
+
+Dos avisos sobre esa cifra, ahora que el asistente hace más cosas:
+
+- Es **anterior** a la ampliación de herramientas y al panorama de datos que se
+  añade al prompt. La entrada por turno ha subido: hay diez herramientas
+  declaradas en vez de cinco, y una de ellas (`consulta_sql`) lleva el esquema
+  completo en su descripción. Habrá que volver a medirla.
+- **No incluye las búsquedas en internet**, que se cobran por uso y no por token.
+  Son el componente que más puede desviar el costo real de lo que sugieren los
+  tokens; `uso.busquedas` en la respuesta de `/chat` permite seguirlo.
 
 ### El nivel gratuito de Gemini
 
@@ -175,7 +312,7 @@ los precios y el cálculo del margen están en **[planes.md](planes.md)**.
 
 ---
 
-## 5. Diagnóstico
+## 7. Diagnóstico
 
 Para ver qué motores reconoce el servidor y cuáles tienen su clave configurada:
 
@@ -204,6 +341,8 @@ llegar al navegador como un 500 opaco.
 | Filtros de seguridad | Pide reformular |
 | Llamada a herramienta malformada | Sugiere derivar la consulta a Claude |
 | Respuesta cortada por longitud | Se entrega lo obtenido, con un aviso al final |
+| Gemini rechaza combinar búsqueda y herramientas | Nada: responde igual, sin internet, y lo deja en el log |
+| SQL que toca tablas de usuarios | El modelo recibe el rechazo y reformula; el usuario no ve nada |
 
 Cuando una consulta falla, **el turno completo se descarta**: el mensaje del
 usuario se borra y, si la conversación se había creado para ese turno, también la
@@ -222,12 +361,25 @@ tope de ocho ciclos por turno impide que se quede reintentando.
 
 ---
 
-## 6. Estado
+## 8. Estado
 
-Implementado y verificado con pruebas automatizadas: el ciclo de herramientas y
-la contabilidad de tokens de Gemini, la traducción de sus errores, el bloqueo del
-motor dentro de una conversación, el aislamiento del contexto entre conversaciones
-de motores distintos y la derivación desde la interfaz.
+Verificado con pruebas automatizadas contra la base de datos real: las diez
+herramientas, la contención de `consulta_sql` (28 intentos de evasión, incluidos
+los identificadores entre comillas y las subconsultas), el ciclo de herramientas
+y la contabilidad de tokens y búsquedas de Gemini, su repliegue si el proveedor
+rechaza la combinación, la traducción de errores, el bloqueo del motor dentro de
+una conversación y el recorrido completo de `/chat` con autenticación real.
 
-Pendiente: la clave `GEMINI_API_KEY`, que hay que generar y configurar. Sin ella
-el motor queda visible pero deshabilitado, sin afectar al resto de la aplicación.
+En Claude está verificado que el `tool_runner` separa correctamente las diez
+herramientas locales de las dos de servidor y declara las doce a la API.
+
+**No verificado contra el proveedor en vivo**, por falta de saldo en la cuenta de
+Anthropic y de cuota diaria en la clave gratuita de Gemini el día de la
+implementación:
+
+- Que Claude use efectivamente `web_search` y devuelva citas.
+- Que Gemini acepte en la práctica la combinación de `google_search` con las
+  funciones propias. La forma de la petición sigue la documentación oficial de
+  Google y el SDK la admite; el repliegue automático cubre el caso de que no.
+
+La primera consulta real de cada motor confirmará ambas cosas.

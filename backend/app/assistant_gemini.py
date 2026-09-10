@@ -7,15 +7,21 @@ la traducción al protocolo de Gemini y la de sus errores.
 Se usa el modelo más económico de la familia que admite llamada a funciones. El
 identificador es configurable con `GEMINI_MODEL` para poder cambiarlo sin tocar
 el código cuando Google publique uno más barato.
+
+A las herramientas de base de datos se suma la búsqueda web de Google. En Gemini
+esto no es una función que ejecute este proceso: la resuelve el servidor y
+devuelve lo que hizo como partes `toolCall`/`toolResponse` del turno, distintas
+de las `functionCall` de las herramientas propias. Ver `HERRAMIENTAS`.
 """
 import logging
 import os
+import time
 
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
-from .herramientas import POR_NOMBRE, SYSTEM_PROMPT, TOOLS, resultado
+from .herramientas import POR_NOMBRE, TOOLS, resultado, system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +55,9 @@ def cliente() -> genai.Client:
     return _cliente
 
 
-def _res(texto: str, entrada: int = 0, salida: int = 0, ok: bool = True) -> dict:
-    return resultado(texto, MODEL, MOTOR, entrada, salida, ok)
+def _res(texto: str, entrada: int = 0, salida: int = 0, ok: bool = True,
+         busquedas: int = 0) -> dict:
+    return resultado(texto, MODEL, MOTOR, entrada, salida, ok, busquedas)
 
 
 # --- Traducción de las herramientas ----------------------------------------
@@ -87,7 +94,62 @@ DECLARACIONES = [
     for t in TOOLS
 ]
 
-HERRAMIENTAS = [types.Tool(function_declarations=DECLARACIONES)]
+# Las integradas y las propias van en un mismo objeto `Tool`, que es la forma que
+# documenta Google para combinarlas, y exigen `include_server_side_tool_invocations`
+# para que el contexto de lo que hizo el servidor circule entre turnos. La
+# combinación solo está disponible en los modelos Gemini 3 y sigue en Preview:
+# de ahí el repliegue de `_sin_integradas()`.
+HERRAMIENTAS = [types.Tool(
+    google_search=types.GoogleSearch(),
+    # Deja abrir una página concreta (la metodología oficial de un ranking, por
+    # ejemplo) en vez de quedarse con el extracto del buscador.
+    url_context=types.UrlContext(),
+    function_declarations=DECLARACIONES,
+)]
+
+# Solo las propias: el repliegue si el proveedor rechaza la combinación.
+HERRAMIENTAS_SIN_WEB = [types.Tool(function_declarations=DECLARACIONES)]
+
+CONFIG_HERRAMIENTAS = types.ToolConfig(include_server_side_tool_invocations=True)
+
+# Herramientas que ejecuta el servidor de Google, no este proceso. Si alguna
+# llegara como llamada a función —no debería—, se ignora en vez de contestar que
+# no existe.
+NOMBRES_DE_SERVIDOR = {"google_search", "url_context"}
+
+# None = no se sabe todavía; False = este despliegue no admite la combinación.
+# Se recuerda para no pagar una llamada fallida en cada turno.
+_combinacion_admitida: bool | None = None
+
+# La búsqueda de Google tiene una cuota propia, separada de la de tokens: un
+# proyecto puede tener tokens de sobra y aun así recibir 429 en cuanto declara
+# `google_search`. Como esa cuota se repone sola, la desactivación es temporal en
+# vez de definitiva, y el motor vuelve a intentarlo pasado este plazo.
+ESPERA_TRAS_CUOTA_WEB = int(os.getenv("GEMINI_ESPERA_CUOTA_WEB", "1800"))
+_web_suspendida_hasta = 0.0
+
+# El nivel gratuito devuelve 503 con frecuencia apreciable por saturación del
+# modelo, no por un fallo de la petición. En una medición en vivo, dos de tres
+# turnos consecutivos fallaron así y el siguiente funcionó de inmediato: es
+# transitorio y merece reintentarse antes de devolver un error al usuario. Las
+# esperas son cortas porque el turno ocurre con alguien mirando la pantalla.
+ESPERAS_TRAS_503 = (2, 5)
+
+# Señales de que el 400 viene de la combinación de herramientas y no de la
+# consulta del usuario. Google no expone un código propio para esto.
+SENALES_COMBINACION = ("tool", "google_search", "url_context", "function_declarations",
+                       "not supported", "unsupported", "combination")
+
+
+def _es_rechazo_de_combinacion(e: genai_errors.APIError) -> bool:
+    if getattr(e, "code", None) != 400:
+        return False
+    detalle = (getattr(e, "message", "") or "").lower()
+    return sum(s in detalle for s in SENALES_COMBINACION) >= 2
+
+
+def _puede_usar_web() -> bool:
+    return _combinacion_admitida is not False and time.time() >= _web_suspendida_hasta
 
 
 def _ejecutar(nombre: str, argumentos: dict) -> str:
@@ -169,16 +231,11 @@ FINALES_PROBLEMATICOS = {
 }
 
 
-def responder(mensajes: list[dict]) -> dict:
-    if not configurado():
-        return _res("El servidor no tiene configurada GEMINI_API_KEY: el motor Gemini está "
-                    "deshabilitado. Ver docs/asistente-motores.md.", ok=False)
-
-    entrada = salida = 0
-    contenidos = _a_contenidos(mensajes)
-    configuracion = types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT,
-        tools=HERRAMIENTAS,
+def _configuracion(con_web: bool) -> types.GenerateContentConfig:
+    return types.GenerateContentConfig(
+        system_instruction=system_prompt(),
+        tools=HERRAMIENTAS if con_web else HERRAMIENTAS_SIN_WEB,
+        tool_config=CONFIG_HERRAMIENTAS if con_web else None,
         # El ciclo se conduce a mano en vez de dejarlo al SDK: la ejecución
         # automática solo informa del consumo de la última llamada, y aquí hace
         # falta el de todas para cobrar el turno completo contra la cuota.
@@ -186,11 +243,76 @@ def responder(mensajes: list[dict]) -> dict:
         max_output_tokens=4096,
     )
 
+
+def _generar_con_reintentos(contenidos, con_web: bool):
+    """Una llamada al modelo, reintentando solo ante saturación pasajera (503).
+
+    Cualquier otro error se propaga sin más: un 429 lo trata el ciclo llamante
+    replegándose sin búsqueda web, y un 400 no mejora por reintentarse.
+    """
+    for espera in (*ESPERAS_TRAS_503, None):
+        try:
+            return cliente().models.generate_content(
+                model=MODEL, contents=contenidos, config=_configuracion(con_web))
+        except genai_errors.APIError as e:
+            if getattr(e, "code", None) != 503 or espera is None:
+                raise
+            logger.info("Gemini saturado (503); se reintenta en %s s.", espera)
+            time.sleep(espera)
+
+
+def _busquedas_del_turno(respuesta) -> int:
+    """Cuántas consultas al buscador hizo el servidor en esta llamada.
+
+    Se facturan aparte de los tokens, así que interesa contarlas aunque no se
+    cobren contra la cuota de tokens del plan.
+    """
+    meta = getattr(respuesta.candidates[0], "grounding_metadata", None) if respuesta.candidates else None
+    return len(getattr(meta, "web_search_queries", None) or []) if meta else 0
+
+
+def responder(mensajes: list[dict]) -> dict:
+    if not configurado():
+        return _res("El servidor no tiene configurada GEMINI_API_KEY: el motor Gemini está "
+                    "deshabilitado. Ver docs/asistente-motores.md.", ok=False)
+
+    global _combinacion_admitida, _web_suspendida_hasta
+    entrada = salida = busquedas = 0
+    contenidos = _a_contenidos(mensajes)
+    con_web = _puede_usar_web()
+
     try:
         respuesta = None
         for _ in range(MAX_CICLOS):
-            respuesta = cliente().models.generate_content(
-                model=MODEL, contents=contenidos, config=configuracion)
+            try:
+                respuesta = _generar_con_reintentos(contenidos, con_web)
+            except genai_errors.APIError as e:
+                # Dos motivos distintos para repetir el turno sin búsqueda web, y
+                # ninguno debe dejar al usuario sin respuesta: la base de datos
+                # sigue siendo consultable aunque internet no lo esté.
+                if con_web and _es_rechazo_de_combinacion(e):
+                    # La combinación está en Preview y solo en los modelos Gemini 3.
+                    # Si este despliegue la rechaza, no lo hará después: se recuerda
+                    # para no repetir la llamada fallida en cada turno.
+                    logger.warning("Gemini rechazó la combinación con búsqueda web; se "
+                                   "desactiva para este proceso: %s", getattr(e, "message", e))
+                    _combinacion_admitida = False
+                    con_web = False
+                    continue
+                if con_web and getattr(e, "code", None) == 429:
+                    # La búsqueda de Google se factura y se limita aparte de los
+                    # tokens, así que el proyecto puede tener tokens de sobra y aun
+                    # así agotar la cuota de búsqueda. Se reintenta sin ella: si el
+                    # 429 venía de la búsqueda, el turno sale adelante; si venía del
+                    # ritmo de peticiones, volverá a fallar y se informará entonces.
+                    logger.warning("Gemini devolvió 429 con la búsqueda web declarada; se "
+                                   "reintenta sin ella y se suspende %s s.", ESPERA_TRAS_CUOTA_WEB)
+                    _web_suspendida_hasta = time.time() + ESPERA_TRAS_CUOTA_WEB
+                    con_web = False
+                    continue
+                raise
+            if con_web:
+                _combinacion_admitida = True
 
             uso = getattr(respuesta, "usage_metadata", None)
             if uso is not None:
@@ -200,13 +322,25 @@ def responder(mensajes: list[dict]) -> dict:
                 entrada += (getattr(uso, "tool_use_prompt_token_count", 0) or 0)
                 salida += (getattr(uso, "candidates_token_count", 0) or 0)
                 salida += (getattr(uso, "thoughts_token_count", 0) or 0)
+            busquedas += _busquedas_del_turno(respuesta)
 
-            llamadas = respuesta.function_calls
+            # El servidor ejecuta la búsqueda por su cuenta y la devuelve como
+            # partes toolCall/toolResponse, no como functionCall, así que aquí no
+            # deberían aparecer nunca; se descartan por si acaso, para no
+            # responder «esa herramienta no existe» a algo que el servidor ya
+            # resolvió. Lo que no se descarta es un nombre simplemente
+            # desconocido: ese va a `_ejecutar`, que devuelve el error al modelo
+            # para que se corrija. Filtrarlo aquí dejaría al modelo sin saber por
+            # qué su llamada no obtuvo respuesta.
+            llamadas = [ll for ll in (respuesta.function_calls or [])
+                        if ll.name not in NOMBRES_DE_SERVIDOR]
             if not llamadas:
                 break
 
             # El turno del modelo se conserva íntegro (incluidas las firmas de
-            # razonamiento que trae) antes de añadir los resultados.
+            # razonamiento y las partes de las herramientas de servidor, que es
+            # lo que mantiene el contexto entre turnos) antes de añadir los
+            # resultados.
             contenidos.append(respuesta.candidates[0].content)
             contenidos.append(types.Content(role="user", parts=[
                 types.Part.from_function_response(
@@ -217,31 +351,32 @@ def responder(mensajes: list[dict]) -> dict:
             ]))
         else:
             return _res(f"El asistente encadenó más de {MAX_CICLOS} consultas sin llegar a una "
-                        "respuesta. Acota la pregunta.", entrada, salida, ok=False)
+                        "respuesta. Acota la pregunta.", entrada, salida, ok=False, busquedas=busquedas)
 
     except genai_errors.APIError as e:
         logger.warning("Error de la API de Gemini (%s): %s", getattr(e, "code", "?"), getattr(e, "message", e))
-        return _res(_mensaje_de_error(e), entrada, salida, ok=False)
+        return _res(_mensaje_de_error(e), entrada, salida, ok=False, busquedas=busquedas)
     except Exception as e:
         # Misma red de seguridad que en el motor Claude: un fallo aquí no debe
         # salir como un 500 opaco que el frontend muestre como "no se pudo
         # contactar al asistente".
         logger.exception("Fallo inesperado en el motor Gemini")
         return _res(f"El asistente falló al procesar la consulta ({type(e).__name__}). "
-                    "Revisa los logs del backend.", entrada, salida, ok=False)
+                    "Revisa los logs del backend.", entrada, salida, ok=False, busquedas=busquedas)
 
     if respuesta is None or not respuesta.candidates:
-        return _res("No se obtuvo respuesta del modelo.", entrada, salida, ok=False)
+        return _res("No se obtuvo respuesta del modelo.", entrada, salida, ok=False, busquedas=busquedas)
 
     motivo = getattr(respuesta.candidates[0], "finish_reason", None)
     nombre_motivo = getattr(motivo, "name", None) or str(motivo or "")
     texto = respuesta.text or ""
 
     if nombre_motivo in FINALES_PROBLEMATICOS and not texto:
-        return _res(FINALES_PROBLEMATICOS[nombre_motivo], entrada, salida, ok=False)
+        return _res(FINALES_PROBLEMATICOS[nombre_motivo], entrada, salida, ok=False, busquedas=busquedas)
     if not texto:
-        return _res("El modelo no devolvió una respuesta de texto.", entrada, salida, ok=False)
+        return _res("El modelo no devolvió una respuesta de texto.", entrada, salida,
+                    ok=False, busquedas=busquedas)
     if nombre_motivo == "MAX_TOKENS":
         # Hay texto, pero incompleto: se entrega avisando en vez de descartarlo.
         texto += "\n\n[Respuesta cortada por longitud. Pide una versión más acotada.]"
-    return _res(texto, entrada, salida, ok=True)
+    return _res(texto, entrada, salida, ok=True, busquedas=busquedas)

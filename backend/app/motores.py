@@ -19,7 +19,8 @@ CATALOGO = [
         "id": claude.MOTOR,
         "nombre": "Claude",
         "modelo": claude.MODEL,
-        "descripcion": "Razonamiento profundo. Para análisis comparativos y preguntas de varios pasos.",
+        "descripcion": ("Razonamiento profundo. Para análisis comparativos y preguntas de varios "
+                        "pasos. Consulta la base de datos y busca en internet."),
         "etiqueta_costo": "Mayor costo por token",
         "modulo": claude,
     },
@@ -27,7 +28,8 @@ CATALOGO = [
         "id": gemini.MOTOR,
         "nombre": "Gemini",
         "modelo": gemini.MODEL,
-        "descripcion": "Respuestas rápidas. Para consultas directas de datos y preguntas sencillas.",
+        "descripcion": ("Respuestas rápidas. Para consultas directas de datos y preguntas "
+                        "sencillas. Consulta la base de datos y busca en internet."),
         "etiqueta_costo": "Menor costo por token",
         "modulo": gemini,
     },

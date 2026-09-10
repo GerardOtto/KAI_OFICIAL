@@ -398,6 +398,12 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
         # 2) Si el plan permite usarlo y queda cuota. Se comprueba después de
         #    conocer el motor porque la cuota es de cada uno por separado, y
         #    antes de escribir nada, para no dejar rastro de un turno rechazado.
+        #
+        #    El cerrojo abarca desde aquí hasta que se confirma el mensaje del
+        #    usuario: comprobar y consumir la cuota son dos pasos, y sin él dos
+        #    peticiones simultáneas del mismo usuario leen el mismo recuento y
+        #    ambas se creen dentro del límite (ver `bloquear_cuota`).
+        conv.bloquear_cuota(db, usuario["id_usuario"])
         cuota = conv.estado_de_cuota(db, usuario)
         bloqueo = conv.motivo_de_bloqueo(cuota, motor)
         if bloqueo:
@@ -443,6 +449,9 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
             "uso": {
                 "tokens_entrada": resultado["tokens_entrada"],
                 "tokens_salida": resultado["tokens_salida"],
+                # Las búsquedas en internet las cobran ambos proveedores por uso,
+                # aparte de los tokens; se informan para que el gasto sea visible.
+                "busquedas": resultado.get("busquedas", 0),
             },
             "cuota": conv.estado_de_cuota(db, usuario),
         }

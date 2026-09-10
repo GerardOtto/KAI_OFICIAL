@@ -18,8 +18,8 @@ import { colorDeIndice, fmt } from "../components/tendencias/paleta";
 // Dos vistas hermanas sobre los mismos selectores: cambia el eje X.
 // `max: null` = sin tope de series.
 const VISTAS = [
-  { id: "anual", label: "Comparación anual", sub: "barras · un año, varias métricas", max: 24 },
   { id: "evolucion", label: "Evolución", sub: "líneas · serie histórica, sin tope", max: null },
+  { id: "anual", label: "Comparación anual", sub: "barras · un año, varias métricas", max: 24 },
 ];
 
 const MAX_CHIPS_METRICA = 6;
@@ -30,7 +30,7 @@ const MAX_CHIPS_METRICA = 6;
 const ANCHO_PDF = 1400;
 
 export default function Tendencias() {
-  const [vista, setVista] = useState("anual");
+  const [vista, setVista] = useState("evolucion");
   const [rankingId, setRankingId] = useState(1);
   const [disciplina, setDisciplina] = useState(null);
   const [anio, setAnio] = useState(null);
