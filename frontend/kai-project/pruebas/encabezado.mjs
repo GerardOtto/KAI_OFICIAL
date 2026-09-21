@@ -87,8 +87,13 @@ const opciones = await ev(`
 `);
 console.log("    opciones:", JSON.stringify(opciones));
 comprobar("el menú abre con los seis destinos", opciones.length >= 6, String(opciones.length));
-comprobar("incluye las dos simulaciones y los dos censos",
-  opciones.some(o => /Simulaci/i.test(o)) && opciones.some(o => /Investigadores/i.test(o)),
+comprobar("incluye las dos simulaciones",
+  opciones.filter(o => /Simulaci/i.test(o)).length >= 2,
+  JSON.stringify(opciones));
+// Los censos de investigadores se retiraron del encabezado: sus páginas y sus
+// datos siguen ahí, pero ya no se ofrece acceso desde la navegación.
+comprobar("no ofrece los censos de investigadores",
+  !opciones.some(o => /Investigadores|Cient/i.test(o)),
   JSON.stringify(opciones));
 
 const destino = await ev(`

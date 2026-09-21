@@ -29,21 +29,6 @@ const OPCIONES_SIMULACION = [
   },
 ];
 
-const OPCIONES_INVESTIGADORES = [
-  {
-    to: "/cientificos",
-    label: "Científicos",
-    sub: "Top 2% Mundial · Stanford/Elsevier",
-    desc: "Investigadores chilenos en el ranking global de mayor impacto bibliométrico (índice-c, citas, índice H).",
-  },
-  {
-    to: "/investigadores-pucv",
-    label: "Investigadores PUCV",
-    sub: "Censo institucional · Scopus",
-    desc: "Todos los autores PUCV indexados en Scopus, con índice H, documentos y áreas de investigación.",
-  },
-];
-
 const navLinkClass = ({ isActive }) =>
   `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
     isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
@@ -113,7 +98,6 @@ function NavDropdown({ label, opciones }) {
 const DESTINOS = [
   ...NAV,
   ...OPCIONES_SIMULACION.map(o => ({ label: `Simulación · ${o.label}`, to: o.to })),
-  ...OPCIONES_INVESTIGADORES.map(o => ({ label: `Investigadores · ${o.label}`, to: o.to })),
   ...NAV_AFTER_DROPDOWNS,
 ];
 
@@ -276,7 +260,6 @@ export default function Header() {
         ))}
 
         <NavDropdown label="Simulación" opciones={OPCIONES_SIMULACION} />
-        <NavDropdown label="Investigadores" opciones={OPCIONES_INVESTIGADORES} />
 
         {NAV_AFTER_DROPDOWNS.map(section => (
           <NavLink key={section.label} to={section.to} className={navLinkClass}>
@@ -290,15 +273,6 @@ export default function Header() {
             navegación alguna en pantallas estrechas. */}
         <MenuCompacto />
         <MenuUsuario />
-        <button
-          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-          title="Configuración"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-        </button>
       </div>
 
     </header>
