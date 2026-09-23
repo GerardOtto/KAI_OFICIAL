@@ -100,10 +100,18 @@ El navegador nunca maneja un *client secret*: no hay ninguno en el frontend.
 
 Si alguien se registró con correo y contraseña y luego entra con Google usando
 **ese mismo correo**, la cuenta de Google se vincula al usuario existente en
-lugar de crear un duplicado. A partir de ahí puede entrar por cualquiera de las
-dos vías. A la inversa, si una cuenta se creó con Google y alguien intenta
-entrar con contraseña, el sistema lo indica explícitamente en vez de responder
-«credenciales incorrectas».
+lugar de crear un duplicado. Conserva su historial, su plan y su consumo.
+
+Al vincular, **la contraseña se elimina**. Desde ese momento solo se entra con
+Google. Si alguien intenta entrar o registrarse con contraseña usando ese
+correo, recibe «Su cuenta está verificada, solo puede ingresar vía su cuenta de
+Google.»
+
+El motivo es de seguridad. El registro local no verifica el correo, así que un
+tercero pudo registrarse antes con un correo ajeno. Si la contraseña
+sobreviviera a la vinculación, ese tercero seguiría entrando a la cuenta del
+dueño real. Las cuentas vinculadas antes de este cambio se corrigen con la
+migración `004_solo_google_tras_vincular.sql`.
 
 ---
 
@@ -182,8 +190,9 @@ entre usuarios, persistencia de conversaciones, contabilidad de tokens y cuotas.
 Pendiente:
 
 - **Recuperación de contraseña.** No hay flujo de restablecimiento; requiere
-  envío de correo. Mientras tanto, una cuenta sin contraseña recuperable puede
-  entrar con Google si usa el mismo correo.
+  envío de correo. Mientras tanto, quien olvide su contraseña puede entrar con
+  Google si usa el mismo correo, sabiendo que desde entonces solo podrá
+  entrar por esa vía.
 - **Tokens de refresco.** Al expirar el JWT hay que volver a iniciar sesión.
 - **Verificación de correo en el registro local.** Las cuentas de Google llegan
   con el correo ya verificado; las locales no se verifican.

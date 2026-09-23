@@ -76,6 +76,15 @@ export default function Metricas() {
     return [...tipos].sort((a, b) => cuantas(b) - cuantas(a));
   }, [tipos, matriz, idsVisibles]);
 
+  /** Una métrica entra en el reparto del 100 % del ranking.
+   *
+   *  Algunos rankings publican su metodología en dos niveles —THE Latam trae los
+   *  cinco pilares y los diecisiete indicadores que estos agrupan—, y la base los
+   *  guarda en la misma tabla. Sumarlos todos daba 200 %. `pondera` marca cuál de
+   *  los dos niveles compone el total; el otro se conserva como referencia
+   *  metodológica y se sigue mostrando en el desglose. */
+  const pondera = (m) => m.pondera !== false;
+
   // Perfil de cada ranking: qué disciplinas cubre y cuánto peso reparte en cada
   // una. Hace falta para saber si un ranking es multidisciplinario y para poder
   // expresar el peso de una dimensión como cuota dentro de su disciplina.
@@ -85,6 +94,7 @@ export default function Metricas() {
       const disciplina = m.disciplina || "General";
       const r = (acc[m.id_ranking] ||= { disciplinas: new Set(), pesoPorDisciplina: new Map() });
       r.disciplinas.add(disciplina);
+      if (!pondera(m)) return;
       r.pesoPorDisciplina.set(
         disciplina,
         (r.pesoPorDisciplina.get(disciplina) || 0) + Number(m.peso_metrica || 0)
@@ -112,25 +122,39 @@ export default function Metricas() {
     const nDisciplinas = perfil?.disciplinas.size ?? 1;
 
     if (nDisciplinas <= 1) {
-      const peso = items.reduce((s, m) => s + Number(m.peso_metrica || 0), 0);
-      const principal = [...items].sort(
+      const cuentan = items.filter(pondera);
+      const peso = cuentan.reduce((s, m) => s + Number(m.peso_metrica || 0), 0);
+      const principal = [...cuentan].sort(
         (a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0))[0];
       return {
         peso,
         multi: false,
-        valor: valoresMap[principal.id_metrica] ?? null,
-        principal: principal.nombre_metrica,
-        metricas: items.map(m => ({
-          nombre: m.nombre_metrica,
-          peso: Number(m.peso_metrica || 0),
-          valor: valoresMap[m.id_metrica] ?? null,
-        })),
+        // Ninguna métrica de la dimensión compone el total: el ranking sí la mide,
+        // pero dentro de otro pilar. Sin esta distinción la celda mostraría 0 %,
+        // que se lee como «no la valora».
+        soloReferencia: cuentan.length === 0,
+        parteDe: cuentan.length === 0 ? items.find(m => m.nombre_metrica_padre)?.nombre_metrica_padre ?? null : null,
+        valor: principal ? valoresMap[principal.id_metrica] ?? null : null,
+        principal: principal?.nombre_metrica,
+        // El desglose muestra los dos niveles; los de referencia van al final,
+        // marcados con el agregador que los contiene.
+        metricas: [...items]
+          .map(m => ({
+            nombre: m.nombre_metrica,
+            peso: Number(m.peso_metrica || 0),
+            valor: valoresMap[m.id_metrica] ?? null,
+            referencia: !pondera(m),
+            parteDe: m.nombre_metrica_padre || null,
+          }))
+          .sort((a, b) => (a.referencia - b.referencia) || (b.peso - a.peso)),
       };
     }
 
     // Cuota de la dimensión dentro de cada disciplina, promediada entre todas.
+    // El denominador de `perfil` solo cuenta lo que pondera, así que el numerador
+    // debe hacer lo mismo o la cuota se iría por encima de 100.
     const pesoDimPorDisciplina = new Map();
-    items.forEach(m => {
+    items.filter(pondera).forEach(m => {
       const d = m.disciplina || "General";
       pesoDimPorDisciplina.set(d, (pesoDimPorDisciplina.get(d) || 0) + Number(m.peso_metrica || 0));
     });
@@ -151,7 +175,8 @@ export default function Metricas() {
       const d = m.disciplina || "General";
       const totalDisciplina = perfil.pesoPorDisciplina.get(d) || 0;
       const e = porNombre.get(m.nombre_metrica)
-        || { nombre: m.nombre_metrica, cuota: 0, suma: 0, conValor: 0 };
+        || { nombre: m.nombre_metrica, cuota: 0, suma: 0, conValor: 0,
+             referencia: !pondera(m), parteDe: m.nombre_metrica_padre || null };
       if (totalDisciplina > 0) e.cuota += (Number(m.peso_metrica || 0) / totalDisciplina) * 100;
       const v = Number(valoresMap[m.id_metrica]);
       if (valoresMap[m.id_metrica] != null && !Number.isNaN(v)) { e.suma += v; e.conValor += 1; }
@@ -163,14 +188,17 @@ export default function Metricas() {
         peso: e.cuota / nDisciplinas,
         conValor: e.conValor,
         valor: e.conValor ? e.suma / e.conValor : null,
+        referencia: e.referencia,
+        parteDe: e.parteDe,
       }))
-      .sort((a, b) => b.peso - a.peso);
-    const principal = metricas[0];
+      .sort((a, b) => (a.referencia - b.referencia) || (b.peso - a.peso));
+    const principal = metricas.find(m => !m.referencia);
 
     return {
       peso,
       multi: true,
       nDisciplinas,
+      soloReferencia: peso === 0 && metricas.length > 0,
       disciplinasConDato: principal?.conValor ?? 0,
       valor: principal?.valor ?? null,
       principal: principal?.nombre,
@@ -187,6 +215,13 @@ export default function Metricas() {
     [rankings, perfilRanking]
   );
 
+  // Igual que la anterior: la nota sobre los dos niveles solo tiene sentido si
+  // alguna columna visible los trae.
+  const hayJerarquia = useMemo(
+    () => Object.values(matriz).flat().some(m => m.pondera === false && idsVisibles.has(m.id_ranking)),
+    [matriz, idsVisibles]
+  );
+
   /** Métricas de una dimensión, sin los rankings ocultos del glosario: lo que se
    *  exporta debe coincidir con lo que se ve. */
   const metricasVisibles = (tipo) =>
@@ -194,11 +229,13 @@ export default function Metricas() {
 
   const handleCSV = () => {
     const filas = [
-      ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", ...(contextoCargado ? ["Valor"] : [])],
+      ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", "Compone el total", "Parte de",
+       ...(contextoCargado ? ["Valor"] : [])],
     ];
     dimensiones.forEach(tipo => {
       metricasVisibles(tipo).forEach(m => {
-        const fila = [tipo, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica];
+        const fila = [tipo, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica,
+                      pondera(m) ? "Sí" : "No", m.nombre_metrica_padre || ""];
         if (contextoCargado) fila.push(valoresMap[m.id_metrica] ?? "");
         filas.push(fila);
       });
@@ -244,7 +281,10 @@ export default function Metricas() {
         const etiqueta = m.disciplina && m.disciplina !== "General"
           ? `${m.nombre_ranking} · ${m.disciplina} · ${m.nombre_metrica}`
           : `${m.nombre_ranking} · ${m.nombre_metrica}`;
-        pdf.text(etiqueta, margin + 2, y + 4);
+        // Un indicador que no compone el total lleva el pilar del que forma
+        // parte: sin esa marca, su peso parecería sumarse a los demás.
+        pdf.text(pondera(m) ? etiqueta : `${etiqueta} — dentro de ${m.nombre_metrica_padre}`,
+                 margin + 2, y + 4);
         pdf.text(`${m.peso_metrica}%`, pageW - margin - 30, y + 4);
         if (contextoCargado && valoresMap[m.id_metrica] != null) {
           pdf.text(String(valoresMap[m.id_metrica]), pageW - margin - 15, y + 4);
@@ -280,6 +320,17 @@ export default function Metricas() {
                 señala un ranking multidisciplinario: su peso es la cuota que la dimensión ocupa
                 dentro de una disciplina, promediada entre todas, y el valor es el promedio de la
                 métrica principal. Sumar las disciplinas daría porcentajes de varios miles.
+              </p>
+            )}
+            {hayJerarquia && (
+              <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed mt-1.5">
+                Algunos rankings publican su metodología en dos niveles: los pilares y los
+                indicadores que cada pilar agrupa. El peso lo componen los pilares; los indicadores
+                se conservan como referencia metodológica, aparecen en el desglose marcados con{" "}
+                <span className="font-mono text-white border border-white/20 px-1">ref</span> y no
+                suman. La marca{" "}
+                <span className="font-mono text-white border border-white/20 px-1">ref</span> en una
+                celda indica que el ranking mide esa dimensión dentro de otro pilar.
               </p>
             )}
           </div>

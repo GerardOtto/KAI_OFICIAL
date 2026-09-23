@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3yecdCjuxdmM3ibLTFDQkbCbh6lkYsshwhkzrawe7DhqrABXj0F76SOGN5qhSs2
+\restrict zLQ7sKr6neHCk6pEXvEVSe5PZRXIIxrtGSwfqdsDRGnzC3e8cuvoBNx8v6WiAgd
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -192,8 +192,25 @@ CREATE TABLE public.metrica (
     descripcion_metrica text,
     tipo_metrica text,
     peso_metrica numeric,
-    disciplina text
+    disciplina text,
+    id_metrica_padre integer,
+    pondera boolean DEFAULT true NOT NULL,
+    CONSTRAINT metrica_padre_distinto_chk CHECK (((id_metrica_padre IS NULL) OR (id_metrica_padre <> id_metrica)))
 );
+
+
+--
+-- Name: COLUMN metrica.id_metrica_padre; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.metrica.id_metrica_padre IS 'Métrica agregadora de la que esta forma parte. NULL si no pertenece a ninguna.';
+
+
+--
+-- Name: COLUMN metrica.pondera; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.metrica.pondera IS 'La métrica entra en la composición del 100 % del ranking. FALSE en el nivel jerárquico redundante, que se conserva como referencia metodológica.';
 
 
 --
@@ -15718,1246 +15735,1246 @@ COPY public.cientifico_topico (id_cientifico, topico, fuente, anio_datos, autor_
 -- Data for Name: metrica; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica, tipo_metrica, peso_metrica, disciplina) FROM stdin;
-1697	5	Academic Reputation	Mide la reputación de las instituciones y sus programas mediante una encuesta a expertos académicos, quienes nominan universidades según su área de especialización. Este indicador se basa en las respuestas a la Encuesta Académica. 15% Nominaciones nacionales + 85% Nominaciones extranjeras.	Reputacion	30	General
-1698	5	Employer Reputation	Mide la reputación de las instituciones y sus programas entre los empleadores. Para medir esto, se recopila las opiniones de empleadores de todo el mundo a través de la Encuesta de Empleadores. 50-50 nominaciones nacionales e internacionales.	Reputacion	15	General
-1699	5	Faculty Student Ratio	Se calcula dividiendo el número de personal docente por el número de estudiantes. Data suministrada por la universidad y por fuentes externas (gubernamentales e internet). Full-time + (Part-time/3).	Infraestructura	10	General
-1700	5	Citations per Faculty	Este indicador refleja el volumen de citas que en promedio alcanza el personal académico de una institución. Un mayor volumen de citas sugiere que los académicos de esas instituciones están publicando en revistas de prestigio, participando en colaboraciones sólidas y trabajando en temas que merecen una amplia audiencia.El recuento de citas se divide por el número de individuos en la facultad para tener en cuenta los diferentes tamaños de las instituciones.	Articulos	20	General
-1701	5	International Faculty Ratio	Profesores extranjeros que trabajan en la institución al menos tres meses al año. Data suministrada por la universidad y por fuentes externas (gubernamentales e internet).	Internacional	5	General
-1702	5	International Students Ratio	Proporción de estudiantes internacionales en relación con el total de estudiantes.	Internacional	5	General
-1703	5	International Research Network	Mide cuán diversa y sólida es la red de investigación de una institución al observar la cantidad de países diferentes representados y si estas relaciones se renuevan y repiten. Solo se considera alianzas sostenidas, definidas como aquellas que resultan en tres o más artículos conjuntos publicados en un período de cinco años.	Internacional	5	General
-1704	5	Employment Outcomes	Mide en qué grado las instituciones pueden garantizar un alto nivel de empleabilidad para sus graduados, así como su historial en la formación de graduados que han pasado a tener un impacto significativo en la sociedad. Alumni Impact: Se recopilan y analizan los perfiles de más de 82.000 graduados influyentes en áreas como negocios, política, educación superior y organizaciones benéficas, para identificar las instituciones donde realizaron sus estudios. Se multiplica por el logaritmo natural del Índice de Empleo de Graduados. Índice de Empleo de graduados: Porcentaje de graduados que pasan a desempeñar trabajos remunerados (no voluntarios), ya sea a tiempo completo o parcial, dentro de los 15 meses posteriores a la finalización de su titulación.	Alumnado	5	General
-1705	5	Sustainability	Esto incluye todo, desde proyectos ambientales en el campus, hasta iniciativas de diversidad, gobernanza institucional y el impacto de la investigación académica en los 17 objetivos de desarrollo sostenible (ODS) de la ONU. Son una combinación de datos proporcionados por las instituciones, datos de QS que incluyen respuestas de encuestas de reputación, y datos obtenidos de fuentes externas como la ONU, la UNESCO y el Banco Mundial.	Reputacion	5	General
-1706	5	Overall	Puntaje obtenido por la institución normalizado de 0 a 100.	Puntaje	0	General
-892	4	Q1	Cantidad de artículos en Q1 en Veterinary Sciences	Articulos	20	Veterinary Sciences
-893	4	Q1	Cantidad de artículos en Q1 en Clinical Medicine	Articulos	20	Clinical Medicine
-894	4	Q1	Cantidad de artículos en Q1 en Public Health	Articulos	20	Public Health
-895	4	Q1	Cantidad de artículos en Q1 en Dentistry	Articulos	20	Dentistry
-896	4	Q1	Cantidad de artículos en Q1 en Nursing	Articulos	20	Nursing
-897	4	Q1	Cantidad de artículos en Q1 en Medical Technology	Articulos	20	Medical Technology
-898	4	Q1	Cantidad de artículos en Q1 en Pharmacy	Articulos	20	Pharmacy
-899	4	Q1	Cantidad de artículos en Q1 en Economics	Articulos	25	Economics
-900	4	Q1	Cantidad de artículos en Q1 en Statistics	Articulos	25	Statistics
-901	4	Q1	Cantidad de artículos en Q1 en Law	Articulos	25	Law
-902	4	Q1	Cantidad de artículos en Q1 en Political Sciences	Articulos	25	Political Sciences
-903	4	Q1	Cantidad de artículos en Q1 en Sociology	Articulos	25	Sociology
-904	4	Q1	Cantidad de artículos en Q1 en Education	Articulos	25	Education
-905	4	Q1	Cantidad de artículos en Q1 en Communication	Articulos	25	Communication
-906	4	Q1	Cantidad de artículos en Q1 en Psychology	Articulos	25	Psychology
-907	4	Q1	Cantidad de artículos en Q1 en Business Administration	Articulos	25	Business Administration
-908	4	Q1	Cantidad de artículos en Q1 en Finance	Articulos	25	Finance
-909	4	Q1	Cantidad de artículos en Q1 en Management	Articulos	25	Management
-910	4	Q1	Cantidad de artículos en Q1 en Public Administration	Articulos	25	Public Administration
-911	4	Q1	Cantidad de artículos en Q1 en Hospitality & Tourism Management	Articulos	25	Hospitality & Tourism Management
-1	1	Teaching reputation	Encuesta de reputación académica en enseñanza	Reputacion	15	General
-2	1	Student staff ratio	Relación entre estudiantes y personal académico	Alumnado	4.5	General
-3	1	Doctorate bachelor ratio	Proporción de doctorados respecto a pregrado	Academicos	2	General
-1138	4	TJ	TJ en Mathematics Post 2024	Articulos	100	Mathematics
-912	4	IC	IC en Mathematics Post 2024	Internacionalizacion	20	Mathematics
-913	4	IC	IC en Physics Post 2024	Internacionalizacion	20	Physics
-914	4	IC	IC en Chemistry Post 2024	Internacionalizacion	20	Chemistry
-915	4	IC	IC en Earth Sciences Post 2024	Internacionalizacion	20	Earth Sciences
-916	4	IC	IC en Geography Post 2024	Internacionalizacion	20	Geography
-917	4	IC	IC en Ecology Post 2024	Internacionalizacion	20	Ecology
-918	4	IC	IC en Oceanography Post 2024	Internacionalizacion	20	Oceanography
-919	4	IC	IC en Atmospheric Science Post 2024	Internacionalizacion	20	Atmospheric Science
-920	4	IC	IC en Mechanical Engineering Post 2024	Internacionalizacion	20	Mechanical Engineering
-921	4	IC	IC en Electrical Engineering Post 2024	Internacionalizacion	20	Electrical Engineering
-922	4	IC	IC en Automation Post 2024	Internacionalizacion	20	Automation
-923	4	IC	IC en Telecommunication Engineering Post 2024	Internacionalizacion	20	Telecommunication Engineering
-924	4	IC	IC en Instrumentation Post 2024	Internacionalizacion	20	Instrumentation
-925	4	IC	IC en Biomedical Engineering Post 2024	Internacionalizacion	20	Biomedical Engineering
-926	4	IC	IC en Computer Science Post 2024	Internacionalizacion	20	Computer Science
-927	4	IC	IC en Civil Engineering Post 2024	Internacionalizacion	20	Civil Engineering
-928	4	IC	IC en Chemical Engineering Post 2024	Internacionalizacion	20	Chemical Engineering
-929	4	IC	IC en Materials Science Post 2024	Internacionalizacion	20	Materials Science
-930	4	IC	IC en Nanoscience Post 2024	Internacionalizacion	20	Nanoscience
-931	4	IC	IC en Energy Post 2024	Internacionalizacion	20	Energy
-932	4	IC	IC en Environmental Science Post 2024	Internacionalizacion	20	Environmental Science
-933	4	IC	IC en Water Resources Post 2024	Internacionalizacion	20	Water Resources
-934	4	IC	IC en Food Science Post 2024	Internacionalizacion	20	Food Science
-935	4	IC	IC en Biotechnology Post 2024	Internacionalizacion	20	Biotechnology
-936	4	IC	IC en Aerospace Engineering Post 2024	Internacionalizacion	20	Aerospace Engineering
-937	4	IC	IC en Marine Engineering Post 2024	Internacionalizacion	20	Marine Engineering
-938	4	IC	IC en Transportation Post 2024	Internacionalizacion	20	Transportation
-939	4	IC	IC en Remote Sensing Post 2024	Internacionalizacion	20	Remote Sensing
-940	4	IC	IC en Mining Engineering Post 2024	Internacionalizacion	20	Mining Engineering
-941	4	IC	IC en Metallurgical Engineering Post 2024	Internacionalizacion	20	Metallurgical Engineering
-942	4	IC	IC en Textile Engineering Post 2024	Internacionalizacion	20	Textile Engineering
-943	4	IC	IC en Artificial Intelligence Post 2024	Internacionalizacion	20	Artificial Intelligence
-944	4	IC	IC en Robotics Post 2024	Internacionalizacion	20	Robotics
-945	4	IC	IC en Biological Sciences Post 2024	Internacionalizacion	20	Biological Sciences
-946	4	IC	IC en Human Biological Sciences Post 2024	Internacionalizacion	20	Human Biological Sciences
-947	4	IC	IC en Agricultural Sciences Post 2024	Internacionalizacion	20	Agricultural Sciences
-948	4	IC	IC en Veterinary Sciences Post 2024	Internacionalizacion	20	Veterinary Sciences
-949	4	IC	IC en Clinical Medicine Post 2024	Internacionalizacion	20	Clinical Medicine
-950	4	IC	IC en Public Health Post 2024	Internacionalizacion	20	Public Health
-951	4	IC	IC en Dentistry Post 2024	Internacionalizacion	20	Dentistry
-952	4	IC	IC en Nursing Post 2024	Internacionalizacion	20	Nursing
-953	4	IC	IC en Medical Technology Post 2024	Internacionalizacion	20	Medical Technology
-954	4	IC	IC en Pharmacy Post 2024	Internacionalizacion	20	Pharmacy
-955	4	IC	IC en Economics Post 2024	Internacionalizacion	10	Economics
-956	4	IC	IC en Statistics Post 2024	Internacionalizacion	10	Statistics
-957	4	IC	IC en Law Post 2024	Internacionalizacion	10	Law
-958	4	IC	IC en Political Sciences Post 2024	Internacionalizacion	10	Political Sciences
-959	4	IC	IC en Sociology Post 2024	Internacionalizacion	10	Sociology
-960	4	IC	IC en Education Post 2024	Internacionalizacion	10	Education
-961	4	IC	IC en Communication Post 2024	Internacionalizacion	10	Communication
-962	4	IC	IC en Psychology Post 2024	Internacionalizacion	10	Psychology
-963	4	IC	IC en Business Administration Post 2024	Internacionalizacion	20	Business Administration
-964	4	IC	IC en Finance Post 2024	Internacionalizacion	10	Finance
-965	4	IC	IC en Management Post 2024	Internacionalizacion	10	Management
-966	4	IC	IC en Public Administration Post 2024	Internacionalizacion	10	Public Administration
-967	4	IC	IC en Hospitality & Tourism Management Post 2024	Internacionalizacion	10	Hospitality & Tourism Management
-968	4	IC	IC en Library & Information Science Post 2024	Internacionalizacion	20	Library & Information Science
-969	4	CNCI	CNCI en Mathematics Post 2024	Investigacion	50	Mathematics
-970	4	CNCI	CNCI en Physics Post 2024	Investigacion	50	Physics
-971	4	CNCI	CNCI en Chemistry Post 2024	Investigacion	50	Chemistry
-972	4	CNCI	CNCI en Earth Sciences Post 2024	Investigacion	50	Earth Sciences
-973	4	CNCI	CNCI en Geography Post 2024	Investigacion	50	Geography
-974	4	CNCI	CNCI en Ecology Post 2024	Investigacion	50	Ecology
-975	4	CNCI	CNCI en Oceanography Post 2024	Investigacion	50	Oceanography
-976	4	CNCI	CNCI en AtmospherCNCI Science Post 2024	Investigacion	50	Atmospheric Science
-977	4	CNCI	CNCI en Mechanical Engineering Post 2024	Investigacion	50	Mechanical Engineering
-978	4	CNCI	CNCI en Electrical Engineering Post 2024	Investigacion	50	Electrical Engineering
-979	4	CNCI	CNCI en Automation Post 2024	Investigacion	50	Automation
-980	4	CNCI	CNCI en Telecommunication Engineering Post 2024	Investigacion	50	Telecommunication Engineering
-981	4	CNCI	CNCI en Instrumentation Post 2024	Investigacion	50	Instrumentation
-982	4	CNCI	CNCI en Biomedical Engineering Post 2024	Investigacion	50	Biomedical Engineering
-983	4	CNCI	CNCI en Computer Science Post 2024	Investigacion	50	Computer Science
-984	4	CNCI	CNCI en Civil Engineering Post 2024	Investigacion	50	Civil Engineering
-985	4	CNCI	CNCI en Chemical Engineering Post 2024	Investigacion	50	Chemical Engineering
-986	4	CNCI	CNCI en Materials Science Post 2024	Investigacion	50	Materials Science
-987	4	CNCI	CNCI en Nanoscience Post 2024	Investigacion	50	Nanoscience
-988	4	CNCI	CNCI en Energy Post 2024	Investigacion	50	Energy
-989	4	CNCI	CNCI en Environmental Science Post 2024	Investigacion	50	Environmental Science
-990	4	CNCI	CNCI en Water Resources Post 2024	Investigacion	50	Water Resources
-991	4	CNCI	CNCI en Food Science Post 2024	Investigacion	50	Food Science
-992	4	CNCI	CNCI en Biotechnology Post 2024	Investigacion	50	Biotechnology
-993	4	CNCI	CNCI en Aerospace Engineering Post 2024	Investigacion	50	Aerospace Engineering
-994	4	CNCI	CNCI en Marine Engineering Post 2024	Investigacion	50	Marine Engineering
-995	4	CNCI	CNCI en Transportation Post 2024	Investigacion	50	Transportation
-996	4	CNCI	CNCI en Remote Sensing Post 2024	Investigacion	50	Remote Sensing
-997	4	CNCI	CNCI en Mining Engineering Post 2024	Investigacion	50	Mining Engineering
-998	4	CNCI	CNCI en Metallurgical Engineering Post 2024	Investigacion	50	Metallurgical Engineering
-999	4	CNCI	CNCI en Textile Engineering Post 2024	Investigacion	50	Textile Engineering
-1000	4	CNCI	CNCI en Artificial Intelligence Post 2024	Investigacion	50	Artificial Intelligence
-1001	4	CNCI	CNCI en Robotics Post 2024	Investigacion	50	Robotics
-1002	4	CNCI	CNCI en Biological Sciences Post 2024	Investigacion	50	Biological Sciences
-1003	4	CNCI	CNCI en Human Biological Sciences Post 2024	Investigacion	50	Human Biological Sciences
-1004	4	CNCI	CNCI en Agricultural Sciences Post 2024	Investigacion	50	Agricultural Sciences
-1005	4	CNCI	CNCI en Veterinary Sciences Post 2024	Investigacion	50	Veterinary Sciences
-1006	4	CNCI	CNCI en Clinical Medicine Post 2024	Investigacion	50	Clinical Medicine
-1007	4	CNCI	CNCI en PublCNCI Health Post 2024	Investigacion	50	Public Health
-1008	4	CNCI	CNCI en Dentistry Post 2024	Investigacion	50	Dentistry
-1009	4	CNCI	CNCI en Nursing Post 2024	Investigacion	50	Nursing
-1010	4	CNCI	CNCI en Medical Technology Post 2024	Investigacion	50	Medical Technology
-1011	4	CNCI	CNCI en Pharmacy Post 2024	Investigacion	50	Pharmacy
-1012	4	CNCI	CNCI en Economics Post 2024	Investigacion	50	Economics
-1013	4	CNCI	CNCI en Statistics Post 2024	Investigacion	50	Statistics
-1014	4	CNCI	CNCI en Law Post 2024	Investigacion	50	Law
-1015	4	CNCI	CNCI en Political Sciences Post 2024	Investigacion	50	Political Sciences
-1016	4	CNCI	CNCI en Sociology Post 2024	Investigacion	50	Sociology
-1017	4	CNCI	CNCI en Education Post 2024	Investigacion	50	Education
-1018	4	CNCI	CNCI en Communication Post 2024	Investigacion	50	Communication
-1019	4	CNCI	CNCI en Psychology Post 2024	Investigacion	50	Psychology
-1020	4	CNCI	CNCI en Business Administration Post 2024	Investigacion	50	Business Administration
-1021	4	CNCI	CNCI en Finance Post 2024	Investigacion	50	Finance
-1022	4	CNCI	CNCI en Management Post 2024	Investigacion	50	Management
-1023	4	CNCI	CNCI en PublCNCI Administration Post 2024	Investigacion	50	Public Administration
-1024	4	CNCI	CNCI en Hospitality & Tourism Management Post 2024	Investigacion	50	Hospitality & Tourism Management
-1025	4	CNCI	CNCI en Library & Information Science Post 2024	Investigacion	50	Library & Information Science
-1139	4	TJ	TJ en Physics Post 2024	Articulos	100	Physics
-1026	4	Q1	Q1 en Mathematics Post 2024	Articulos	100	Mathematics
-1027	4	Q1	Q1 en Physics Post 2024	Articulos	100	Physics
-1028	4	Q1	Q1 en Chemistry Post 2024	Articulos	100	Chemistry
-1029	4	Q1	Q1 en Earth Sciences Post 2024	Articulos	100	Earth Sciences
-1030	4	Q1	Q1 en Geography Post 2024	Articulos	100	Geography
-1031	4	Q1	Q1 en Ecology Post 2024	Articulos	100	Ecology
-1032	4	Q1	Q1 en Oceanography Post 2024	Articulos	100	Oceanography
-1033	4	Q1	Q1 en AtmospherQ1 Science Post 2024	Articulos	100	Atmospheric Science
-1034	4	Q1	Q1 en Mechanical Engineering Post 2024	Articulos	100	Mechanical Engineering
-1035	4	Q1	Q1 en Electrical Engineering Post 2024	Articulos	100	Electrical Engineering
-1036	4	Q1	Q1 en Automation Post 2024	Articulos	100	Automation
-1037	4	Q1	Q1 en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering
-1038	4	Q1	Q1 en Instrumentation Post 2024	Articulos	100	Instrumentation
-1039	4	Q1	Q1 en Biomedical Engineering Post 2024	Articulos	100	Biomedical Engineering
-1040	4	Q1	Q1 en Computer Science Post 2024	Articulos	100	Computer Science
-1041	4	Q1	Q1 en Civil Engineering Post 2024	Articulos	100	Civil Engineering
-1042	4	Q1	Q1 en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering
-1043	4	Q1	Q1 en Materials Science Post 2024	Articulos	100	Materials Science
-1044	4	Q1	Q1 en Nanoscience Post 2024	Articulos	100	Nanoscience
-1045	4	Q1	Q1 en Energy Post 2024	Articulos	100	Energy
-1046	4	Q1	Q1 en Environmental Science Post 2024	Articulos	100	Environmental Science
-1047	4	Q1	Q1 en Water Resources Post 2024	Articulos	100	Water Resources
-1048	4	Q1	Q1 en Food Science Post 2024	Articulos	100	Food Science
-1049	4	Q1	Q1 en Biotechnology Post 2024	Articulos	100	Biotechnology
-1050	4	Q1	Q1 en Aerospace Engineering Post 2024	Articulos	100	Aerospace Engineering
-1051	4	Q1	Q1 en Marine Engineering Post 2024	Articulos	100	Marine Engineering
-1052	4	Q1	Q1 en Transportation Post 2024	Articulos	100	Transportation
-1053	4	Q1	Q1 en Remote Sensing Post 2024	Articulos	100	Remote Sensing
-1054	4	Q1	Q1 en Mining Engineering Post 2024	Articulos	100	Mining Engineering
-1055	4	Q1	Q1 en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering
-1056	4	Q1	Q1 en Textile Engineering Post 2024	Articulos	100	Textile Engineering
-1057	4	Q1	Q1 en Artificial Intelligence Post 2024	Articulos	100	Artificial Intelligence
-1058	4	Q1	Q1 en Robotics Post 2024	Articulos	100	Robotics
-1059	4	Q1	Q1 en Biological Sciences Post 2024	Articulos	100	Biological Sciences
-1060	4	Q1	Q1 en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences
-1061	4	Q1	Q1 en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences
-1062	4	Q1	Q1 en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences
-1063	4	Q1	Q1 en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine
-1064	4	Q1	Q1 en PublQ1 Health Post 2024	Articulos	100	Public Health
-1065	4	Q1	Q1 en Dentistry Post 2024	Articulos	100	Dentistry
-1066	4	Q1	Q1 en Nursing Post 2024	Articulos	100	Nursing
-1067	4	Q1	Q1 en Medical Technology Post 2024	Articulos	100	Medical Technology
-1068	4	Q1	Q1 en Pharmacy Post 2024	Articulos	100	Pharmacy
-1069	4	Q1	Q1 en Economics Post 2024	Articulos	100	Economics
-1070	4	Q1	Q1 en Statistics Post 2024	Articulos	100	Statistics
-1071	4	Q1	Q1 en Law Post 2024	Articulos	100	Law
-1072	4	Q1	Q1 en Political Sciences Post 2024	Articulos	100	Political Sciences
-1073	4	Q1	Q1 en Sociology Post 2024	Articulos	100	Sociology
-1074	4	Q1	Q1 en Education Post 2024	Articulos	100	Education
-1075	4	Q1	Q1 en Communication Post 2024	Articulos	100	Communication
-1076	4	Q1	Q1 en Psychology Post 2024	Articulos	100	Psychology
-1077	4	Q1	Q1 en Business Administration Post 2024	Articulos	100	Business Administration
-1078	4	Q1	Q1 en Finance Post 2024	Articulos	100	Finance
-1079	4	Q1	Q1 en Management Post 2024	Articulos	100	Management
-1080	4	Q1	Q1 en PublQ1 Administration Post 2024	Articulos	100	Public Administration
-1081	4	Q1	Q1 en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management
-1082	4	Q1	Q1 en Library & Information Science Post 2024	Articulos	100	Library & Information Science
-614	4	PUB	PUB en Mathematics	Articulos	25	Mathematics
-615	4	CNCI	CNCI en Mathematics	Investigacion	25	Mathematics
-616	4	IC	IC en Mathematics	Internacionalizacion	20	Mathematics
-617	4	TOP	TOP en Mathematics	Articulos	20	Mathematics
-619	4	PUB	PUB en Physics	Articulos	25	Physics
-620	4	CNCI	CNCI en Physics	Investigacion	25	Physics
-621	4	IC	IC en Physics	Internacionalizacion	20	Physics
-622	4	TOP	TOP en Physics	Articulos	20	Physics
-624	4	PUB	PUB en Chemistry	Articulos	25	Chemistry
-625	4	CNCI	CNCI en Chemistry	Investigacion	25	Chemistry
-626	4	IC	IC en Chemistry	Internacionalizacion	20	Chemistry
-627	4	TOP	TOP en Chemistry	Articulos	20	Chemistry
-629	4	PUB	PUB en Earth Sciences	Articulos	25	Earth Sciences
-630	4	CNCI	CNCI en Earth Sciences	Investigacion	25	Earth Sciences
-631	4	IC	IC en Earth Sciences	Internacionalizacion	20	Earth Sciences
-632	4	TOP	TOP en Earth Sciences	Articulos	20	Earth Sciences
-634	4	PUB	PUB en Geography	Articulos	25	Geography
-635	4	CNCI	CNCI en Geography	Investigacion	25	Geography
-636	4	IC	IC en Geography	Internacionalizacion	20	Geography
-637	4	TOP	TOP en Geography	Articulos	20	Geography
-639	4	PUB	PUB en Ecology	Articulos	25	Ecology
-651	4	IC	IC en Atmospheric Science	Internacionalizacion	20	Atmospheric Science
-652	4	TOP	TOP en Atmospheric Science	Articulos	20	Atmospheric Science
-654	4	PUB	PUB en Mechanical Engineering	Articulos	25	Mechanical Engineering
-655	4	CNCI	CNCI en Mechanical Engineering	Investigacion	25	Mechanical Engineering
-656	4	IC	IC en Mechanical Engineering	Internacionalizacion	25	Mechanical Engineering
-657	4	TOP	TOP en Mechanical Engineering	Articulos	25	Mechanical Engineering
-658	4	PUB	PUB en Electrical Engineering	Articulos	25	Electrical Engineering
-659	4	CNCI	CNCI en Electrical Engineering	Investigacion	25	Electrical Engineering
-660	4	IC	IC en Electrical Engineering	Internacionalizacion	25	Electrical Engineering
-661	4	TOP	TOP en Electrical Engineering	Articulos	25	Electrical Engineering
-663	4	CNCI	CNCI en Automation	Investigacion	25	Automation
-664	4	IC	IC en Automation	Internacionalizacion	25	Automation
-665	4	TOP	TOP en Automation	Articulos	25	Automation
-666	4	PUB	PUB en Telecommunication Engineering	Articulos	25	Telecommunication Engineering
-667	4	CNCI	CNCI en Telecommunication Engineering	Investigacion	25	Telecommunication Engineering
-668	4	IC	IC en Telecommunication Engineering	Internacionalizacion	25	Telecommunication Engineering
-669	4	TOP	TOP en Telecommunication Engineering	Articulos	25	Telecommunication Engineering
-670	4	PUB	PUB en Instrumentation	Articulos	25	Instrumentation
-671	4	CNCI	CNCI en Instrumentation	Investigacion	25	Instrumentation
-672	4	IC	IC en Instrumentation	Internacionalizacion	25	Instrumentation
-673	4	TOP	TOP en Instrumentation	Articulos	25	Instrumentation
-674	4	PUB	PUB en Biomedical Engineering	Articulos	25	Biomedical Engineering
-675	4	CNCI	CNCI en Biomedical Engineering	Investigacion	25	Biomedical Engineering
-676	4	IC	IC en Biomedical Engineering	Internacionalizacion	25	Biomedical Engineering
-677	4	TOP	TOP en Biomedical Engineering	Articulos	25	Biomedical Engineering
-678	4	PUB	PUB en Computer Science	Articulos	25	Computer Science
-679	4	CNCI	CNCI en Computer Science	Investigacion	25	Computer Science
-680	4	IC	IC en Computer Science	Internacionalizacion	25	Computer Science
-681	4	TOP	TOP en Computer Science	Articulos	25	Computer Science
-682	4	PUB	PUB en Civil Engineering	Articulos	25	Civil Engineering
-683	4	CNCI	CNCI en Civil Engineering	Investigacion	25	Civil Engineering
-684	4	IC	IC en Civil Engineering	Internacionalizacion	25	Civil Engineering
-685	4	TOP	TOP en Civil Engineering	Articulos	25	Civil Engineering
-686	4	PUB	PUB en Chemical Engineering	Articulos	25	Chemical Engineering
-687	4	CNCI	CNCI en Chemical Engineering	Investigacion	25	Chemical Engineering
-688	4	IC	IC en Chemical Engineering	Internacionalizacion	25	Chemical Engineering
-689	4	TOP	TOP en Chemical Engineering	Articulos	25	Chemical Engineering
-690	4	PUB	PUB en Materials Science	Articulos	25	Materials Science
-691	4	CNCI	CNCI en Materials Science	Investigacion	25	Materials Science
-692	4	IC	IC en Materials Science	Internacionalizacion	25	Materials Science
-693	4	TOP	TOP en Materials Science	Articulos	25	Materials Science
-694	4	PUB	PUB en Nanoscience	Articulos	25	Nanoscience
-695	4	CNCI	CNCI en Nanoscience	Investigacion	25	Nanoscience
-696	4	IC	IC en Nanoscience	Internacionalizacion	25	Nanoscience
-697	4	TOP	TOP en Nanoscience	Articulos	25	Nanoscience
-698	4	PUB	PUB en Energy	Articulos	25	Energy
-699	4	CNCI	CNCI en Energy	Investigacion	25	Energy
-700	4	IC	IC en Energy	Internacionalizacion	25	Energy
-701	4	TOP	TOP en Energy	Articulos	25	Energy
-702	4	PUB	PUB en Environmental Science	Articulos	25	Environmental Science
-703	4	CNCI	CNCI en Environmental Science	Investigacion	25	Environmental Science
-704	4	IC	IC en Environmental Science	Internacionalizacion	25	Environmental Science
-705	4	TOP	TOP en Environmental Science	Articulos	25	Environmental Science
-706	4	PUB	PUB en Water Resources	Articulos	25	Water Resources
-707	4	CNCI	CNCI en Water Resources	Investigacion	25	Water Resources
-708	4	IC	IC en Water Resources	Internacionalizacion	25	Water Resources
-709	4	TOP	TOP en Water Resources	Articulos	25	Water Resources
-710	4	PUB	PUB en Food Science	Articulos	25	Food Science
-711	4	CNCI	CNCI en Food Science	Investigacion	25	Food Science
-712	4	IC	IC en Food Science	Internacionalizacion	25	Food Science
-713	4	TOP	TOP en Food Science	Articulos	25	Food Science
-714	4	PUB	PUB en Biotechnology	Articulos	25	Biotechnology
-715	4	CNCI	CNCI en Biotechnology	Investigacion	25	Biotechnology
-716	4	IC	IC en Biotechnology	Internacionalizacion	25	Biotechnology
-717	4	TOP	TOP en Biotechnology	Articulos	25	Biotechnology
-718	4	PUB	PUB en Aerospace Engineering	Articulos	25	Aerospace Engineering
-719	4	CNCI	CNCI en Aerospace Engineering	Investigacion	25	Aerospace Engineering
-720	4	IC	IC en Aerospace Engineering	Internacionalizacion	25	Aerospace Engineering
-721	4	TOP	TOP en Aerospace Engineering	Articulos	25	Aerospace Engineering
-722	4	PUB	PUB en Marine Engineering	Articulos	25	Marine Engineering
-723	4	CNCI	CNCI en Marine Engineering	Investigacion	25	Marine Engineering
-724	4	IC	IC en Marine Engineering	Internacionalizacion	25	Marine Engineering
-725	4	TOP	TOP en Marine Engineering	Articulos	25	Marine Engineering
-726	4	PUB	PUB en Transportation	Articulos	25	Transportation
-727	4	CNCI	CNCI en Transportation	Investigacion	25	Transportation
-728	4	IC	IC en Transportation	Internacionalizacion	25	Transportation
-729	4	TOP	TOP en Transportation	Articulos	25	Transportation
-730	4	PUB	PUB en Remote Sensing	Articulos	25	Remote Sensing
-731	4	CNCI	CNCI en Remote Sensing	Investigacion	25	Remote Sensing
-732	4	IC	IC en Remote Sensing	Internacionalizacion	25	Remote Sensing
-733	4	TOP	TOP en Remote Sensing	Articulos	25	Remote Sensing
-734	4	PUB	PUB en Mining Engineering	Articulos	25	Mining Engineering
-735	4	CNCI	CNCI en Mining Engineering	Investigacion	25	Mining Engineering
-736	4	IC	IC en Mining Engineering	Internacionalizacion	25	Mining Engineering
-737	4	TOP	TOP en Mining Engineering	Articulos	25	Mining Engineering
-738	4	PUB	PUB en Metallurgical Engineering	Articulos	25	Metallurgical Engineering
-739	4	CNCI	CNCI en Metallurgical Engineering	Investigacion	25	Metallurgical Engineering
-740	4	IC	IC en Metallurgical Engineering	Internacionalizacion	25	Metallurgical Engineering
-741	4	TOP	TOP en Metallurgical Engineering	Articulos	25	Metallurgical Engineering
-742	4	PUB	PUB en Textile Engineering	Articulos	25	Textile Engineering
-743	4	CNCI	CNCI en Textile Engineering	Investigacion	25	Textile Engineering
-744	4	IC	IC en Textile Engineering	Internacionalizacion	25	Textile Engineering
-745	4	TOP	TOP en Textile Engineering	Articulos	25	Textile Engineering
-746	4	PUB	PUB en Artificial Intelligence	Articulos	25	Artificial Intelligence
-747	4	CNCI	CNCI en Artificial Intelligence	Investigacion	25	Artificial Intelligence
-748	4	IC	IC en Artificial Intelligence	Internacionalizacion	25	Artificial Intelligence
-749	4	TOP	TOP en Artificial Intelligence	Articulos	25	Artificial Intelligence
-750	4	PUB	PUB en Robotics	Articulos	25	Robotics
-751	4	CNCI	CNCI en Robotics	Investigacion	25	Robotics
-752	4	IC	IC en Robotics	Internacionalizacion	25	Robotics
-753	4	TOP	TOP en Robotics	Articulos	25	Robotics
-754	4	PUB	PUB en Biological Sciences	Articulos	20	Biological Sciences
-755	4	CNCI	CNCI en Biological Sciences	Investigacion	30	Biological Sciences
-756	4	IC	IC en Biological Sciences	Internacionalizacion	20	Biological Sciences
-757	4	TOP	TOP en Biological Sciences	Articulos	25	Biological Sciences
-759	4	PUB	PUB en Human Biological Sciences	Articulos	20	Human Biological Sciences
-760	4	CNCI	CNCI en Human Biological Sciences	Investigacion	30	Human Biological Sciences
-761	4	IC	IC en Human Biological Sciences	Internacionalizacion	20	Human Biological Sciences
-762	4	TOP	TOP en Human Biological Sciences	Articulos	25	Human Biological Sciences
-764	4	PUB	PUB en Agricultural Sciences	Articulos	20	Agricultural Sciences
-765	4	CNCI	CNCI en Agricultural Sciences	Investigacion	30	Agricultural Sciences
-766	4	IC	IC en Agricultural Sciences	Internacionalizacion	20	Agricultural Sciences
-767	4	TOP	TOP en Agricultural Sciences	Articulos	25	Agricultural Sciences
-769	4	PUB	PUB en Veterinary Sciences	Articulos	20	Veterinary Sciences
-770	4	CNCI	CNCI en Veterinary Sciences	Investigacion	30	Veterinary Sciences
-771	4	IC	IC en Veterinary Sciences	Internacionalizacion	20	Veterinary Sciences
-772	4	TOP	TOP en Veterinary Sciences	Articulos	25	Veterinary Sciences
-774	4	PUB	PUB en Clinical Medicine	Articulos	20	Clinical Medicine
-775	4	CNCI	CNCI en Clinical Medicine	Investigacion	30	Clinical Medicine
-776	4	IC	IC en Clinical Medicine	Internacionalizacion	20	Clinical Medicine
-777	4	TOP	TOP en Clinical Medicine	Articulos	25	Clinical Medicine
-779	4	PUB	PUB en Public Health	Articulos	20	Public Health
-780	4	CNCI	CNCI en Public Health	Investigacion	30	Public Health
-781	4	IC	IC en Public Health	Internacionalizacion	20	Public Health
-782	4	TOP	TOP en Public Health	Articulos	25	Public Health
-784	4	PUB	PUB en Dentistry	Articulos	20	Dentistry
-785	4	CNCI	CNCI en Dentistry	Investigacion	30	Dentistry
-786	4	IC	IC en Dentistry	Internacionalizacion	20	Dentistry
-787	4	TOP	TOP en Dentistry	Articulos	25	Dentistry
-789	4	PUB	PUB en Nursing	Articulos	20	Nursing
-790	4	CNCI	CNCI en Nursing	Investigacion	30	Nursing
-794	4	PUB	PUB en Medical Technology	Articulos	20	Medical Technology
-795	4	CNCI	CNCI en Medical Technology	Investigacion	30	Medical Technology
-796	4	IC	IC en Medical Technology	Internacionalizacion	20	Medical Technology
-797	4	TOP	TOP en Medical Technology	Articulos	25	Medical Technology
-799	4	PUB	PUB en Pharmacy	Articulos	20	Pharmacy
-800	4	CNCI	CNCI en Pharmacy	Investigacion	30	Pharmacy
-801	4	IC	IC en Pharmacy	Internacionalizacion	20	Pharmacy
-802	4	TOP	TOP en Pharmacy	Articulos	25	Pharmacy
-804	4	PUB	PUB en Economics	Articulos	25	Economics
-805	4	CNCI	CNCI en Economics	Investigacion	35	Economics
-806	4	IC	IC en Economics	Internacionalizacion	25	Economics
-807	4	TOP	TOP en Economics	Articulos	15	Economics
-808	4	PUB	PUB en Statistics	Articulos	25	Statistics
-809	4	CNCI	CNCI en Statistics	Investigacion	35	Statistics
-810	4	IC	IC en Statistics	Internacionalizacion	25	Statistics
-811	4	TOP	TOP en Statistics	Articulos	15	Statistics
-812	4	PUB	PUB en Law	Articulos	25	Law
-813	4	CNCI	CNCI en Law	Investigacion	35	Law
-814	4	IC	IC en Law	Internacionalizacion	25	Law
-815	4	TOP	TOP en Law	Articulos	15	Law
-816	4	PUB	PUB en Political Sciences	Articulos	25	Political Sciences
-817	4	CNCI	CNCI en Political Sciences	Investigacion	35	Political Sciences
-818	4	IC	IC en Political Sciences	Internacionalizacion	25	Political Sciences
-819	4	TOP	TOP en Political Sciences	Articulos	15	Political Sciences
-820	4	PUB	PUB en Sociology	Articulos	25	Sociology
-821	4	CNCI	CNCI en Sociology	Investigacion	35	Sociology
-822	4	IC	IC en Sociology	Internacionalizacion	25	Sociology
-823	4	TOP	TOP en Sociology	Articulos	15	Sociology
-824	4	PUB	PUB en Education	Articulos	25	Education
-825	4	CNCI	CNCI en Education	Investigacion	35	Education
-826	4	IC	IC en Education	Internacionalizacion	25	Education
-827	4	TOP	TOP en Education	Articulos	15	Education
-828	4	PUB	PUB en Communication	Articulos	25	Communication
-829	4	CNCI	CNCI en Communication	Investigacion	35	Communication
-830	4	IC	IC en Communication	Internacionalizacion	25	Communication
-831	4	TOP	TOP en Communication	Articulos	15	Communication
-832	4	PUB	PUB en Psychology	Articulos	25	Psychology
-833	4	CNCI	CNCI en Psychology	Investigacion	35	Psychology
-834	4	IC	IC en Psychology	Internacionalizacion	25	Psychology
-835	4	TOP	TOP en Psychology	Articulos	15	Psychology
-836	4	PUB	PUB en Business Administration	Articulos	25	Business Administration
-837	4	CNCI	CNCI en Business Administration	Investigacion	35	Business Administration
-838	4	IC	IC en Business Administration	Internacionalizacion	25	Business Administration
-839	4	TOP	TOP en Business Administration	Articulos	15	Business Administration
-840	4	PUB	PUB en Finance	Articulos	25	Finance
-841	4	CNCI	CNCI en Finance	Investigacion	35	Finance
-842	4	IC	IC en Finance	Internacionalizacion	25	Finance
-843	4	TOP	TOP en Finance	Articulos	15	Finance
-844	4	PUB	PUB en Management	Articulos	25	Management
-845	4	CNCI	CNCI en Management	Investigacion	35	Management
-846	4	IC	IC en Management	Internacionalizacion	25	Management
-847	4	TOP	TOP en Management	Articulos	15	Management
-848	4	PUB	PUB en Public Administration	Articulos	25	Public Administration
-849	4	CNCI	CNCI en Public Administration	Investigacion	35	Public Administration
-850	4	IC	IC en Public Administration	Internacionalizacion	25	Public Administration
-851	4	TOP	TOP en Public Administration	Articulos	15	Public Administration
-852	4	PUB	PUB en Hospitality & Tourism Management	Articulos	25	Hospitality & Tourism Management
-853	4	CNCI	CNCI en Hospitality & Tourism Management	Investigacion	35	Hospitality & Tourism Management
-854	4	IC	IC en Hospitality & Tourism Management	Internacionalizacion	25	Hospitality & Tourism Management
-855	4	TOP	TOP en Hospitality & Tourism Management	Articulos	15	Hospitality & Tourism Management
-1158	4	TJ	TJ en Environmental Science Post 2024	Articulos	100	Environmental Science
-1159	4	TJ	TJ en Water Resources Post 2024	Articulos	100	Water Resources
-1160	4	TJ	TJ en Food Science Post 2024	Articulos	100	Food Science
-1161	4	TJ	TJ en Biotechnology Post 2024	Articulos	100	Biotechnology
-1162	4	TJ	TJ en Aerospace Engineering Post 2024	Articulos	80	Aerospace Engineering
-1163	4	TJ	TJ en Marine Engineering Post 2024	Articulos	40	Marine Engineering
-1164	4	TJ	TJ en Transportation Post 2024	Articulos	100	Transportation
-1165	4	TJ	TJ en Remote Sensing Post 2024	Articulos	80	Remote Sensing
-1166	4	TJ	TJ en Mining Engineering Post 2024	Articulos	40	Mining Engineering
-1167	4	TJ	TJ en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering
-1168	4	TJ	TJ en Textile Engineering Post 2024	Articulos	100	Textile Engineering
-1169	4	TJ	TJ en Biological Sciences Post 2024	Articulos	100	Biological Sciences
-1170	4	TJ	TJ en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences
-1171	4	TJ	TJ en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences
-1172	4	TJ	TJ en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences
-1173	4	TJ	TJ en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine
-1174	4	TJ	TJ en PublTJ Health Post 2024	Articulos	100	Public Health
-1175	4	TJ	TJ en Dentistry Post 2024	Articulos	60	Dentistry
-1176	4	TJ	TJ en Nursing Post 2024	Articulos	80	Nursing
-1177	4	TJ	TJ en Medical Technology Post 2024	Articulos	60	Medical Technology
-1178	4	TJ	TJ en Pharmacy Post 2024	Articulos	40	Pharmacy
-1179	4	TJ	TJ en Economics Post 2024	Articulos	100	Economics
-1180	4	TJ	TJ en Statistics Post 2024	Articulos	100	Statistics
-1181	4	TJ	TJ en Law Post 2024	Articulos	40	Law
-1182	4	TJ	TJ en Political Sciences Post 2024	Articulos	80	Political Sciences
-1183	4	TJ	TJ en Sociology Post 2024	Articulos	80	Sociology
-1184	4	TJ	TJ en Education Post 2024	Articulos	40	Education
-1185	4	TJ	TJ en Communication Post 2024	Articulos	100	Communication
-1186	4	TJ	TJ en Psychology Post 2024	Articulos	80	Psychology
-1187	4	TJ	TJ en Business Administration Post 2024	Articulos	100	Business Administration
-1188	4	TJ	TJ en Finance Post 2024	Articulos	100	Finance
-1189	4	TJ	TJ en Management Post 2024	Articulos	100	Management
-1190	4	TJ	TJ en PublTJ Administration Post 2024	Articulos	80	Public Administration
-1191	4	TJ	TJ en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management
-1192	4	TJ	TJ en Library & Information Science Post 2024	Articulos	80	Library & Information Science
-1248	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mathematics Post 2024	Reputacion	20	Mathematics
-1249	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Physics Post 2024	Reputacion	20	Physics
-1250	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Chemistry Post 2024	Reputacion	0	Chemistry
-1251	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Earth Sciences Post 2024	Reputacion	10	Earth Sciences
-1252	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Geography Post 2024	Reputacion	10	Geography
-1253	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Ecology Post 2024	Reputacion	0	Ecology
-1254	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Oceanography Post 2024	Reputacion	0	Oceanography
-1255	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en AtmospherNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Science Post 2024	Reputacion	0	Atmospheric Science
-1256	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mechanical Engineering Post 2024	Reputacion	0	Mechanical Engineering
-1257	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Electrical Engineering Post 2024	Reputacion	10	Electrical Engineering
-1258	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Automation Post 2024	Reputacion	0	Automation
-1259	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Telecommunication Engineering Post 2024	Reputacion	20	Telecommunication Engineering
-1260	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Instrumentation Post 2024	Reputacion	0	Instrumentation
-1261	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biomedical Engineering Post 2024	Reputacion	0	Biomedical Engineering
-1262	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Computer Science Post 2024	Reputacion	20	Computer Science
-1263	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Civil Engineering Post 2024	Reputacion	0	Civil Engineering
-1264	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Chemical Engineering Post 2024	Reputacion	0	Chemical Engineering
-1265	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Materials Science Post 2024	Reputacion	10	Materials Science
-1266	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Nanoscience Post 2024	Reputacion	0	Nanoscience
-1267	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Energy Post 2024	Reputacion	0	Energy
-1268	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Environmental Science Post 2024	Reputacion	0	Environmental Science
-1269	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Water Resources Post 2024	Reputacion	0	Water Resources
-1707	6	Alumni	Egresados que han ganado Premio Nobel o Medalla Fields	Investigacion	10	General
-1708	6	Award	Personal academico que ha ganado Premio Nobel o Medalla Fields	Investigacion	20	General
-1270	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Food Science Post 2024	Reputacion	0	Food Science
-1271	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biotechnology Post 2024	Reputacion	0	Biotechnology
-1272	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Aerospace Engineering Post 2024	Reputacion	0	Aerospace Engineering
-1273	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Marine Engineering Post 2024	Reputacion	0	Marine Engineering
-1274	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Transportation Post 2024	Reputacion	0	Transportation
-1275	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Remote Sensing Post 2024	Reputacion	0	Remote Sensing
-1276	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mining Engineering Post 2024	Reputacion	0	Mining Engineering
-1277	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Metallurgical Engineering Post 2024	Reputacion	0	Metallurgical Engineering
-1278	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Textile Engineering Post 2024	Reputacion	0	Textile Engineering
-1279	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biological Sciences Post 2024	Reputacion	0	Biological Sciences
-1280	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Human Biological Sciences Post 2024	Reputacion	0	Human Biological Sciences
-1281	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Agricultural Sciences Post 2024	Reputacion	0	Agricultural Sciences
-1282	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Veterinary Sciences Post 2024	Reputacion	0	Veterinary Sciences
-1283	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Clinical Medicine Post 2024	Reputacion	0	Clinical Medicine
-1284	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en PublNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Health Post 2024	Reputacion	0	Public Health
-1285	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Dentistry Post 2024	Reputacion	10	Dentistry
-1286	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Nursing Post 2024	Reputacion	0	Nursing
-1287	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Medical Technology Post 2024	Reputacion	0	Medical Technology
-1301	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Hospitality & Tourism Management Post 2024	Reputacion	0	Hospitality & Tourism Management
-1302	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Library & Information Science Post 2024	Reputacion	0	Library & Information Science
-1413	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica  en Mathematics Post 2024	Academicos	40	Mathematics
-1414	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Physics Post 2024	Academicos	60	Physics
-1415	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Chemistry Post 2024	Academicos	60	Chemistry
-1416	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Earth Sciences Post 2024	Academicos	40	Earth Sciences
-1417	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Geography Post 2024	Academicos	0	Geography
-1418	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Ecology Post 2024	Academicos	0	Ecology
-1419	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Oceanography Post 2024	Academicos	40	Oceanography
-1420	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en AtmospherNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Science Post 2024	Academicos	60	Atmospheric Science
-1140	4	TJ	TJ en Chemistry Post 2024	Articulos	100	Chemistry
-1141	4	TJ	TJ en Earth Sciences Post 2024	Articulos	100	Earth Sciences
-1142	4	TJ	TJ en Geography Post 2024	Articulos	100	Geography
-1143	4	TJ	TJ en Ecology Post 2024	Articulos	100	Ecology
-1144	4	TJ	TJ en Oceanography Post 2024	Articulos	80	Oceanography
-1145	4	TJ	TJ en AtmospherTJ Science Post 2024	Articulos	100	Atmospheric Science
-1146	4	TJ	TJ en Mechanical Engineering Post 2024	Articulos	60	Mechanical Engineering
-1147	4	TJ	TJ en Electrical Engineering Post 2024	Articulos	40	Electrical Engineering
-1148	4	TJ	TJ en Automation Post 2024	Articulos	80	Automation
-1149	4	TJ	TJ en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering
-1150	4	TJ	TJ en Instrumentation Post 2024	Articulos	100	Instrumentation
-1151	4	TJ	TJ en Biomedical Engineering Post 2024	Articulos	60	Biomedical Engineering
-1152	4	TJ	TJ en Computer Science Post 2024	Articulos	100	Computer Science
-1153	4	TJ	TJ en Civil Engineering Post 2024	Articulos	100	Civil Engineering
-1154	4	TJ	TJ en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering
-1155	4	TJ	TJ en Materials Science Post 2024	Articulos	80	Materials Science
-1156	4	TJ	TJ en Nanoscience Post 2024	Articulos	100	Nanoscience
-1157	4	TJ	TJ en Energy Post 2024	Articulos	100	Energy
-1421	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Mechanical Engineering Post 2024	Academicos	40	Mechanical Engineering
-1422	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Electrical Engineering Post 2024	Academicos	40	Electrical Engineering
-1423	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Automation Post 2024	Academicos	40	Automation
-1424	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Telecommunication Engineering Post 2024	Academicos	40	Telecommunication Engineering
-1425	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Instrumentation Post 2024	Academicos	0	Instrumentation
-1426	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biomedical Engineering Post 2024	Academicos	0	Biomedical Engineering
-1427	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Computer Science Post 2024	Academicos	60	Computer Science
-1428	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Civil Engineering Post 2024	Academicos	0	Civil Engineering
-1429	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Chemical Engineering Post 2024	Academicos	40	Chemical Engineering
-1430	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Materials Science Post 2024	Academicos	60	Materials Science
-1431	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Nanoscience Post 2024	Academicos	0	Nanoscience
-1432	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Energy Post 2024	Academicos	20	Energy
-1433	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Environmental Science Post 2024	Academicos	20	Environmental Science
-1434	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Water Resources Post 2024	Academicos	20	Water Resources
-1709	6	HiCi	Investigadores altamente citados (Highly Cited Researchers)	Investigacion	20	General
-1710	6	N&S	Articulos publicados en Nature y Science	Investigacion	20	General
-1711	6	PUB	Articulos indexados en Science Citation Index y Social Science Citation Index	Investigacion	20	General
-1712	6	PCP	Rendimiento academico ponderado per capita	Investigacion	10	General
-867	4	Q1	Cantidad de artículos en Q1 en Telecommunication Engineering	Articulos	25	Telecommunication Engineering
-868	4	Q1	Cantidad de artículos en Q1 en Instrumentation	Articulos	25	Instrumentation
-869	4	Q1	Cantidad de artículos en Q1 en Biomedical Engineering	Articulos	25	Biomedical Engineering
-870	4	Q1	Cantidad de artículos en Q1 en Computer Science	Articulos	25	Computer Science
-871	4	Q1	Cantidad de artículos en Q1 en Civil Engineering	Articulos	25	Civil Engineering
-872	4	Q1	Cantidad de artículos en Q1 en Chemical Engineering	Articulos	25	Chemical Engineering
-873	4	Q1	Cantidad de artículos en Q1 en Materials Science	Articulos	25	Materials Science
-874	4	Q1	Cantidad de artículos en Q1 en Nanoscience	Articulos	25	Nanoscience
-875	4	Q1	Cantidad de artículos en Q1 en Energy	Articulos	25	Energy
-876	4	Q1	Cantidad de artículos en Q1 en Environmental Science	Articulos	25	Environmental Science
-877	4	Q1	Cantidad de artículos en Q1 en Water Resources	Articulos	25	Water Resources
-878	4	Q1	Cantidad de artículos en Q1 en Food Science	Articulos	25	Food Science
-879	4	Q1	Cantidad de artículos en Q1 en Biotechnology	Articulos	25	Biotechnology
-880	4	Q1	Cantidad de artículos en Q1 en Aerospace Engineering	Articulos	25	Aerospace Engineering
-881	4	Q1	Cantidad de artículos en Q1 en Marine Engineering	Articulos	25	Marine Engineering
-882	4	Q1	Cantidad de artículos en Q1 en Transportation	Articulos	25	Transportation
-883	4	Q1	Cantidad de artículos en Q1 en Remote Sensing	Articulos	25	Remote Sensing
-884	4	Q1	Cantidad de artículos en Q1 en Mining Engineering	Articulos	25	Mining Engineering
-885	4	Q1	Cantidad de artículos en Q1 en Metallurgical Engineering	Articulos	25	Metallurgical Engineering
-886	4	Q1	Cantidad de artículos en Q1 en Textile Engineering	Articulos	25	Textile Engineering
-887	4	Q1	Cantidad de artículos en Q1 en Artificial Intelligence	Articulos	25	Artificial Intelligence
-888	4	Q1	Cantidad de artículos en Q1 en Robotics	Articulos	25	Robotics
-889	4	Q1	Cantidad de artículos en Q1 en Biological Sciences	Articulos	20	Biological Sciences
-890	4	Q1	Cantidad de artículos en Q1 en Human Biological Sciences	Articulos	20	Human Biological Sciences
-891	4	Q1	Cantidad de artículos en Q1 en Agricultural Sciences	Articulos	20	Agricultural Sciences
-1713	7	Academic Reputation	\N	Investigacion	60	Arts & Humanities
-1714	7	Employer Reputation	\N	Investigacion	20	Arts & Humanities
-1715	7	Citations per Paper	\N	Investigacion	8	Arts & Humanities
-1716	7	H-index Citations	\N	Investigacion	8	Arts & Humanities
-1717	7	International Research Network	\N	Investigacion	0	Arts & Humanities
-1718	7	Overall	\N	Investigacion	0	Arts & Humanities
-1719	7	Academic Reputation	\N	Investigacion	70	Archaeology
-1720	7	Employer Reputation	\N	Investigacion	10	Archaeology
-1721	7	Citations per Paper	\N	Investigacion	10	Archaeology
-1722	7	H-index Citations	\N	Investigacion	10	Archaeology
-1723	7	Academic Reputation	\N	Investigacion	70	Architecture / Built Environment
-1724	7	Employer Reputation	\N	Investigacion	10	Architecture / Built Environment
-1725	7	Citations per Paper	\N	Investigacion	10	Architecture / Built Environment
-1726	7	H-index Citations	\N	Investigacion	10	Architecture / Built Environment
-1727	7	Overall	\N	Investigacion	0	Architecture / Built Environment
-1728	7	Academic Reputation	\N	Investigacion	90	Art & Design
-1729	7	Employer Reputation	\N	Investigacion	10	Art & Design
-1730	7	Academic Reputation	\N	Investigacion	80	English Language & Literature
-1731	7	Employer Reputation	\N	Investigacion	10	English Language & Literature
-1732	7	Citations per Paper	\N	Investigacion	10	English Language & Literature
-1733	7	Academic Reputation	\N	Investigacion	60	History
-1734	7	Employer Reputation	\N	Investigacion	10	History
-1735	7	Citations per Paper	\N	Investigacion	15	History
-1736	7	H-index Citations	\N	Investigacion	15	History
-31	3	International Collaboration	Producción con colaboración internacional	Internacionalizacion	2	General
-26	3	Normalized Impact	Impacto normalizado respecto al promedio mundial	Investigacion	13	General
-36	3	Scientific Talent Pool	Número total de autores afiliados	Academicos	2	General
-42	3	Female Scientific Pool	Número de autoras afiliadas	Academicos	3	General
-27	3	Excellence with Leadership	Documentos de excelencia donde la institución lidera	Articulos	8	General
-28	3	Scientific Output	Número total de documentos en Scopus	Articulos	8	General
-37	3	Innovative Knowledge	Producción científica citada en patentes	Innovacion	10	General
-38	3	Technological Impact	Porcentaje de producción citada en patentes	Innovacion	10	General
-39	3	Patents	Número de solicitudes de patentes	Innovacion	10	General
-1737	7	Academic Reputation	\N	Investigacion	80	Linguistics
-1738	7	Employer Reputation	\N	Investigacion	10	Linguistics
-1739	7	Citations per Paper	\N	Investigacion	5	Linguistics
-1740	7	H-index Citations	\N	Investigacion	5	Linguistics
-1741	7	Academic Reputation	\N	Investigacion	70	Modern Languages
-1742	7	Employer Reputation	\N	Investigacion	30	Modern Languages
-1743	7	Overall	\N	Investigacion	0	Modern Languages
-1744	7	Academic Reputation	\N	Investigacion	75	Philosophy
-1745	7	Employer Reputation	\N	Investigacion	5	Philosophy
-1746	7	Citations per Paper	\N	Investigacion	10	Philosophy
-1747	7	H-index Citations	\N	Investigacion	10	Philosophy
-1748	7	Academic Reputation	\N	Investigacion	70	Theology, Divinity & Religious Studies
-1749	7	Employer Reputation	\N	Investigacion	10	Theology, Divinity & Religious Studies
-1750	7	Citations per Paper	\N	Investigacion	10	Theology, Divinity & Religious Studies
-1435	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Food Science Post 2024	Academicos	0	Food Science
-1436	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biotechnology Post 2024	Academicos	0	Biotechnology
-1437	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Aerospace Engineering Post 2024	Academicos	0	Aerospace Engineering
-1439	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Transportation Post 2024	Academicos	0	Transportation
-1440	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Remote Sensing Post 2024	Academicos	0	Remote Sensing
-1441	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Mining Engineering Post 2024	Academicos	0	Mining Engineering
-1442	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Metallurgical Engineering Post 2024	Academicos	20	Metallurgical Engineering
-1443	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Textile Engineering Post 2024	Academicos	0	Textile Engineering
-1444	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biological Sciences Post 2024	Academicos	20	Biological Sciences
-1445	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Human Biological Sciences Post 2024	Academicos	20	Human Biological Sciences
-1446	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Agricultural Sciences Post 2024	Academicos	0	Agricultural Sciences
-1447	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Veterinary Sciences Post 2024	Academicos	0	Veterinary Sciences
-1448	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine
-1449	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en PublNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Health Post 2024	Academicos	0	Public Health
-1450	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Dentistry Post 2024	Academicos	40	Dentistry
-1451	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Nursing Post 2024	Academicos	40	Nursing
-1452	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Medical Technology Post 2024	Academicos	40	Medical Technology
-1453	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Pharmacy Post 2024	Academicos	0	Pharmacy
-1454	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Economics Post 2024	Academicos	40	Economics
-1455	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Statistics Post 2024	Academicos	40	Statistics
-1456	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Law Post 2024	Academicos	0	Law
-1457	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Political Sciences Post 2024	Academicos	60	Political Sciences
-1458	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Sociology Post 2024	Academicos	0	Sociology
-1459	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Education Post 2024	Academicos	0	Education
-1460	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Communication Post 2024	Academicos	0	Communication
-1461	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Psychology Post 2024	Academicos	40	Psychology
-1462	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Business Administration Post 2024	Academicos	0	Business Administration
-1463	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Finance Post 2024	Academicos	0	Finance
-1464	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Management Post 2024	Academicos	0	Management
-1751	7	H-index Citations	\N	Investigacion	10	Theology, Divinity & Religious Studies
-1752	7	Academic Reputation	\N	Investigacion	40	Engineering & Technology
-1288	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Pharmacy Post 2024	Reputacion	0	Pharmacy
-1289	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Economics Post 2024	Reputacion	10	Economics
-1290	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Statistics Post 2024	Reputacion	0	Statistics
-1291	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Law Post 2024	Reputacion	0	Law
-1292	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Political Sciences Post 2024	Reputacion	20	Political Sciences
-1293	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Sociology Post 2024	Reputacion	0	Sociology
-1294	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Education Post 2024	Reputacion	0	Education
-1295	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Communication Post 2024	Reputacion	20	Communication
-1296	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Psychology Post 2024	Reputacion	0	Psychology
-1297	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Business Administration Post 2024	Reputacion	0	Business Administration
-1298	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Finance Post 2024	Reputacion	20	Finance
-1299	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Management Post 2024	Reputacion	10	Management
-1300	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en PublNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Administration Post 2024	Reputacion	0	Public Administration
-1465	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en PublNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Administration Post 2024	Academicos	40	Public Administration
-1466	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management
-1753	7	Employer Reputation	\N	Investigacion	30	Engineering & Technology
-1754	7	Citations per Paper	\N	Investigacion	10	Engineering & Technology
-1755	7	H-index Citations	\N	Investigacion	10	Engineering & Technology
-1756	7	International Research Network	\N	Investigacion	0	Engineering & Technology
-1757	7	Overall	\N	Investigacion	0	Engineering & Technology
-1758	7	Academic Reputation	\N	Investigacion	40	Engineering - Chemical
-1759	7	Employer Reputation	\N	Investigacion	30	Engineering - Chemical
-1760	7	Citations per Paper	\N	Investigacion	10	Engineering - Chemical
-1761	7	H-index Citations	\N	Investigacion	10	Engineering - Chemical
-1762	7	International Research Network	\N	Investigacion	0	Engineering - Chemical
-1763	7	Academic Reputation	\N	Investigacion	40	Computer Science & Information Systems
-1764	7	Employer Reputation	\N	Investigacion	30	Computer Science & Information Systems
-1765	7	Citations per Paper	\N	Investigacion	10	Computer Science & Information Systems
-1766	7	H-index Citations	\N	Investigacion	10	Computer Science & Information Systems
-1767	7	International Research Network	\N	Investigacion	0	Computer Science & Information Systems
-1768	7	Overall	\N	Investigacion	0	Computer Science & Information Systems
-1769	7	Academic Reputation	\N	Investigacion	40	Engineering - Civil & Structural
-1770	7	Employer Reputation	\N	Investigacion	30	Engineering - Civil & Structural
-1771	7	Citations per Paper	\N	Investigacion	15	Engineering - Civil & Structural
-1772	7	H-index Citations	\N	Investigacion	15	Engineering - Civil & Structural
-1773	7	Overall	\N	Investigacion	0	Engineering - Civil & Structural
-1774	7	Academic Reputation	\N	Investigacion	40	Engineering - Electrical & Electronic
-1775	7	Employer Reputation	\N	Investigacion	30	Engineering - Electrical & Electronic
-1776	7	Citations per Paper	\N	Investigacion	10	Engineering - Electrical & Electronic
-1777	7	H-index Citations	\N	Investigacion	10	Engineering - Electrical & Electronic
-1778	7	International Research Network	\N	Investigacion	0	Engineering - Electrical & Electronic
-1779	7	Academic Reputation	\N	Investigacion	40	Engineering - Mechanical, Aeronautical & Manufacturing
-1780	7	Employer Reputation	\N	Investigacion	30	Engineering - Mechanical, Aeronautical & Manufacturing
-1781	7	Citations per Paper	\N	Investigacion	10	Engineering - Mechanical, Aeronautical & Manufacturing
-1782	7	H-index Citations	\N	Investigacion	10	Engineering - Mechanical, Aeronautical & Manufacturing
-1783	7	International Research Network	\N	Investigacion	0	Engineering - Mechanical, Aeronautical & Manufacturing
-1784	7	Academic Reputation	\N	Investigacion	40	Engineering - Mineral & Mining
-1785	7	Employer Reputation	\N	Investigacion	30	Engineering - Mineral & Mining
-1786	7	Citations per Paper	\N	Investigacion	15	Engineering - Mineral & Mining
-1467	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Library & Information Science Post 2024	Academicos	20	Library & Information Science
-1468	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mathematics Post 2024	Academicos	0	Mathematics
-1469	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Physics Post 2024	Academicos	60	Physics
-1470	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Chemistry Post 2024	Academicos	60	Chemistry
-1471	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Earth Sciences Post 2024	Academicos	40	Earth Sciences
-1472	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Geography Post 2024	Academicos	20	Geography
-1473	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Ecology Post 2024	Academicos	40	Ecology
-1474	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Oceanography Post 2024	Academicos	0	Oceanography
-1475	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en AtmospherNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Science Post 2024	Academicos	40	Atmospheric Science
-1476	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mechanical Engineering Post 2024	Academicos	20	Mechanical Engineering
-1477	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Electrical Engineering Post 2024	Academicos	20	Electrical Engineering
-1478	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Automation Post 2024	Academicos	40	Automation
-1479	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Telecommunication Engineering Post 2024	Academicos	20	Telecommunication Engineering
-1480	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Instrumentation Post 2024	Academicos	0	Instrumentation
-1481	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biomedical Engineering Post 2024	Academicos	20	Biomedical Engineering
-1482	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Computer Science Post 2024	Academicos	40	Computer Science
-1483	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Civil Engineering Post 2024	Academicos	0	Civil Engineering
-1484	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Chemical Engineering Post 2024	Academicos	20	Chemical Engineering
-1485	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Materials Science Post 2024	Academicos	60	Materials Science
-1486	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Nanoscience Post 2024	Academicos	0	Nanoscience
-1487	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Energy Post 2024	Academicos	20	Energy
-1488	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Environmental Science Post 2024	Academicos	60	Environmental Science
-1489	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Water Resources Post 2024	Academicos	20	Water Resources
-1490	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Food Science Post 2024	Academicos	20	Food Science
-1491	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biotechnology Post 2024	Academicos	20	Biotechnology
-1492	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Aerospace Engineering Post 2024	Academicos	0	Aerospace Engineering
-1493	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Marine Engineering Post 2024	Academicos	0	Marine Engineering
-1494	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Transportation Post 2024	Academicos	20	Transportation
-1495	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Remote Sensing Post 2024	Academicos	20	Remote Sensing
-1496	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mining Engineering Post 2024	Academicos	0	Mining Engineering
-1497	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Metallurgical Engineering Post 2024	Academicos	0	Metallurgical Engineering
-1498	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Textile Engineering Post 2024	Academicos	0	Textile Engineering
-1499	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biological Sciences Post 2024	Academicos	60	Biological Sciences
-1500	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Human Biological Sciences Post 2024	Academicos	40	Human Biological Sciences
-1787	7	H-index Citations	\N	Investigacion	15	Engineering - Mineral & Mining
-1788	7	Overall	\N	Investigacion	0	Engineering - Mineral & Mining
-1501	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Agricultural Sciences Post 2024	Academicos	40	Agricultural Sciences
-1502	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Veterinary Sciences Post 2024	Academicos	0	Veterinary Sciences
-1503	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine
-1504	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en PublNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Health Post 2024	Academicos	60	Public Health
-1505	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Dentistry Post 2024	Academicos	0	Dentistry
-1506	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Nursing Post 2024	Academicos	0	Nursing
-1507	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Medical Technology Post 2024	Academicos	20	Medical Technology
-1508	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Pharmacy Post 2024	Academicos	40	Pharmacy
-1509	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Economics Post 2024	Academicos	20	Economics
-1510	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Statistics Post 2024	Academicos	20	Statistics
-1511	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Law Post 2024	Academicos	0	Law
-1512	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Political Sciences Post 2024	Academicos	20	Political Sciences
-1513	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Sociology Post 2024	Academicos	0	Sociology
-1514	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Education Post 2024	Academicos	0	Education
-1515	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Communication Post 2024	Academicos	0	Communication
-1516	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Psychology Post 2024	Academicos	60	Psychology
-1517	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Business Administration Post 2024	Academicos	20	Business Administration
-1518	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Finance Post 2024	Academicos	20	Finance
-1519	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Management Post 2024	Academicos	20	Management
-1520	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en PublNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Administration Post 2024	Academicos	20	Public Administration
-1521	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management
-1522	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Library & Information Science Post 2024	Academicos	20	Library & Information Science
-1523	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mathematics Post 2024	Academicos	60	Mathematics
-1524	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Physics Post 2024	Academicos	60	Physics
-1525	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Chemistry Post 2024	Academicos	60	Chemistry
-1526	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Earth Sciences Post 2024	Academicos	60	Earth Sciences
-1527	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Geography Post 2024	Academicos	60	Geography
-1528	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Ecology Post 2024	Academicos	60	Ecology
-1529	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Oceanography Post 2024	Academicos	40	Oceanography
-1530	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en AtmospherNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Science Post 2024	Academicos	40	Atmospheric Science
-1531	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mechanical Engineering Post 2024	Academicos	60	Mechanical Engineering
-1532	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Electrical Engineering Post 2024	Academicos	40	Electrical Engineering
-1789	7	Academic Reputation	\N	Investigacion	40	Life Sciences & Medicine
-1790	7	Employer Reputation	\N	Investigacion	10	Life Sciences & Medicine
-1438	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Marine Engineering Post 2024	Academicos	20	Marine Engineering
-1533	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Automation Post 2024	Academicos	60	Automation
-1534	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Telecommunication Engineering Post 2024	Academicos	20	Telecommunication Engineering
-1535	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Instrumentation Post 2024	Academicos	20	Instrumentation
-1536	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biomedical Engineering Post 2024	Academicos	60	Biomedical Engineering
-1537	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Computer Science Post 2024	Academicos	40	Computer Science
-1538	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Civil Engineering Post 2024	Academicos	60	Civil Engineering
-1539	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Chemical Engineering Post 2024	Academicos	40	Chemical Engineering
-1540	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Materials Science Post 2024	Academicos	60	Materials Science
-1541	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Nanoscience Post 2024	Academicos	40	Nanoscience
-1542	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Energy Post 2024	Academicos	60	Energy
-1543	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Environmental Science Post 2024	Academicos	60	Environmental Science
-1544	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Water Resources Post 2024	Academicos	60	Water Resources
-1545	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Food Science Post 2024	Academicos	40	Food Science
-1546	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biotechnology Post 2024	Academicos	60	Biotechnology
-1547	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Aerospace Engineering Post 2024	Academicos	40	Aerospace Engineering
-1548	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Marine Engineering Post 2024	Academicos	20	Marine Engineering
-1549	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Transportation Post 2024	Academicos	20	Transportation
-1550	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Remote Sensing Post 2024	Academicos	20	Remote Sensing
-1551	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mining Engineering Post 2024	Academicos	40	Mining Engineering
-1552	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Metallurgical Engineering Post 2024	Academicos	40	Metallurgical Engineering
-1553	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Textile Engineering Post 2024	Academicos	40	Textile Engineering
-1554	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biological Sciences Post 2024	Academicos	60	Biological Sciences
-1555	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Human Biological Sciences Post 2024	Academicos	60	Human Biological Sciences
-1556	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Agricultural Sciences Post 2024	Academicos	60	Agricultural Sciences
-1557	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Veterinary Sciences Post 2024	Academicos	60	Veterinary Sciences
-1558	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine
-1559	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en PublNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Health Post 2024	Academicos	60	Public Health
-1791	7	Citations per Paper	\N	Investigacion	20	Life Sciences & Medicine
-1560	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Dentistry Post 2024	Academicos	40	Dentistry
-1792	7	H-index Citations	\N	Investigacion	20	Life Sciences & Medicine
-640	4	CNCI	CNCI en Ecology	Investigacion	25	Ecology
-641	4	IC	IC en Ecology	Internacionalizacion	20	Ecology
-642	4	TOP	TOP en Ecology	Articulos	20	Ecology
-644	4	PUB	PUB en Oceanography	Articulos	25	Oceanography
-645	4	CNCI	CNCI en Oceanography	Investigacion	25	Oceanography
-646	4	IC	IC en Oceanography	Internacionalizacion	20	Oceanography
-647	4	TOP	TOP en Oceanography	Articulos	20	Oceanography
-649	4	PUB	PUB en Atmospheric Science	Articulos	25	Atmospheric Science
-650	4	CNCI	CNCI en Atmospheric Science	Investigacion	25	Atmospheric Science
-1561	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Nursing Post 2024	Academicos	40	Nursing
-1562	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Medical Technology Post 2024	Academicos	60	Medical Technology
-1563	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Pharmacy Post 2024	Academicos	60	Pharmacy
-1564	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Economics Post 2024	Academicos	60	Economics
-1565	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Statistics Post 2024	Academicos	40	Statistics
-1566	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Law Post 2024	Academicos	60	Law
-1567	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Political Sciences Post 2024	Academicos	60	Political Sciences
-1568	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Sociology Post 2024	Academicos	60	Sociology
-1569	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Education Post 2024	Academicos	60	Education
-1570	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Communication Post 2024	Academicos	60	Communication
-1571	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Psychology Post 2024	Academicos	60	Psychology
-1572	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Business Administration Post 2024	Academicos	60	Business Administration
-1573	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Finance Post 2024	Academicos	40	Finance
-1574	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Management Post 2024	Academicos	60	Management
-1575	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en PublNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Administration Post 2024	Academicos	40	Public Administration
-1576	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management
-1577	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Library & Information Science Post 2024	Academicos	40	Library & Information Science
-1578	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mathematics Post 2024	Articulos	100	Mathematics
-1579	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Physics Post 2024	Articulos	100	Physics
-1580	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Chemistry Post 2024	Articulos	100	Chemistry
-1581	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Earth Sciences Post 2024	Articulos	100	Earth Sciences
-1582	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Geography Post 2024	Articulos	100	Geography
-1583	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Ecology Post 2024	Articulos	100	Ecology
-1793	7	International Research Network	\N	Investigacion	0	Life Sciences & Medicine
-1794	7	Overall	\N	Investigacion	0	Life Sciences & Medicine
-1795	7	Academic Reputation	\N	Investigacion	40	Agriculture & Forestry
-1796	7	Employer Reputation	\N	Investigacion	30	Agriculture & Forestry
-1797	7	Citations per Paper	\N	Investigacion	10	Agriculture & Forestry
-1798	7	H-index Citations	\N	Investigacion	10	Agriculture & Forestry
-1799	7	International Research Network	\N	Investigacion	0	Agriculture & Forestry
-1800	7	Overall	\N	Investigacion	0	Agriculture & Forestry
-1801	7	Academic Reputation	\N	Investigacion	40	Anatomy & Physiology
-1802	7	Employer Reputation	\N	Investigacion	10	Anatomy & Physiology
-1803	7	Citations per Paper	\N	Investigacion	25	Anatomy & Physiology
-859	4	Q1	Cantidad de artículos en Q1 en Earth Sciences	Articulos	25	Earth Sciences
-791	4	IC	IC en Nursing	Internacionalizacion	20	Nursing
-1584	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Oceanography Post 2024	Articulos	100	Oceanography
-1585	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en AtmospherNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Science Post 2024	Articulos	100	Atmospheric Science
-1586	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mechanical Engineering Post 2024	Articulos	100	Mechanical Engineering
-1587	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Electrical Engineering Post 2024	Articulos	100	Electrical Engineering
-1588	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Automation Post 2024	Articulos	100	Automation
-1589	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering
-1590	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Instrumentation Post 2024	Articulos	100	Instrumentation
-1591	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biomedical Engineering Post 2024	Articulos	100	Biomedical Engineering
-1592	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Computer Science Post 2024	Articulos	100	Computer Science
-1593	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Civil Engineering Post 2024	Articulos	100	Civil Engineering
-1594	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering
-1595	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Materials Science Post 2024	Articulos	100	Materials Science
-1596	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Nanoscience Post 2024	Articulos	100	Nanoscience
-1597	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Energy Post 2024	Articulos	100	Energy
-1598	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Environmental Science Post 2024	Articulos	100	Environmental Science
-1599	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Water Resources Post 2024	Articulos	100	Water Resources
-1600	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Food Science Post 2024	Articulos	100	Food Science
-1601	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biotechnology Post 2024	Articulos	100	Biotechnology
-1602	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Aerospace Engineering Post 2024	Articulos	100	Aerospace Engineering
-1603	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Marine Engineering Post 2024	Articulos	100	Marine Engineering
-1604	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Transportation Post 2024	Articulos	100	Transportation
-1605	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Remote Sensing Post 2024	Articulos	100	Remote Sensing
-1606	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mining Engineering Post 2024	Articulos	100	Mining Engineering
-1607	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering
-1608	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Textile Engineering Post 2024	Articulos	100	Textile Engineering
-1609	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biological Sciences Post 2024	Articulos	100	Biological Sciences
-1610	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences
-1611	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences
-1612	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences
-1613	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine
-1804	7	H-index Citations	\N	Investigacion	25	Anatomy & Physiology
-1805	7	Academic Reputation	\N	Investigacion	40	Biological Sciences
-860	4	Q1	Cantidad de artículos en Q1 en Geography	Articulos	25	Geography
-1614	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en PublNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Health Post 2024	Articulos	100	Public Health
-1615	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Dentistry Post 2024	Articulos	100	Dentistry
-1616	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Nursing Post 2024	Articulos	100	Nursing
-1617	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Medical Technology Post 2024	Articulos	100	Medical Technology
-1618	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Pharmacy Post 2024	Articulos	100	Pharmacy
-1619	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Economics Post 2024	Articulos	100	Economics
-1620	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Statistics Post 2024	Articulos	100	Statistics
-1621	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Law Post 2024	Articulos	100	Law
-1622	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Political Sciences Post 2024	Articulos	100	Political Sciences
-1623	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Sociology Post 2024	Articulos	100	Sociology
-1624	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Education Post 2024	Articulos	100	Education
-1625	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Communication Post 2024	Articulos	100	Communication
-1626	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Psychology Post 2024	Articulos	100	Psychology
-1627	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Business Administration Post 2024	Articulos	100	Business Administration
-1628	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Finance Post 2024	Articulos	100	Finance
-1629	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Management Post 2024	Articulos	100	Management
-1630	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en PublNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Administration Post 2024	Articulos	100	Public Administration
-1631	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management
-1632	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Library & Information Science Post 2024	Articulos	100	Library & Information Science
-1633	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mathematics Post 2024	Reputacion	100	Mathematics
-1634	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Physics Post 2024	Reputacion	100	Physics
-1635	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Chemistry Post 2024	Reputacion	100	Chemistry
-1636	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Earth Sciences Post 2024	Reputacion	100	Earth Sciences
-1637	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Geography Post 2024	Reputacion	100	Geography
-1638	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Ecology Post 2024	Reputacion	100	Ecology
-1639	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Oceanography Post 2024	Reputacion	100	Oceanography
-1806	7	Employer Reputation	\N	Investigacion	30	Biological Sciences
-1807	7	Citations per Paper	\N	Investigacion	10	Biological Sciences
-1808	7	H-index Citations	\N	Investigacion	10	Biological Sciences
-1809	7	International Research Network	\N	Investigacion	0	Biological Sciences
-1810	7	Academic Reputation	\N	Investigacion	30	Dentistry
-1640	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en AtmospherEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Science Post 2024	Reputacion	100	Atmospheric Science
-1641	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mechanical Engineering Post 2024	Reputacion	100	Mechanical Engineering
-1642	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Electrical Engineering Post 2024	Reputacion	100	Electrical Engineering
-1643	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Automation Post 2024	Reputacion	100	Automation
-1644	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Telecommunication Engineering Post 2024	Reputacion	100	Telecommunication Engineering
-1645	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Instrumentation Post 2024	Reputacion	100	Instrumentation
-1646	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biomedical Engineering Post 2024	Reputacion	100	Biomedical Engineering
-1647	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Computer Science Post 2024	Reputacion	100	Computer Science
-1648	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Civil Engineering Post 2024	Reputacion	100	Civil Engineering
-1649	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Chemical Engineering Post 2024	Reputacion	100	Chemical Engineering
-1650	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Materials Science Post 2024	Reputacion	100	Materials Science
-1651	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Nanoscience Post 2024	Reputacion	100	Nanoscience
-1652	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Energy Post 2024	Reputacion	100	Energy
-1653	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Environmental Science Post 2024	Reputacion	100	Environmental Science
-1654	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Water Resources Post 2024	Reputacion	100	Water Resources
-1655	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Food Science Post 2024	Reputacion	100	Food Science
-1656	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biotechnology Post 2024	Reputacion	100	Biotechnology
-1657	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Aerospace Engineering Post 2024	Reputacion	100	Aerospace Engineering
-1658	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Marine Engineering Post 2024	Reputacion	100	Marine Engineering
-1659	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Transportation Post 2024	Reputacion	100	Transportation
-1811	7	Employer Reputation	\N	Investigacion	10	Dentistry
-861	4	Q1	Cantidad de artículos en Q1 en Ecology	Articulos	25	Ecology
-1660	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Remote Sensing Post 2024	Reputacion	100	Remote Sensing
-1661	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mining Engineering Post 2024	Reputacion	100	Mining Engineering
-1662	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Metallurgical Engineering Post 2024	Reputacion	100	Metallurgical Engineering
-1663	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Textile Engineering Post 2024	Reputacion	100	Textile Engineering
-1664	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biological Sciences Post 2024	Reputacion	100	Biological Sciences
-1665	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Human Biological Sciences Post 2024	Reputacion	100	Human Biological Sciences
-1666	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Agricultural Sciences Post 2024	Reputacion	100	Agricultural Sciences
-1667	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Veterinary Sciences Post 2024	Reputacion	100	Veterinary Sciences
-1668	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Clinical Medicine Post 2024	Reputacion	100	Clinical Medicine
-1669	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en PublEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Health Post 2024	Reputacion	100	Public Health
-1671	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Nursing Post 2024	Reputacion	100	Nursing
-1672	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Medical Technology Post 2024	Reputacion	100	Medical Technology
-1673	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Pharmacy Post 2024	Reputacion	100	Pharmacy
-1674	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Economics Post 2024	Reputacion	100	Economics
-1675	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Statistics Post 2024	Reputacion	100	Statistics
-1676	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Law Post 2024	Reputacion	100	Law
-1677	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Political Sciences Post 2024	Reputacion	100	Political Sciences
-1678	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Sociology Post 2024	Reputacion	100	Sociology
-1679	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Education Post 2024	Reputacion	100	Education
-1680	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Communication Post 2024	Reputacion	100	Communication
-1812	7	Citations per Paper	\N	Investigacion	30	Dentistry
-792	4	TOP	TOP en Nursing	Articulos	25	Nursing
-1681	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Psychology Post 2024	Reputacion	100	Psychology
-1682	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Business Administration Post 2024	Reputacion	100	Business Administration
-1683	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Finance Post 2024	Reputacion	100	Finance
-1684	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Management Post 2024	Reputacion	100	Management
-1685	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en PublEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Administration Post 2024	Reputacion	100	Public Administration
-1687	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Library & Information Science Post 2024	Reputacion	100	Library & Information Science
-1813	7	H-index Citations	\N	Investigacion	30	Dentistry
-1814	7	Academic Reputation	\N	Investigacion	40	Medicine
-1815	7	Employer Reputation	\N	Investigacion	30	Medicine
-1816	7	Citations per Paper	\N	Investigacion	10	Medicine
-1817	7	H-index Citations	\N	Investigacion	10	Medicine
-1818	7	International Research Network	\N	Investigacion	0	Medicine
-1819	7	Overall	\N	Investigacion	0	Medicine
-1820	7	Academic Reputation	\N	Investigacion	30	Nursing
-1821	7	Employer Reputation	\N	Investigacion	10	Nursing
-1822	7	Citations per Paper	\N	Investigacion	30	Nursing
-1823	7	H-index Citations	\N	Investigacion	30	Nursing
-1824	7	Academic Reputation	\N	Investigacion	40	Pharmacy & Pharmacology
-1825	7	Employer Reputation	\N	Investigacion	30	Pharmacy & Pharmacology
-1826	7	Citations per Paper	\N	Investigacion	10	Pharmacy & Pharmacology
-1827	7	H-index Citations	\N	Investigacion	10	Pharmacy & Pharmacology
-1828	7	International Research Network	\N	Investigacion	0	Pharmacy & Pharmacology
-1829	7	Academic Reputation	\N	Investigacion	40	Psychology
-1830	7	Employer Reputation	\N	Investigacion	30	Psychology
-1831	7	Citations per Paper	\N	Investigacion	10	Psychology
-1832	7	H-index Citations	\N	Investigacion	10	Psychology
-1833	7	International Research Network	\N	Investigacion	0	Psychology
-1834	7	Overall	\N	Investigacion	0	Psychology
-1835	7	Academic Reputation	\N	Investigacion	40	Natural Sciences
-1836	7	Employer Reputation	\N	Investigacion	20	Natural Sciences
-1837	7	Citations per Paper	\N	Investigacion	15	Natural Sciences
-1838	7	H-index Citations	\N	Investigacion	15	Natural Sciences
-1839	7	International Research Network	\N	Investigacion	0	Natural Sciences
-1840	7	Overall	\N	Investigacion	0	Natural Sciences
-1841	7	Academic Reputation	\N	Investigacion	40	Chemistry
-1842	7	Employer Reputation	\N	Investigacion	30	Chemistry
-1843	7	Citations per Paper	\N	Investigacion	10	Chemistry
-1844	7	H-index Citations	\N	Investigacion	10	Chemistry
-1845	7	International Research Network	\N	Investigacion	0	Chemistry
-1846	7	Academic Reputation	\N	Investigacion	40	Earth & Marine Sciences
-1847	7	Employer Reputation	\N	Investigacion	30	Earth & Marine Sciences
-1848	7	Citations per Paper	\N	Investigacion	10	Earth & Marine Sciences
-1849	7	H-index Citations	\N	Investigacion	10	Earth & Marine Sciences
-1850	7	International Research Network	\N	Investigacion	0	Earth & Marine Sciences
-1851	7	Academic Reputation	\N	Investigacion	40	Environmental Sciences
-1852	7	Employer Reputation	\N	Investigacion	30	Environmental Sciences
-1853	7	Citations per Paper	\N	Investigacion	10	Environmental Sciences
-1854	7	H-index Citations	\N	Investigacion	10	Environmental Sciences
-1855	7	International Research Network	\N	Investigacion	0	Environmental Sciences
-1856	7	Academic Reputation	\N	Investigacion	60	Geography
-1857	7	Employer Reputation	\N	Investigacion	10	Geography
-1858	7	Citations per Paper	\N	Investigacion	15	Geography
-1859	7	H-index Citations	\N	Investigacion	15	Geography
-1860	7	Overall	\N	Investigacion	0	Geography
-1861	7	Academic Reputation	\N	Investigacion	40	Geology
-1862	7	Employer Reputation	\N	Investigacion	30	Geology
-1863	7	Citations per Paper	\N	Investigacion	10	Geology
-1864	7	H-index Citations	\N	Investigacion	10	Geology
-1865	7	International Research Network	\N	Investigacion	0	Geology
-1866	7	Academic Reputation	\N	Investigacion	40	Geophysics
-1867	7	Employer Reputation	\N	Investigacion	30	Geophysics
-1868	7	Citations per Paper	\N	Investigacion	10	Geophysics
-1869	7	H-index Citations	\N	Investigacion	10	Geophysics
-1870	7	International Research Network	\N	Investigacion	0	Geophysics
-1871	7	Academic Reputation	\N	Investigacion	40	Materials Science
-1872	7	Employer Reputation	\N	Investigacion	30	Materials Science
-1873	7	Citations per Paper	\N	Investigacion	10	Materials Science
-1874	7	H-index Citations	\N	Investigacion	10	Materials Science
-1875	7	International Research Network	\N	Investigacion	0	Materials Science
-1876	7	Academic Reputation	\N	Investigacion	40	Mathematics
-1877	7	Employer Reputation	\N	Investigacion	30	Mathematics
-1878	7	Citations per Paper	\N	Investigacion	10	Mathematics
-1879	7	H-index Citations	\N	Investigacion	10	Mathematics
-1880	7	International Research Network	\N	Investigacion	0	Mathematics
-1881	7	Overall	\N	Investigacion	0	Mathematics
-1882	7	Academic Reputation	\N	Investigacion	40	Physics & Astronomy
-1883	7	Employer Reputation	\N	Investigacion	30	Physics & Astronomy
-1884	7	Citations per Paper	\N	Investigacion	10	Physics & Astronomy
-1885	7	H-index Citations	\N	Investigacion	10	Physics & Astronomy
-1886	7	International Research Network	\N	Investigacion	0	Physics & Astronomy
-1887	7	Overall	\N	Investigacion	0	Physics & Astronomy
-1888	7	Academic Reputation	\N	Investigacion	50	Social Sciences & Management
-1889	7	Employer Reputation	\N	Investigacion	30	Social Sciences & Management
-1890	7	Citations per Paper	\N	Investigacion	8	Social Sciences & Management
-1891	7	H-index Citations	\N	Investigacion	8	Social Sciences & Management
-1892	7	International Research Network	\N	Investigacion	0	Social Sciences & Management
-1893	7	Overall	\N	Investigacion	0	Social Sciences & Management
-1894	7	Academic Reputation	\N	Investigacion	50	Accounting & Finance
-1895	7	Employer Reputation	\N	Investigacion	30	Accounting & Finance
-1896	7	Citations per Paper	\N	Investigacion	10	Accounting & Finance
-1897	7	H-index Citations	\N	Investigacion	10	Accounting & Finance
-1898	7	Overall	\N	Investigacion	0	Accounting & Finance
-1899	7	Academic Reputation	\N	Investigacion	70	Anthropology
-1900	7	Employer Reputation	\N	Investigacion	10	Anthropology
-1901	7	Citations per Paper	\N	Investigacion	10	Anthropology
-1902	7	H-index Citations	\N	Investigacion	10	Anthropology
-1903	7	Academic Reputation	\N	Investigacion	50	Business & Management Studies
-1904	7	Employer Reputation	\N	Investigacion	30	Business & Management Studies
-1905	7	Citations per Paper	\N	Investigacion	10	Business & Management Studies
-1906	7	H-index Citations	\N	Investigacion	10	Business & Management Studies
-1907	7	Overall	\N	Investigacion	0	Business & Management Studies
-1908	7	Academic Reputation	\N	Investigacion	50	Communication & Media Studies
-1909	7	Employer Reputation	\N	Investigacion	10	Communication & Media Studies
-1910	7	Citations per Paper	\N	Investigacion	20	Communication & Media Studies
-1911	7	H-index Citations	\N	Investigacion	20	Communication & Media Studies
-1912	7	Academic Reputation	\N	Investigacion	40	Economics & Econometrics
-1913	7	Employer Reputation	\N	Investigacion	20	Economics & Econometrics
-1914	7	Citations per Paper	\N	Investigacion	20	Economics & Econometrics
-1915	7	H-index Citations	\N	Investigacion	20	Economics & Econometrics
-1916	7	Overall	\N	Investigacion	0	Economics & Econometrics
-1917	7	Academic Reputation	\N	Investigacion	50	Education
-1918	7	Employer Reputation	\N	Investigacion	10	Education
-1919	7	Citations per Paper	\N	Investigacion	20	Education
-1920	7	H-index Citations	\N	Investigacion	20	Education
-1921	7	Overall	\N	Investigacion	0	Education
-1922	7	Academic Reputation	\N	Investigacion	50	Law
-1923	7	Employer Reputation	\N	Investigacion	30	Law
-1924	7	Citations per Paper	\N	Investigacion	5	Law
-1925	7	H-index Citations	\N	Investigacion	15	Law
-1926	7	Overall	\N	Investigacion	0	Law
-1927	7	Academic Reputation	\N	Investigacion	50	Politics & International Studies
-1928	7	Employer Reputation	\N	Investigacion	30	Politics & International Studies
-1929	7	Citations per Paper	\N	Investigacion	10	Politics & International Studies
-1930	7	H-index Citations	\N	Investigacion	10	Politics & International Studies
-1931	7	Academic Reputation	\N	Investigacion	70	Social Policy & Administration
-1932	7	Employer Reputation	\N	Investigacion	20	Social Policy & Administration
-1933	7	Citations per Paper	\N	Investigacion	10	Social Policy & Administration
-1934	7	Academic Reputation	\N	Investigacion	70	Sociology
-1935	7	Employer Reputation	\N	Investigacion	10	Sociology
-1936	7	Citations per Paper	\N	Investigacion	5	Sociology
-1937	7	H-index Citations	\N	Investigacion	15	Sociology
-1938	7	Overall	\N	Investigacion	0	Sociology
-1939	7	Academic Reputation	\N	Investigacion	50	Statistics & Operational Research
-1940	7	Employer Reputation	\N	Investigacion	10	Statistics & Operational Research
-1941	7	Citations per Paper	\N	Investigacion	20	Statistics & Operational Research
-1942	7	H-index Citations	\N	Investigacion	20	Statistics & Operational Research
-1943	7	Overall	\N	Investigacion	0	Art & Design
-1944	7	Overall	\N	Investigacion	0	Theology, Divinity & Religious Studies
-1945	7	Overall	\N	Investigacion	0	Engineering - Electrical & Electronic
-1946	7	Overall	\N	Investigacion	0	Dentistry
-1947	7	Overall	\N	Investigacion	0	Environmental Sciences
-1948	7	Overall	\N	Investigacion	0	Communication & Media Studies
-1949	7	Academic Reputation	\N	Investigacion	45	Hospitality & Leisure Management
-1950	7	Employer Reputation	\N	Investigacion	50	Hospitality & Leisure Management
-1951	7	Citations per Paper	\N	Investigacion	5	Hospitality & Leisure Management
-1952	7	Overall	\N	Investigacion	0	Politics & International Studies
-1953	7	Overall	\N	Investigacion	0	Social Policy & Administration
-862	4	Q1	Cantidad de artículos en Q1 en Oceanography	Articulos	25	Oceanography
-863	4	Q1	Cantidad de artículos en Q1 en Atmospheric Science	Articulos	25	Atmospheric Science
-1954	7	International Research Network	\N	Investigacion	5	Arts & Humanities
-1955	7	Academic Reputation	\N	Investigacion	80	Performing Arts
-1956	7	Employer Reputation	\N	Investigacion	20	Performing Arts
-1957	7	International Research Network	\N	Investigacion	10	Engineering & Technology
-1958	7	Citations per Paper	\N	Investigacion	12	Computer Science & Information Systems
-1959	7	H-index Citations	\N	Investigacion	12	Computer Science & Information Systems
-1960	7	International Research Network	\N	Investigacion	5	Computer Science & Information Systems
-1961	7	Academic Reputation	\N	Investigacion	40	Data Science and Artificial Intelligence
-1962	7	Employer Reputation	\N	Investigacion	30	Data Science and Artificial Intelligence
-1963	7	Citations per Paper	\N	Investigacion	15	Data Science and Artificial Intelligence
-1964	7	H-index Citations	\N	Investigacion	15	Data Science and Artificial Intelligence
-1965	7	Citations per Paper	\N	Investigacion	12	Engineering - Chemical
-1966	7	H-index Citations	\N	Investigacion	12	Engineering - Chemical
-1967	7	International Research Network	\N	Investigacion	5	Engineering - Chemical
-1968	7	Citations per Paper	\N	Investigacion	12	Engineering - Electrical & Electronic
-1969	7	H-index Citations	\N	Investigacion	12	Engineering - Electrical & Electronic
-1970	7	International Research Network	\N	Investigacion	5	Engineering - Electrical & Electronic
-1971	7	Citations per Paper	\N	Investigacion	12	Engineering - Mechanical, Aeronautical & Manufacturing
-1972	7	H-index Citations	\N	Investigacion	12	Engineering - Mechanical, Aeronautical & Manufacturing
-1973	7	International Research Network	\N	Investigacion	5	Engineering - Mechanical, Aeronautical & Manufacturing
-1974	7	International Research Network	\N	Investigacion	10	Life Sciences & Medicine
-1975	7	Academic Reputation	\N	Investigacion	50	Agriculture & Forestry
-1976	7	Employer Reputation	\N	Investigacion	10	Agriculture & Forestry
-1977	7	Citations per Paper	\N	Investigacion	15	Agriculture & Forestry
-1978	7	H-index Citations	\N	Investigacion	15	Agriculture & Forestry
-1979	7	International Research Network	\N	Investigacion	10	Agriculture & Forestry
-1980	7	Employer Reputation	\N	Investigacion	10	Biological Sciences
-1981	7	Citations per Paper	\N	Investigacion	20	Biological Sciences
-1982	7	H-index Citations	\N	Investigacion	20	Biological Sciences
-1983	7	International Research Network	\N	Investigacion	10	Biological Sciences
-1984	7	Overall	\N	Investigacion	0	Biological Sciences
-1985	7	Employer Reputation	\N	Investigacion	10	Medicine
-1986	7	Citations per Paper	\N	Investigacion	20	Medicine
-1987	7	H-index Citations	\N	Investigacion	20	Medicine
-1988	7	International Research Network	\N	Investigacion	10	Medicine
-1989	7	Employer Reputation	\N	Investigacion	10	Pharmacy & Pharmacology
-1990	7	Citations per Paper	\N	Investigacion	20	Pharmacy & Pharmacology
-1991	7	H-index Citations	\N	Investigacion	20	Pharmacy & Pharmacology
-1992	7	International Research Network	\N	Investigacion	10	Pharmacy & Pharmacology
-1993	7	Employer Reputation	\N	Investigacion	20	Psychology
-1994	7	Citations per Paper	\N	Investigacion	15	Psychology
-1995	7	H-index Citations	\N	Investigacion	15	Psychology
-1996	7	International Research Network	\N	Investigacion	10	Psychology
-1997	7	Academic Reputation	\N	Investigacion	30	Veterinary Science
-1998	7	Employer Reputation	\N	Investigacion	10	Veterinary Science
-1999	7	Citations per Paper	\N	Investigacion	30	Veterinary Science
-2000	7	H-index Citations	\N	Investigacion	30	Veterinary Science
-2001	7	International Research Network	\N	Investigacion	10	Natural Sciences
-2002	7	Employer Reputation	\N	Investigacion	20	Chemistry
-2003	7	Citations per Paper	\N	Investigacion	15	Chemistry
-2004	7	H-index Citations	\N	Investigacion	15	Chemistry
-2005	7	International Research Network	\N	Investigacion	10	Chemistry
-2006	7	Employer Reputation	\N	Investigacion	10	Earth & Marine Sciences
-2007	7	Citations per Paper	\N	Investigacion	20	Earth & Marine Sciences
-2008	7	H-index Citations	\N	Investigacion	20	Earth & Marine Sciences
-2009	7	International Research Network	\N	Investigacion	10	Earth & Marine Sciences
-2010	7	Employer Reputation	\N	Investigacion	10	Environmental Sciences
-2011	7	Citations per Paper	\N	Investigacion	22	Environmental Sciences
-2012	7	H-index Citations	\N	Investigacion	22	Environmental Sciences
-2013	7	International Research Network	\N	Investigacion	5	Environmental Sciences
-2014	7	Academic Reputation	\N	Investigacion	30	Geology
-2015	7	Employer Reputation	\N	Investigacion	10	Geology
-2016	7	Citations per Paper	\N	Investigacion	25	Geology
-2017	7	H-index Citations	\N	Investigacion	25	Geology
-2018	7	International Research Network	\N	Investigacion	10	Geology
-2019	7	Academic Reputation	\N	Investigacion	30	Geophysics
-2020	7	Employer Reputation	\N	Investigacion	10	Geophysics
-2021	7	Citations per Paper	\N	Investigacion	25	Geophysics
-2022	7	H-index Citations	\N	Investigacion	25	Geophysics
-2023	7	International Research Network	\N	Investigacion	10	Geophysics
-2024	7	Employer Reputation	\N	Investigacion	20	Mathematics
-2025	7	Citations per Paper	\N	Investigacion	15	Mathematics
-2026	7	H-index Citations	\N	Investigacion	15	Mathematics
-2027	7	International Research Network	\N	Investigacion	10	Mathematics
-2028	7	Employer Reputation	\N	Investigacion	10	Materials Science
-2029	7	Citations per Paper	\N	Investigacion	20	Materials Science
-2030	7	H-index Citations	\N	Investigacion	20	Materials Science
-864	4	Q1	Cantidad de artículos en Q1 en Mechanical Engineering	Articulos	25	Mechanical Engineering
-865	4	Q1	Cantidad de artículos en Q1 en Electrical Engineering	Articulos	25	Electrical Engineering
-2031	7	International Research Network	\N	Investigacion	10	Materials Science
-2032	7	Employer Reputation	\N	Investigacion	20	Physics & Astronomy
-2033	7	Citations per Paper	\N	Investigacion	15	Physics & Astronomy
-2034	7	H-index Citations	\N	Investigacion	15	Physics & Astronomy
-2035	7	International Research Network	\N	Investigacion	10	Physics & Astronomy
-2036	7	International Research Network	\N	Investigacion	5	Social Sciences & Management
-2037	7	Academic Reputation	\N	Investigacion	60	Development Studies
-2038	7	Employer Reputation	\N	Investigacion	10	Development Studies
-2039	7	Citations per Paper	\N	Investigacion	15	Development Studies
-2040	7	H-index Citations	\N	Investigacion	15	Development Studies
-2041	7	Overall	\N	Investigacion	0	Development Studies
-2042	7	Academic Reputation	\N	Investigacion	50	Marketing
-2043	7	Employer Reputation	\N	Investigacion	30	Marketing
-2044	7	Citations per Paper	\N	Investigacion	10	Marketing
-2045	7	H-index Citations	\N	Investigacion	10	Marketing
-2046	7	Academic Reputation	\N	Investigacion	90	History of Art
-2047	7	Employer Reputation	\N	Investigacion	10	History of Art
-866	4	Q1	Cantidad de artículos en Q1 en Automation	Articulos	25	Automation
-856	4	Q1	Cantidad de artículos en Q1 en Mathematics	Articulos	25	Mathematics
-857	4	Q1	Cantidad de artículos en Q1 en Physics	Articulos	25	Physics
-858	4	Q1	Cantidad de artículos en Q1 en Chemistry	Articulos	25	Chemistry
-1686	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Hospitality & Tourism Management Post 2024	Reputacion	100	Hospitality & Tourism Management
-4	1	Doctorate staff ratio	Proporción de doctorados por académico	Academicos	5.5	General
-5	1	Institutional income	Ingresos institucionales por académico	Financiero	2.5	General
-6	1	Research reputation	Encuesta de reputación académica en investigación	Reputacion	18	General
-7	1	Research income	Ingresos por investigación ajustados por personal	Financiero	5.5	General
-8	1	Research productivity	Producción científica por académico	Articulos	5.5	General
-9	1	Citation impact	Impacto de citaciones de publicaciones	Articulos	15	General
-10	1	Research strength	Fuerza de investigación basada en citaciones	Articulos	5	General
-11	1	Research excellence	Excelencia en investigación medida por citaciones	Articulos	5	General
-12	1	Research influence	Influencia global de la investigación	Articulos	5	General
-13	1	Industry income	Ingresos provenientes de la industria	Financiero	2	General
-14	1	Patents	Número de patentes generadas	Innovacion	2	General
-15	1	International students	Proporción de estudiantes internacionales	Internacional	2.5	General
-16	1	International staff	Proporción de personal internacional	Internacional	2.5	General
-17	1	International co-authorship	Colaboraciones internacionales en publicaciones	Internacional	2.5	General
-18	2	Academic reputation	Encuesta de reputación académica	Reputacion	30	General
-19	2	Employer reputation	Reputación entre empleadores	Reputacion	20	General
-20	2	Faculty student ratio	Relación entre estudiantes y académicos	Alumnado	10	General
-21	2	Staff with PhD	Proporción de académicos con doctorado	Academicos	10	General
-22	2	Papers per faculty	Artículos por académico	Articulos	5	General
-23	2	Citations per paper	Citas por artículo	Articulos	10	General
-24	2	International research network	Red internacional de investigación	Internacional	10	General
-25	2	Web impact	Impacto web (Webometrics)	Infraestructura	5	General
-30	3	Output in Own Journals	Número de revistas propias	Infraestructura	3	General
-35	3	Open Access	Porcentaje de publicaciones en acceso abierto	Acceso Abierto	2	General
-40	3	Altmetrics (PlumX and Mendeley)	Impacto social (PlumX y Mendeley)	Impacto Social	3	General
-41	3	SDG-related Output	Producción asociada a ODS	Impacto Social	5	General
-43	3	Overton	Documentos citados en políticas públicas	Impacto Social	3	General
-662	4	PUB	PUB en Automation	Articulos	25	Automation
-1690	3	Plumx	PlumX es un conjunto de métricas alternativas integradas en Scopus y el entorno SCImago que miden el impacto académico y social de una investigación en tiempo real. Se visualizan mediante una flor de cinco colores, donde cada pétalo representa una dimensión específica: Uso (clics/descargas), Capturas (marcadores/Mendeley), Menciones (blogs/noticias), Redes Sociales (interacciones) y Citaciones (tradicionales y patentes).	Impacto Social	2.1	General
-1688	2	Student mix domestic	Estudiantes totales vs. población de la ciudad.	Alumnado	0	General
-1689	2	Student mix international	Porcentaje y volumen de extranjeros.	Alumnado	0	General
-1670	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Dentistry Post 2024	Reputacion	100	Dentistry
-1691	3	Mendeley	Mide el impacto social y el interés académico temprano de un artículo, contabilizando cuántos usuarios lo han guardado, leído o anotado en su gestor de referencias a través de Scopus. No es una cita formal, sino un indicador de altmetrics sobre el uso y atención del investigador.	Impacto Social	0.9	General
-1694	1	Research Quality	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Articulos	30	General
-1695	1	Industry	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Financiero	0	General
-1696	1	International Outlook	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Internacional	10	General
-1692	1	Teaching	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Academicos	30	General
-1693	1	Research Environment	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Reputacion	30	General
-34	3	Scientific Leadership	Artículos con autor correspondiente institucional	Investigacion	5	General
-29	3	Output in External Journals	Documentos en revistas externas	Articulos	3	General
-32	3	Number of Q1 Articles	Publicaciones en revistas Q1	Articulos	2	General
-33	3	Excellence	Producción en top 10% más citado	Articulos	2	General
+COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica, tipo_metrica, peso_metrica, disciplina, id_metrica_padre, pondera) FROM stdin;
+1697	5	Academic Reputation	Mide la reputación de las instituciones y sus programas mediante una encuesta a expertos académicos, quienes nominan universidades según su área de especialización. Este indicador se basa en las respuestas a la Encuesta Académica. 15% Nominaciones nacionales + 85% Nominaciones extranjeras.	Reputacion	30	General	\N	t
+1698	5	Employer Reputation	Mide la reputación de las instituciones y sus programas entre los empleadores. Para medir esto, se recopila las opiniones de empleadores de todo el mundo a través de la Encuesta de Empleadores. 50-50 nominaciones nacionales e internacionales.	Reputacion	15	General	\N	t
+1699	5	Faculty Student Ratio	Se calcula dividiendo el número de personal docente por el número de estudiantes. Data suministrada por la universidad y por fuentes externas (gubernamentales e internet). Full-time + (Part-time/3).	Infraestructura	10	General	\N	t
+1700	5	Citations per Faculty	Este indicador refleja el volumen de citas que en promedio alcanza el personal académico de una institución. Un mayor volumen de citas sugiere que los académicos de esas instituciones están publicando en revistas de prestigio, participando en colaboraciones sólidas y trabajando en temas que merecen una amplia audiencia.El recuento de citas se divide por el número de individuos en la facultad para tener en cuenta los diferentes tamaños de las instituciones.	Articulos	20	General	\N	t
+1701	5	International Faculty Ratio	Profesores extranjeros que trabajan en la institución al menos tres meses al año. Data suministrada por la universidad y por fuentes externas (gubernamentales e internet).	Internacional	5	General	\N	t
+1702	5	International Students Ratio	Proporción de estudiantes internacionales en relación con el total de estudiantes.	Internacional	5	General	\N	t
+1703	5	International Research Network	Mide cuán diversa y sólida es la red de investigación de una institución al observar la cantidad de países diferentes representados y si estas relaciones se renuevan y repiten. Solo se considera alianzas sostenidas, definidas como aquellas que resultan en tres o más artículos conjuntos publicados en un período de cinco años.	Internacional	5	General	\N	t
+1704	5	Employment Outcomes	Mide en qué grado las instituciones pueden garantizar un alto nivel de empleabilidad para sus graduados, así como su historial en la formación de graduados que han pasado a tener un impacto significativo en la sociedad. Alumni Impact: Se recopilan y analizan los perfiles de más de 82.000 graduados influyentes en áreas como negocios, política, educación superior y organizaciones benéficas, para identificar las instituciones donde realizaron sus estudios. Se multiplica por el logaritmo natural del Índice de Empleo de Graduados. Índice de Empleo de graduados: Porcentaje de graduados que pasan a desempeñar trabajos remunerados (no voluntarios), ya sea a tiempo completo o parcial, dentro de los 15 meses posteriores a la finalización de su titulación.	Alumnado	5	General	\N	t
+1705	5	Sustainability	Esto incluye todo, desde proyectos ambientales en el campus, hasta iniciativas de diversidad, gobernanza institucional y el impacto de la investigación académica en los 17 objetivos de desarrollo sostenible (ODS) de la ONU. Son una combinación de datos proporcionados por las instituciones, datos de QS que incluyen respuestas de encuestas de reputación, y datos obtenidos de fuentes externas como la ONU, la UNESCO y el Banco Mundial.	Reputacion	5	General	\N	t
+1706	5	Overall	Puntaje obtenido por la institución normalizado de 0 a 100.	Puntaje	0	General	\N	t
+892	4	Q1	Cantidad de artículos en Q1 en Veterinary Sciences	Articulos	20	Veterinary Sciences	\N	t
+893	4	Q1	Cantidad de artículos en Q1 en Clinical Medicine	Articulos	20	Clinical Medicine	\N	t
+894	4	Q1	Cantidad de artículos en Q1 en Public Health	Articulos	20	Public Health	\N	t
+895	4	Q1	Cantidad de artículos en Q1 en Dentistry	Articulos	20	Dentistry	\N	t
+896	4	Q1	Cantidad de artículos en Q1 en Nursing	Articulos	20	Nursing	\N	t
+897	4	Q1	Cantidad de artículos en Q1 en Medical Technology	Articulos	20	Medical Technology	\N	t
+898	4	Q1	Cantidad de artículos en Q1 en Pharmacy	Articulos	20	Pharmacy	\N	t
+899	4	Q1	Cantidad de artículos en Q1 en Economics	Articulos	25	Economics	\N	t
+900	4	Q1	Cantidad de artículos en Q1 en Statistics	Articulos	25	Statistics	\N	t
+901	4	Q1	Cantidad de artículos en Q1 en Law	Articulos	25	Law	\N	t
+902	4	Q1	Cantidad de artículos en Q1 en Political Sciences	Articulos	25	Political Sciences	\N	t
+903	4	Q1	Cantidad de artículos en Q1 en Sociology	Articulos	25	Sociology	\N	t
+904	4	Q1	Cantidad de artículos en Q1 en Education	Articulos	25	Education	\N	t
+905	4	Q1	Cantidad de artículos en Q1 en Communication	Articulos	25	Communication	\N	t
+906	4	Q1	Cantidad de artículos en Q1 en Psychology	Articulos	25	Psychology	\N	t
+907	4	Q1	Cantidad de artículos en Q1 en Business Administration	Articulos	25	Business Administration	\N	t
+908	4	Q1	Cantidad de artículos en Q1 en Finance	Articulos	25	Finance	\N	t
+909	4	Q1	Cantidad de artículos en Q1 en Management	Articulos	25	Management	\N	t
+910	4	Q1	Cantidad de artículos en Q1 en Public Administration	Articulos	25	Public Administration	\N	t
+911	4	Q1	Cantidad de artículos en Q1 en Hospitality & Tourism Management	Articulos	25	Hospitality & Tourism Management	\N	t
+2	1	Student staff ratio	Relación entre estudiantes y personal académico	Alumnado	4.5	General	1692	f
+1	1	Teaching reputation	Encuesta de reputación académica en enseñanza	Reputacion	15	General	1692	f
+3	1	Doctorate bachelor ratio	Proporción de doctorados respecto a pregrado	Academicos	2	General	1692	f
+1138	4	TJ	TJ en Mathematics Post 2024	Articulos	100	Mathematics	\N	t
+912	4	IC	IC en Mathematics Post 2024	Internacionalizacion	20	Mathematics	\N	t
+913	4	IC	IC en Physics Post 2024	Internacionalizacion	20	Physics	\N	t
+914	4	IC	IC en Chemistry Post 2024	Internacionalizacion	20	Chemistry	\N	t
+915	4	IC	IC en Earth Sciences Post 2024	Internacionalizacion	20	Earth Sciences	\N	t
+916	4	IC	IC en Geography Post 2024	Internacionalizacion	20	Geography	\N	t
+917	4	IC	IC en Ecology Post 2024	Internacionalizacion	20	Ecology	\N	t
+918	4	IC	IC en Oceanography Post 2024	Internacionalizacion	20	Oceanography	\N	t
+919	4	IC	IC en Atmospheric Science Post 2024	Internacionalizacion	20	Atmospheric Science	\N	t
+920	4	IC	IC en Mechanical Engineering Post 2024	Internacionalizacion	20	Mechanical Engineering	\N	t
+921	4	IC	IC en Electrical Engineering Post 2024	Internacionalizacion	20	Electrical Engineering	\N	t
+922	4	IC	IC en Automation Post 2024	Internacionalizacion	20	Automation	\N	t
+923	4	IC	IC en Telecommunication Engineering Post 2024	Internacionalizacion	20	Telecommunication Engineering	\N	t
+924	4	IC	IC en Instrumentation Post 2024	Internacionalizacion	20	Instrumentation	\N	t
+925	4	IC	IC en Biomedical Engineering Post 2024	Internacionalizacion	20	Biomedical Engineering	\N	t
+926	4	IC	IC en Computer Science Post 2024	Internacionalizacion	20	Computer Science	\N	t
+927	4	IC	IC en Civil Engineering Post 2024	Internacionalizacion	20	Civil Engineering	\N	t
+928	4	IC	IC en Chemical Engineering Post 2024	Internacionalizacion	20	Chemical Engineering	\N	t
+929	4	IC	IC en Materials Science Post 2024	Internacionalizacion	20	Materials Science	\N	t
+930	4	IC	IC en Nanoscience Post 2024	Internacionalizacion	20	Nanoscience	\N	t
+931	4	IC	IC en Energy Post 2024	Internacionalizacion	20	Energy	\N	t
+932	4	IC	IC en Environmental Science Post 2024	Internacionalizacion	20	Environmental Science	\N	t
+933	4	IC	IC en Water Resources Post 2024	Internacionalizacion	20	Water Resources	\N	t
+934	4	IC	IC en Food Science Post 2024	Internacionalizacion	20	Food Science	\N	t
+935	4	IC	IC en Biotechnology Post 2024	Internacionalizacion	20	Biotechnology	\N	t
+936	4	IC	IC en Aerospace Engineering Post 2024	Internacionalizacion	20	Aerospace Engineering	\N	t
+937	4	IC	IC en Marine Engineering Post 2024	Internacionalizacion	20	Marine Engineering	\N	t
+938	4	IC	IC en Transportation Post 2024	Internacionalizacion	20	Transportation	\N	t
+939	4	IC	IC en Remote Sensing Post 2024	Internacionalizacion	20	Remote Sensing	\N	t
+940	4	IC	IC en Mining Engineering Post 2024	Internacionalizacion	20	Mining Engineering	\N	t
+941	4	IC	IC en Metallurgical Engineering Post 2024	Internacionalizacion	20	Metallurgical Engineering	\N	t
+942	4	IC	IC en Textile Engineering Post 2024	Internacionalizacion	20	Textile Engineering	\N	t
+943	4	IC	IC en Artificial Intelligence Post 2024	Internacionalizacion	20	Artificial Intelligence	\N	t
+944	4	IC	IC en Robotics Post 2024	Internacionalizacion	20	Robotics	\N	t
+945	4	IC	IC en Biological Sciences Post 2024	Internacionalizacion	20	Biological Sciences	\N	t
+946	4	IC	IC en Human Biological Sciences Post 2024	Internacionalizacion	20	Human Biological Sciences	\N	t
+947	4	IC	IC en Agricultural Sciences Post 2024	Internacionalizacion	20	Agricultural Sciences	\N	t
+948	4	IC	IC en Veterinary Sciences Post 2024	Internacionalizacion	20	Veterinary Sciences	\N	t
+949	4	IC	IC en Clinical Medicine Post 2024	Internacionalizacion	20	Clinical Medicine	\N	t
+950	4	IC	IC en Public Health Post 2024	Internacionalizacion	20	Public Health	\N	t
+951	4	IC	IC en Dentistry Post 2024	Internacionalizacion	20	Dentistry	\N	t
+952	4	IC	IC en Nursing Post 2024	Internacionalizacion	20	Nursing	\N	t
+953	4	IC	IC en Medical Technology Post 2024	Internacionalizacion	20	Medical Technology	\N	t
+954	4	IC	IC en Pharmacy Post 2024	Internacionalizacion	20	Pharmacy	\N	t
+955	4	IC	IC en Economics Post 2024	Internacionalizacion	10	Economics	\N	t
+956	4	IC	IC en Statistics Post 2024	Internacionalizacion	10	Statistics	\N	t
+957	4	IC	IC en Law Post 2024	Internacionalizacion	10	Law	\N	t
+958	4	IC	IC en Political Sciences Post 2024	Internacionalizacion	10	Political Sciences	\N	t
+959	4	IC	IC en Sociology Post 2024	Internacionalizacion	10	Sociology	\N	t
+960	4	IC	IC en Education Post 2024	Internacionalizacion	10	Education	\N	t
+961	4	IC	IC en Communication Post 2024	Internacionalizacion	10	Communication	\N	t
+962	4	IC	IC en Psychology Post 2024	Internacionalizacion	10	Psychology	\N	t
+963	4	IC	IC en Business Administration Post 2024	Internacionalizacion	20	Business Administration	\N	t
+964	4	IC	IC en Finance Post 2024	Internacionalizacion	10	Finance	\N	t
+965	4	IC	IC en Management Post 2024	Internacionalizacion	10	Management	\N	t
+966	4	IC	IC en Public Administration Post 2024	Internacionalizacion	10	Public Administration	\N	t
+967	4	IC	IC en Hospitality & Tourism Management Post 2024	Internacionalizacion	10	Hospitality & Tourism Management	\N	t
+968	4	IC	IC en Library & Information Science Post 2024	Internacionalizacion	20	Library & Information Science	\N	t
+969	4	CNCI	CNCI en Mathematics Post 2024	Investigacion	50	Mathematics	\N	t
+970	4	CNCI	CNCI en Physics Post 2024	Investigacion	50	Physics	\N	t
+971	4	CNCI	CNCI en Chemistry Post 2024	Investigacion	50	Chemistry	\N	t
+972	4	CNCI	CNCI en Earth Sciences Post 2024	Investigacion	50	Earth Sciences	\N	t
+973	4	CNCI	CNCI en Geography Post 2024	Investigacion	50	Geography	\N	t
+974	4	CNCI	CNCI en Ecology Post 2024	Investigacion	50	Ecology	\N	t
+975	4	CNCI	CNCI en Oceanography Post 2024	Investigacion	50	Oceanography	\N	t
+976	4	CNCI	CNCI en AtmospherCNCI Science Post 2024	Investigacion	50	Atmospheric Science	\N	t
+977	4	CNCI	CNCI en Mechanical Engineering Post 2024	Investigacion	50	Mechanical Engineering	\N	t
+978	4	CNCI	CNCI en Electrical Engineering Post 2024	Investigacion	50	Electrical Engineering	\N	t
+979	4	CNCI	CNCI en Automation Post 2024	Investigacion	50	Automation	\N	t
+980	4	CNCI	CNCI en Telecommunication Engineering Post 2024	Investigacion	50	Telecommunication Engineering	\N	t
+981	4	CNCI	CNCI en Instrumentation Post 2024	Investigacion	50	Instrumentation	\N	t
+982	4	CNCI	CNCI en Biomedical Engineering Post 2024	Investigacion	50	Biomedical Engineering	\N	t
+983	4	CNCI	CNCI en Computer Science Post 2024	Investigacion	50	Computer Science	\N	t
+984	4	CNCI	CNCI en Civil Engineering Post 2024	Investigacion	50	Civil Engineering	\N	t
+985	4	CNCI	CNCI en Chemical Engineering Post 2024	Investigacion	50	Chemical Engineering	\N	t
+986	4	CNCI	CNCI en Materials Science Post 2024	Investigacion	50	Materials Science	\N	t
+987	4	CNCI	CNCI en Nanoscience Post 2024	Investigacion	50	Nanoscience	\N	t
+988	4	CNCI	CNCI en Energy Post 2024	Investigacion	50	Energy	\N	t
+989	4	CNCI	CNCI en Environmental Science Post 2024	Investigacion	50	Environmental Science	\N	t
+990	4	CNCI	CNCI en Water Resources Post 2024	Investigacion	50	Water Resources	\N	t
+991	4	CNCI	CNCI en Food Science Post 2024	Investigacion	50	Food Science	\N	t
+992	4	CNCI	CNCI en Biotechnology Post 2024	Investigacion	50	Biotechnology	\N	t
+993	4	CNCI	CNCI en Aerospace Engineering Post 2024	Investigacion	50	Aerospace Engineering	\N	t
+994	4	CNCI	CNCI en Marine Engineering Post 2024	Investigacion	50	Marine Engineering	\N	t
+995	4	CNCI	CNCI en Transportation Post 2024	Investigacion	50	Transportation	\N	t
+996	4	CNCI	CNCI en Remote Sensing Post 2024	Investigacion	50	Remote Sensing	\N	t
+997	4	CNCI	CNCI en Mining Engineering Post 2024	Investigacion	50	Mining Engineering	\N	t
+998	4	CNCI	CNCI en Metallurgical Engineering Post 2024	Investigacion	50	Metallurgical Engineering	\N	t
+999	4	CNCI	CNCI en Textile Engineering Post 2024	Investigacion	50	Textile Engineering	\N	t
+1000	4	CNCI	CNCI en Artificial Intelligence Post 2024	Investigacion	50	Artificial Intelligence	\N	t
+1001	4	CNCI	CNCI en Robotics Post 2024	Investigacion	50	Robotics	\N	t
+1002	4	CNCI	CNCI en Biological Sciences Post 2024	Investigacion	50	Biological Sciences	\N	t
+1003	4	CNCI	CNCI en Human Biological Sciences Post 2024	Investigacion	50	Human Biological Sciences	\N	t
+1004	4	CNCI	CNCI en Agricultural Sciences Post 2024	Investigacion	50	Agricultural Sciences	\N	t
+1005	4	CNCI	CNCI en Veterinary Sciences Post 2024	Investigacion	50	Veterinary Sciences	\N	t
+1006	4	CNCI	CNCI en Clinical Medicine Post 2024	Investigacion	50	Clinical Medicine	\N	t
+1007	4	CNCI	CNCI en PublCNCI Health Post 2024	Investigacion	50	Public Health	\N	t
+1008	4	CNCI	CNCI en Dentistry Post 2024	Investigacion	50	Dentistry	\N	t
+1009	4	CNCI	CNCI en Nursing Post 2024	Investigacion	50	Nursing	\N	t
+1010	4	CNCI	CNCI en Medical Technology Post 2024	Investigacion	50	Medical Technology	\N	t
+1011	4	CNCI	CNCI en Pharmacy Post 2024	Investigacion	50	Pharmacy	\N	t
+1012	4	CNCI	CNCI en Economics Post 2024	Investigacion	50	Economics	\N	t
+1013	4	CNCI	CNCI en Statistics Post 2024	Investigacion	50	Statistics	\N	t
+1014	4	CNCI	CNCI en Law Post 2024	Investigacion	50	Law	\N	t
+1015	4	CNCI	CNCI en Political Sciences Post 2024	Investigacion	50	Political Sciences	\N	t
+1016	4	CNCI	CNCI en Sociology Post 2024	Investigacion	50	Sociology	\N	t
+1017	4	CNCI	CNCI en Education Post 2024	Investigacion	50	Education	\N	t
+1018	4	CNCI	CNCI en Communication Post 2024	Investigacion	50	Communication	\N	t
+1019	4	CNCI	CNCI en Psychology Post 2024	Investigacion	50	Psychology	\N	t
+1020	4	CNCI	CNCI en Business Administration Post 2024	Investigacion	50	Business Administration	\N	t
+1021	4	CNCI	CNCI en Finance Post 2024	Investigacion	50	Finance	\N	t
+1022	4	CNCI	CNCI en Management Post 2024	Investigacion	50	Management	\N	t
+1023	4	CNCI	CNCI en PublCNCI Administration Post 2024	Investigacion	50	Public Administration	\N	t
+1024	4	CNCI	CNCI en Hospitality & Tourism Management Post 2024	Investigacion	50	Hospitality & Tourism Management	\N	t
+1025	4	CNCI	CNCI en Library & Information Science Post 2024	Investigacion	50	Library & Information Science	\N	t
+1139	4	TJ	TJ en Physics Post 2024	Articulos	100	Physics	\N	t
+1026	4	Q1	Q1 en Mathematics Post 2024	Articulos	100	Mathematics	\N	t
+1027	4	Q1	Q1 en Physics Post 2024	Articulos	100	Physics	\N	t
+1028	4	Q1	Q1 en Chemistry Post 2024	Articulos	100	Chemistry	\N	t
+1029	4	Q1	Q1 en Earth Sciences Post 2024	Articulos	100	Earth Sciences	\N	t
+1030	4	Q1	Q1 en Geography Post 2024	Articulos	100	Geography	\N	t
+1031	4	Q1	Q1 en Ecology Post 2024	Articulos	100	Ecology	\N	t
+1032	4	Q1	Q1 en Oceanography Post 2024	Articulos	100	Oceanography	\N	t
+1033	4	Q1	Q1 en AtmospherQ1 Science Post 2024	Articulos	100	Atmospheric Science	\N	t
+1034	4	Q1	Q1 en Mechanical Engineering Post 2024	Articulos	100	Mechanical Engineering	\N	t
+1035	4	Q1	Q1 en Electrical Engineering Post 2024	Articulos	100	Electrical Engineering	\N	t
+1036	4	Q1	Q1 en Automation Post 2024	Articulos	100	Automation	\N	t
+1037	4	Q1	Q1 en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering	\N	t
+1038	4	Q1	Q1 en Instrumentation Post 2024	Articulos	100	Instrumentation	\N	t
+1039	4	Q1	Q1 en Biomedical Engineering Post 2024	Articulos	100	Biomedical Engineering	\N	t
+1040	4	Q1	Q1 en Computer Science Post 2024	Articulos	100	Computer Science	\N	t
+1041	4	Q1	Q1 en Civil Engineering Post 2024	Articulos	100	Civil Engineering	\N	t
+1042	4	Q1	Q1 en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering	\N	t
+1043	4	Q1	Q1 en Materials Science Post 2024	Articulos	100	Materials Science	\N	t
+1044	4	Q1	Q1 en Nanoscience Post 2024	Articulos	100	Nanoscience	\N	t
+1045	4	Q1	Q1 en Energy Post 2024	Articulos	100	Energy	\N	t
+1046	4	Q1	Q1 en Environmental Science Post 2024	Articulos	100	Environmental Science	\N	t
+1047	4	Q1	Q1 en Water Resources Post 2024	Articulos	100	Water Resources	\N	t
+1048	4	Q1	Q1 en Food Science Post 2024	Articulos	100	Food Science	\N	t
+1049	4	Q1	Q1 en Biotechnology Post 2024	Articulos	100	Biotechnology	\N	t
+1050	4	Q1	Q1 en Aerospace Engineering Post 2024	Articulos	100	Aerospace Engineering	\N	t
+1051	4	Q1	Q1 en Marine Engineering Post 2024	Articulos	100	Marine Engineering	\N	t
+1052	4	Q1	Q1 en Transportation Post 2024	Articulos	100	Transportation	\N	t
+1053	4	Q1	Q1 en Remote Sensing Post 2024	Articulos	100	Remote Sensing	\N	t
+1054	4	Q1	Q1 en Mining Engineering Post 2024	Articulos	100	Mining Engineering	\N	t
+1055	4	Q1	Q1 en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering	\N	t
+1056	4	Q1	Q1 en Textile Engineering Post 2024	Articulos	100	Textile Engineering	\N	t
+1057	4	Q1	Q1 en Artificial Intelligence Post 2024	Articulos	100	Artificial Intelligence	\N	t
+1058	4	Q1	Q1 en Robotics Post 2024	Articulos	100	Robotics	\N	t
+1059	4	Q1	Q1 en Biological Sciences Post 2024	Articulos	100	Biological Sciences	\N	t
+1060	4	Q1	Q1 en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences	\N	t
+1061	4	Q1	Q1 en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences	\N	t
+1062	4	Q1	Q1 en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences	\N	t
+1063	4	Q1	Q1 en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine	\N	t
+1064	4	Q1	Q1 en PublQ1 Health Post 2024	Articulos	100	Public Health	\N	t
+1065	4	Q1	Q1 en Dentistry Post 2024	Articulos	100	Dentistry	\N	t
+1066	4	Q1	Q1 en Nursing Post 2024	Articulos	100	Nursing	\N	t
+1067	4	Q1	Q1 en Medical Technology Post 2024	Articulos	100	Medical Technology	\N	t
+1068	4	Q1	Q1 en Pharmacy Post 2024	Articulos	100	Pharmacy	\N	t
+1069	4	Q1	Q1 en Economics Post 2024	Articulos	100	Economics	\N	t
+1070	4	Q1	Q1 en Statistics Post 2024	Articulos	100	Statistics	\N	t
+1071	4	Q1	Q1 en Law Post 2024	Articulos	100	Law	\N	t
+1072	4	Q1	Q1 en Political Sciences Post 2024	Articulos	100	Political Sciences	\N	t
+1073	4	Q1	Q1 en Sociology Post 2024	Articulos	100	Sociology	\N	t
+1074	4	Q1	Q1 en Education Post 2024	Articulos	100	Education	\N	t
+1075	4	Q1	Q1 en Communication Post 2024	Articulos	100	Communication	\N	t
+1076	4	Q1	Q1 en Psychology Post 2024	Articulos	100	Psychology	\N	t
+1077	4	Q1	Q1 en Business Administration Post 2024	Articulos	100	Business Administration	\N	t
+1078	4	Q1	Q1 en Finance Post 2024	Articulos	100	Finance	\N	t
+1079	4	Q1	Q1 en Management Post 2024	Articulos	100	Management	\N	t
+1080	4	Q1	Q1 en PublQ1 Administration Post 2024	Articulos	100	Public Administration	\N	t
+1081	4	Q1	Q1 en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management	\N	t
+1082	4	Q1	Q1 en Library & Information Science Post 2024	Articulos	100	Library & Information Science	\N	t
+614	4	PUB	PUB en Mathematics	Articulos	25	Mathematics	\N	t
+615	4	CNCI	CNCI en Mathematics	Investigacion	25	Mathematics	\N	t
+616	4	IC	IC en Mathematics	Internacionalizacion	20	Mathematics	\N	t
+617	4	TOP	TOP en Mathematics	Articulos	20	Mathematics	\N	t
+619	4	PUB	PUB en Physics	Articulos	25	Physics	\N	t
+620	4	CNCI	CNCI en Physics	Investigacion	25	Physics	\N	t
+621	4	IC	IC en Physics	Internacionalizacion	20	Physics	\N	t
+622	4	TOP	TOP en Physics	Articulos	20	Physics	\N	t
+624	4	PUB	PUB en Chemistry	Articulos	25	Chemistry	\N	t
+625	4	CNCI	CNCI en Chemistry	Investigacion	25	Chemistry	\N	t
+626	4	IC	IC en Chemistry	Internacionalizacion	20	Chemistry	\N	t
+627	4	TOP	TOP en Chemistry	Articulos	20	Chemistry	\N	t
+629	4	PUB	PUB en Earth Sciences	Articulos	25	Earth Sciences	\N	t
+630	4	CNCI	CNCI en Earth Sciences	Investigacion	25	Earth Sciences	\N	t
+631	4	IC	IC en Earth Sciences	Internacionalizacion	20	Earth Sciences	\N	t
+632	4	TOP	TOP en Earth Sciences	Articulos	20	Earth Sciences	\N	t
+634	4	PUB	PUB en Geography	Articulos	25	Geography	\N	t
+635	4	CNCI	CNCI en Geography	Investigacion	25	Geography	\N	t
+636	4	IC	IC en Geography	Internacionalizacion	20	Geography	\N	t
+637	4	TOP	TOP en Geography	Articulos	20	Geography	\N	t
+639	4	PUB	PUB en Ecology	Articulos	25	Ecology	\N	t
+651	4	IC	IC en Atmospheric Science	Internacionalizacion	20	Atmospheric Science	\N	t
+652	4	TOP	TOP en Atmospheric Science	Articulos	20	Atmospheric Science	\N	t
+654	4	PUB	PUB en Mechanical Engineering	Articulos	25	Mechanical Engineering	\N	t
+655	4	CNCI	CNCI en Mechanical Engineering	Investigacion	25	Mechanical Engineering	\N	t
+656	4	IC	IC en Mechanical Engineering	Internacionalizacion	25	Mechanical Engineering	\N	t
+657	4	TOP	TOP en Mechanical Engineering	Articulos	25	Mechanical Engineering	\N	t
+658	4	PUB	PUB en Electrical Engineering	Articulos	25	Electrical Engineering	\N	t
+659	4	CNCI	CNCI en Electrical Engineering	Investigacion	25	Electrical Engineering	\N	t
+660	4	IC	IC en Electrical Engineering	Internacionalizacion	25	Electrical Engineering	\N	t
+661	4	TOP	TOP en Electrical Engineering	Articulos	25	Electrical Engineering	\N	t
+663	4	CNCI	CNCI en Automation	Investigacion	25	Automation	\N	t
+664	4	IC	IC en Automation	Internacionalizacion	25	Automation	\N	t
+665	4	TOP	TOP en Automation	Articulos	25	Automation	\N	t
+666	4	PUB	PUB en Telecommunication Engineering	Articulos	25	Telecommunication Engineering	\N	t
+667	4	CNCI	CNCI en Telecommunication Engineering	Investigacion	25	Telecommunication Engineering	\N	t
+668	4	IC	IC en Telecommunication Engineering	Internacionalizacion	25	Telecommunication Engineering	\N	t
+669	4	TOP	TOP en Telecommunication Engineering	Articulos	25	Telecommunication Engineering	\N	t
+670	4	PUB	PUB en Instrumentation	Articulos	25	Instrumentation	\N	t
+671	4	CNCI	CNCI en Instrumentation	Investigacion	25	Instrumentation	\N	t
+672	4	IC	IC en Instrumentation	Internacionalizacion	25	Instrumentation	\N	t
+673	4	TOP	TOP en Instrumentation	Articulos	25	Instrumentation	\N	t
+674	4	PUB	PUB en Biomedical Engineering	Articulos	25	Biomedical Engineering	\N	t
+675	4	CNCI	CNCI en Biomedical Engineering	Investigacion	25	Biomedical Engineering	\N	t
+676	4	IC	IC en Biomedical Engineering	Internacionalizacion	25	Biomedical Engineering	\N	t
+677	4	TOP	TOP en Biomedical Engineering	Articulos	25	Biomedical Engineering	\N	t
+678	4	PUB	PUB en Computer Science	Articulos	25	Computer Science	\N	t
+679	4	CNCI	CNCI en Computer Science	Investigacion	25	Computer Science	\N	t
+680	4	IC	IC en Computer Science	Internacionalizacion	25	Computer Science	\N	t
+681	4	TOP	TOP en Computer Science	Articulos	25	Computer Science	\N	t
+682	4	PUB	PUB en Civil Engineering	Articulos	25	Civil Engineering	\N	t
+683	4	CNCI	CNCI en Civil Engineering	Investigacion	25	Civil Engineering	\N	t
+684	4	IC	IC en Civil Engineering	Internacionalizacion	25	Civil Engineering	\N	t
+685	4	TOP	TOP en Civil Engineering	Articulos	25	Civil Engineering	\N	t
+686	4	PUB	PUB en Chemical Engineering	Articulos	25	Chemical Engineering	\N	t
+687	4	CNCI	CNCI en Chemical Engineering	Investigacion	25	Chemical Engineering	\N	t
+688	4	IC	IC en Chemical Engineering	Internacionalizacion	25	Chemical Engineering	\N	t
+689	4	TOP	TOP en Chemical Engineering	Articulos	25	Chemical Engineering	\N	t
+690	4	PUB	PUB en Materials Science	Articulos	25	Materials Science	\N	t
+691	4	CNCI	CNCI en Materials Science	Investigacion	25	Materials Science	\N	t
+692	4	IC	IC en Materials Science	Internacionalizacion	25	Materials Science	\N	t
+693	4	TOP	TOP en Materials Science	Articulos	25	Materials Science	\N	t
+694	4	PUB	PUB en Nanoscience	Articulos	25	Nanoscience	\N	t
+695	4	CNCI	CNCI en Nanoscience	Investigacion	25	Nanoscience	\N	t
+696	4	IC	IC en Nanoscience	Internacionalizacion	25	Nanoscience	\N	t
+697	4	TOP	TOP en Nanoscience	Articulos	25	Nanoscience	\N	t
+698	4	PUB	PUB en Energy	Articulos	25	Energy	\N	t
+699	4	CNCI	CNCI en Energy	Investigacion	25	Energy	\N	t
+700	4	IC	IC en Energy	Internacionalizacion	25	Energy	\N	t
+701	4	TOP	TOP en Energy	Articulos	25	Energy	\N	t
+702	4	PUB	PUB en Environmental Science	Articulos	25	Environmental Science	\N	t
+703	4	CNCI	CNCI en Environmental Science	Investigacion	25	Environmental Science	\N	t
+704	4	IC	IC en Environmental Science	Internacionalizacion	25	Environmental Science	\N	t
+705	4	TOP	TOP en Environmental Science	Articulos	25	Environmental Science	\N	t
+706	4	PUB	PUB en Water Resources	Articulos	25	Water Resources	\N	t
+707	4	CNCI	CNCI en Water Resources	Investigacion	25	Water Resources	\N	t
+708	4	IC	IC en Water Resources	Internacionalizacion	25	Water Resources	\N	t
+709	4	TOP	TOP en Water Resources	Articulos	25	Water Resources	\N	t
+710	4	PUB	PUB en Food Science	Articulos	25	Food Science	\N	t
+711	4	CNCI	CNCI en Food Science	Investigacion	25	Food Science	\N	t
+712	4	IC	IC en Food Science	Internacionalizacion	25	Food Science	\N	t
+713	4	TOP	TOP en Food Science	Articulos	25	Food Science	\N	t
+714	4	PUB	PUB en Biotechnology	Articulos	25	Biotechnology	\N	t
+715	4	CNCI	CNCI en Biotechnology	Investigacion	25	Biotechnology	\N	t
+716	4	IC	IC en Biotechnology	Internacionalizacion	25	Biotechnology	\N	t
+717	4	TOP	TOP en Biotechnology	Articulos	25	Biotechnology	\N	t
+718	4	PUB	PUB en Aerospace Engineering	Articulos	25	Aerospace Engineering	\N	t
+719	4	CNCI	CNCI en Aerospace Engineering	Investigacion	25	Aerospace Engineering	\N	t
+720	4	IC	IC en Aerospace Engineering	Internacionalizacion	25	Aerospace Engineering	\N	t
+721	4	TOP	TOP en Aerospace Engineering	Articulos	25	Aerospace Engineering	\N	t
+722	4	PUB	PUB en Marine Engineering	Articulos	25	Marine Engineering	\N	t
+723	4	CNCI	CNCI en Marine Engineering	Investigacion	25	Marine Engineering	\N	t
+724	4	IC	IC en Marine Engineering	Internacionalizacion	25	Marine Engineering	\N	t
+725	4	TOP	TOP en Marine Engineering	Articulos	25	Marine Engineering	\N	t
+726	4	PUB	PUB en Transportation	Articulos	25	Transportation	\N	t
+727	4	CNCI	CNCI en Transportation	Investigacion	25	Transportation	\N	t
+728	4	IC	IC en Transportation	Internacionalizacion	25	Transportation	\N	t
+729	4	TOP	TOP en Transportation	Articulos	25	Transportation	\N	t
+730	4	PUB	PUB en Remote Sensing	Articulos	25	Remote Sensing	\N	t
+731	4	CNCI	CNCI en Remote Sensing	Investigacion	25	Remote Sensing	\N	t
+732	4	IC	IC en Remote Sensing	Internacionalizacion	25	Remote Sensing	\N	t
+733	4	TOP	TOP en Remote Sensing	Articulos	25	Remote Sensing	\N	t
+734	4	PUB	PUB en Mining Engineering	Articulos	25	Mining Engineering	\N	t
+735	4	CNCI	CNCI en Mining Engineering	Investigacion	25	Mining Engineering	\N	t
+736	4	IC	IC en Mining Engineering	Internacionalizacion	25	Mining Engineering	\N	t
+737	4	TOP	TOP en Mining Engineering	Articulos	25	Mining Engineering	\N	t
+738	4	PUB	PUB en Metallurgical Engineering	Articulos	25	Metallurgical Engineering	\N	t
+739	4	CNCI	CNCI en Metallurgical Engineering	Investigacion	25	Metallurgical Engineering	\N	t
+740	4	IC	IC en Metallurgical Engineering	Internacionalizacion	25	Metallurgical Engineering	\N	t
+741	4	TOP	TOP en Metallurgical Engineering	Articulos	25	Metallurgical Engineering	\N	t
+742	4	PUB	PUB en Textile Engineering	Articulos	25	Textile Engineering	\N	t
+743	4	CNCI	CNCI en Textile Engineering	Investigacion	25	Textile Engineering	\N	t
+744	4	IC	IC en Textile Engineering	Internacionalizacion	25	Textile Engineering	\N	t
+745	4	TOP	TOP en Textile Engineering	Articulos	25	Textile Engineering	\N	t
+746	4	PUB	PUB en Artificial Intelligence	Articulos	25	Artificial Intelligence	\N	t
+747	4	CNCI	CNCI en Artificial Intelligence	Investigacion	25	Artificial Intelligence	\N	t
+748	4	IC	IC en Artificial Intelligence	Internacionalizacion	25	Artificial Intelligence	\N	t
+749	4	TOP	TOP en Artificial Intelligence	Articulos	25	Artificial Intelligence	\N	t
+750	4	PUB	PUB en Robotics	Articulos	25	Robotics	\N	t
+751	4	CNCI	CNCI en Robotics	Investigacion	25	Robotics	\N	t
+752	4	IC	IC en Robotics	Internacionalizacion	25	Robotics	\N	t
+753	4	TOP	TOP en Robotics	Articulos	25	Robotics	\N	t
+754	4	PUB	PUB en Biological Sciences	Articulos	20	Biological Sciences	\N	t
+755	4	CNCI	CNCI en Biological Sciences	Investigacion	30	Biological Sciences	\N	t
+756	4	IC	IC en Biological Sciences	Internacionalizacion	20	Biological Sciences	\N	t
+757	4	TOP	TOP en Biological Sciences	Articulos	25	Biological Sciences	\N	t
+759	4	PUB	PUB en Human Biological Sciences	Articulos	20	Human Biological Sciences	\N	t
+760	4	CNCI	CNCI en Human Biological Sciences	Investigacion	30	Human Biological Sciences	\N	t
+761	4	IC	IC en Human Biological Sciences	Internacionalizacion	20	Human Biological Sciences	\N	t
+762	4	TOP	TOP en Human Biological Sciences	Articulos	25	Human Biological Sciences	\N	t
+764	4	PUB	PUB en Agricultural Sciences	Articulos	20	Agricultural Sciences	\N	t
+765	4	CNCI	CNCI en Agricultural Sciences	Investigacion	30	Agricultural Sciences	\N	t
+766	4	IC	IC en Agricultural Sciences	Internacionalizacion	20	Agricultural Sciences	\N	t
+767	4	TOP	TOP en Agricultural Sciences	Articulos	25	Agricultural Sciences	\N	t
+769	4	PUB	PUB en Veterinary Sciences	Articulos	20	Veterinary Sciences	\N	t
+770	4	CNCI	CNCI en Veterinary Sciences	Investigacion	30	Veterinary Sciences	\N	t
+771	4	IC	IC en Veterinary Sciences	Internacionalizacion	20	Veterinary Sciences	\N	t
+772	4	TOP	TOP en Veterinary Sciences	Articulos	25	Veterinary Sciences	\N	t
+774	4	PUB	PUB en Clinical Medicine	Articulos	20	Clinical Medicine	\N	t
+775	4	CNCI	CNCI en Clinical Medicine	Investigacion	30	Clinical Medicine	\N	t
+776	4	IC	IC en Clinical Medicine	Internacionalizacion	20	Clinical Medicine	\N	t
+777	4	TOP	TOP en Clinical Medicine	Articulos	25	Clinical Medicine	\N	t
+779	4	PUB	PUB en Public Health	Articulos	20	Public Health	\N	t
+780	4	CNCI	CNCI en Public Health	Investigacion	30	Public Health	\N	t
+781	4	IC	IC en Public Health	Internacionalizacion	20	Public Health	\N	t
+782	4	TOP	TOP en Public Health	Articulos	25	Public Health	\N	t
+784	4	PUB	PUB en Dentistry	Articulos	20	Dentistry	\N	t
+785	4	CNCI	CNCI en Dentistry	Investigacion	30	Dentistry	\N	t
+786	4	IC	IC en Dentistry	Internacionalizacion	20	Dentistry	\N	t
+787	4	TOP	TOP en Dentistry	Articulos	25	Dentistry	\N	t
+789	4	PUB	PUB en Nursing	Articulos	20	Nursing	\N	t
+790	4	CNCI	CNCI en Nursing	Investigacion	30	Nursing	\N	t
+794	4	PUB	PUB en Medical Technology	Articulos	20	Medical Technology	\N	t
+795	4	CNCI	CNCI en Medical Technology	Investigacion	30	Medical Technology	\N	t
+796	4	IC	IC en Medical Technology	Internacionalizacion	20	Medical Technology	\N	t
+797	4	TOP	TOP en Medical Technology	Articulos	25	Medical Technology	\N	t
+799	4	PUB	PUB en Pharmacy	Articulos	20	Pharmacy	\N	t
+800	4	CNCI	CNCI en Pharmacy	Investigacion	30	Pharmacy	\N	t
+801	4	IC	IC en Pharmacy	Internacionalizacion	20	Pharmacy	\N	t
+802	4	TOP	TOP en Pharmacy	Articulos	25	Pharmacy	\N	t
+804	4	PUB	PUB en Economics	Articulos	25	Economics	\N	t
+805	4	CNCI	CNCI en Economics	Investigacion	35	Economics	\N	t
+806	4	IC	IC en Economics	Internacionalizacion	25	Economics	\N	t
+807	4	TOP	TOP en Economics	Articulos	15	Economics	\N	t
+808	4	PUB	PUB en Statistics	Articulos	25	Statistics	\N	t
+809	4	CNCI	CNCI en Statistics	Investigacion	35	Statistics	\N	t
+810	4	IC	IC en Statistics	Internacionalizacion	25	Statistics	\N	t
+811	4	TOP	TOP en Statistics	Articulos	15	Statistics	\N	t
+812	4	PUB	PUB en Law	Articulos	25	Law	\N	t
+813	4	CNCI	CNCI en Law	Investigacion	35	Law	\N	t
+814	4	IC	IC en Law	Internacionalizacion	25	Law	\N	t
+815	4	TOP	TOP en Law	Articulos	15	Law	\N	t
+816	4	PUB	PUB en Political Sciences	Articulos	25	Political Sciences	\N	t
+817	4	CNCI	CNCI en Political Sciences	Investigacion	35	Political Sciences	\N	t
+818	4	IC	IC en Political Sciences	Internacionalizacion	25	Political Sciences	\N	t
+819	4	TOP	TOP en Political Sciences	Articulos	15	Political Sciences	\N	t
+820	4	PUB	PUB en Sociology	Articulos	25	Sociology	\N	t
+821	4	CNCI	CNCI en Sociology	Investigacion	35	Sociology	\N	t
+822	4	IC	IC en Sociology	Internacionalizacion	25	Sociology	\N	t
+823	4	TOP	TOP en Sociology	Articulos	15	Sociology	\N	t
+824	4	PUB	PUB en Education	Articulos	25	Education	\N	t
+825	4	CNCI	CNCI en Education	Investigacion	35	Education	\N	t
+826	4	IC	IC en Education	Internacionalizacion	25	Education	\N	t
+827	4	TOP	TOP en Education	Articulos	15	Education	\N	t
+828	4	PUB	PUB en Communication	Articulos	25	Communication	\N	t
+829	4	CNCI	CNCI en Communication	Investigacion	35	Communication	\N	t
+830	4	IC	IC en Communication	Internacionalizacion	25	Communication	\N	t
+831	4	TOP	TOP en Communication	Articulos	15	Communication	\N	t
+832	4	PUB	PUB en Psychology	Articulos	25	Psychology	\N	t
+833	4	CNCI	CNCI en Psychology	Investigacion	35	Psychology	\N	t
+834	4	IC	IC en Psychology	Internacionalizacion	25	Psychology	\N	t
+835	4	TOP	TOP en Psychology	Articulos	15	Psychology	\N	t
+836	4	PUB	PUB en Business Administration	Articulos	25	Business Administration	\N	t
+837	4	CNCI	CNCI en Business Administration	Investigacion	35	Business Administration	\N	t
+838	4	IC	IC en Business Administration	Internacionalizacion	25	Business Administration	\N	t
+839	4	TOP	TOP en Business Administration	Articulos	15	Business Administration	\N	t
+840	4	PUB	PUB en Finance	Articulos	25	Finance	\N	t
+841	4	CNCI	CNCI en Finance	Investigacion	35	Finance	\N	t
+842	4	IC	IC en Finance	Internacionalizacion	25	Finance	\N	t
+843	4	TOP	TOP en Finance	Articulos	15	Finance	\N	t
+844	4	PUB	PUB en Management	Articulos	25	Management	\N	t
+845	4	CNCI	CNCI en Management	Investigacion	35	Management	\N	t
+846	4	IC	IC en Management	Internacionalizacion	25	Management	\N	t
+847	4	TOP	TOP en Management	Articulos	15	Management	\N	t
+848	4	PUB	PUB en Public Administration	Articulos	25	Public Administration	\N	t
+849	4	CNCI	CNCI en Public Administration	Investigacion	35	Public Administration	\N	t
+850	4	IC	IC en Public Administration	Internacionalizacion	25	Public Administration	\N	t
+851	4	TOP	TOP en Public Administration	Articulos	15	Public Administration	\N	t
+852	4	PUB	PUB en Hospitality & Tourism Management	Articulos	25	Hospitality & Tourism Management	\N	t
+853	4	CNCI	CNCI en Hospitality & Tourism Management	Investigacion	35	Hospitality & Tourism Management	\N	t
+854	4	IC	IC en Hospitality & Tourism Management	Internacionalizacion	25	Hospitality & Tourism Management	\N	t
+855	4	TOP	TOP en Hospitality & Tourism Management	Articulos	15	Hospitality & Tourism Management	\N	t
+1158	4	TJ	TJ en Environmental Science Post 2024	Articulos	100	Environmental Science	\N	t
+1159	4	TJ	TJ en Water Resources Post 2024	Articulos	100	Water Resources	\N	t
+1160	4	TJ	TJ en Food Science Post 2024	Articulos	100	Food Science	\N	t
+1161	4	TJ	TJ en Biotechnology Post 2024	Articulos	100	Biotechnology	\N	t
+1162	4	TJ	TJ en Aerospace Engineering Post 2024	Articulos	80	Aerospace Engineering	\N	t
+1163	4	TJ	TJ en Marine Engineering Post 2024	Articulos	40	Marine Engineering	\N	t
+1164	4	TJ	TJ en Transportation Post 2024	Articulos	100	Transportation	\N	t
+1165	4	TJ	TJ en Remote Sensing Post 2024	Articulos	80	Remote Sensing	\N	t
+1166	4	TJ	TJ en Mining Engineering Post 2024	Articulos	40	Mining Engineering	\N	t
+1167	4	TJ	TJ en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering	\N	t
+1168	4	TJ	TJ en Textile Engineering Post 2024	Articulos	100	Textile Engineering	\N	t
+1169	4	TJ	TJ en Biological Sciences Post 2024	Articulos	100	Biological Sciences	\N	t
+1170	4	TJ	TJ en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences	\N	t
+1171	4	TJ	TJ en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences	\N	t
+1172	4	TJ	TJ en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences	\N	t
+1173	4	TJ	TJ en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine	\N	t
+1174	4	TJ	TJ en PublTJ Health Post 2024	Articulos	100	Public Health	\N	t
+1175	4	TJ	TJ en Dentistry Post 2024	Articulos	60	Dentistry	\N	t
+1176	4	TJ	TJ en Nursing Post 2024	Articulos	80	Nursing	\N	t
+1177	4	TJ	TJ en Medical Technology Post 2024	Articulos	60	Medical Technology	\N	t
+1178	4	TJ	TJ en Pharmacy Post 2024	Articulos	40	Pharmacy	\N	t
+1179	4	TJ	TJ en Economics Post 2024	Articulos	100	Economics	\N	t
+1180	4	TJ	TJ en Statistics Post 2024	Articulos	100	Statistics	\N	t
+1181	4	TJ	TJ en Law Post 2024	Articulos	40	Law	\N	t
+1182	4	TJ	TJ en Political Sciences Post 2024	Articulos	80	Political Sciences	\N	t
+1183	4	TJ	TJ en Sociology Post 2024	Articulos	80	Sociology	\N	t
+1184	4	TJ	TJ en Education Post 2024	Articulos	40	Education	\N	t
+1185	4	TJ	TJ en Communication Post 2024	Articulos	100	Communication	\N	t
+1186	4	TJ	TJ en Psychology Post 2024	Articulos	80	Psychology	\N	t
+1187	4	TJ	TJ en Business Administration Post 2024	Articulos	100	Business Administration	\N	t
+1188	4	TJ	TJ en Finance Post 2024	Articulos	100	Finance	\N	t
+1189	4	TJ	TJ en Management Post 2024	Articulos	100	Management	\N	t
+1190	4	TJ	TJ en PublTJ Administration Post 2024	Articulos	80	Public Administration	\N	t
+1191	4	TJ	TJ en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management	\N	t
+1192	4	TJ	TJ en Library & Information Science Post 2024	Articulos	80	Library & Information Science	\N	t
+1248	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mathematics Post 2024	Reputacion	20	Mathematics	\N	t
+1249	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Physics Post 2024	Reputacion	20	Physics	\N	t
+1250	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Chemistry Post 2024	Reputacion	0	Chemistry	\N	t
+1251	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Earth Sciences Post 2024	Reputacion	10	Earth Sciences	\N	t
+1252	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Geography Post 2024	Reputacion	10	Geography	\N	t
+1253	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Ecology Post 2024	Reputacion	0	Ecology	\N	t
+1254	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Oceanography Post 2024	Reputacion	0	Oceanography	\N	t
+1255	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en AtmospherNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Science Post 2024	Reputacion	0	Atmospheric Science	\N	t
+1256	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mechanical Engineering Post 2024	Reputacion	0	Mechanical Engineering	\N	t
+1257	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Electrical Engineering Post 2024	Reputacion	10	Electrical Engineering	\N	t
+1258	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Automation Post 2024	Reputacion	0	Automation	\N	t
+1259	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Telecommunication Engineering Post 2024	Reputacion	20	Telecommunication Engineering	\N	t
+1260	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Instrumentation Post 2024	Reputacion	0	Instrumentation	\N	t
+1261	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biomedical Engineering Post 2024	Reputacion	0	Biomedical Engineering	\N	t
+1262	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Computer Science Post 2024	Reputacion	20	Computer Science	\N	t
+1263	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Civil Engineering Post 2024	Reputacion	0	Civil Engineering	\N	t
+1264	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Chemical Engineering Post 2024	Reputacion	0	Chemical Engineering	\N	t
+1265	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Materials Science Post 2024	Reputacion	10	Materials Science	\N	t
+1266	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Nanoscience Post 2024	Reputacion	0	Nanoscience	\N	t
+1267	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Energy Post 2024	Reputacion	0	Energy	\N	t
+1268	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Environmental Science Post 2024	Reputacion	0	Environmental Science	\N	t
+1269	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Water Resources Post 2024	Reputacion	0	Water Resources	\N	t
+1707	6	Alumni	Egresados que han ganado Premio Nobel o Medalla Fields	Investigacion	10	General	\N	t
+1708	6	Award	Personal academico que ha ganado Premio Nobel o Medalla Fields	Investigacion	20	General	\N	t
+1270	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Food Science Post 2024	Reputacion	0	Food Science	\N	t
+1271	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biotechnology Post 2024	Reputacion	0	Biotechnology	\N	t
+1272	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Aerospace Engineering Post 2024	Reputacion	0	Aerospace Engineering	\N	t
+1273	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Marine Engineering Post 2024	Reputacion	0	Marine Engineering	\N	t
+1274	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Transportation Post 2024	Reputacion	0	Transportation	\N	t
+1275	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Remote Sensing Post 2024	Reputacion	0	Remote Sensing	\N	t
+1276	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mining Engineering Post 2024	Reputacion	0	Mining Engineering	\N	t
+1277	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Metallurgical Engineering Post 2024	Reputacion	0	Metallurgical Engineering	\N	t
+1278	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Textile Engineering Post 2024	Reputacion	0	Textile Engineering	\N	t
+1279	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Biological Sciences Post 2024	Reputacion	0	Biological Sciences	\N	t
+1280	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Human Biological Sciences Post 2024	Reputacion	0	Human Biological Sciences	\N	t
+1281	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Agricultural Sciences Post 2024	Reputacion	0	Agricultural Sciences	\N	t
+1282	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Veterinary Sciences Post 2024	Reputacion	0	Veterinary Sciences	\N	t
+1283	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Clinical Medicine Post 2024	Reputacion	0	Clinical Medicine	\N	t
+1284	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en PublNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Health Post 2024	Reputacion	0	Public Health	\N	t
+1285	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Dentistry Post 2024	Reputacion	10	Dentistry	\N	t
+1286	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Nursing Post 2024	Reputacion	0	Nursing	\N	t
+1287	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Medical Technology Post 2024	Reputacion	0	Medical Technology	\N	t
+1301	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Hospitality & Tourism Management Post 2024	Reputacion	0	Hospitality & Tourism Management	\N	t
+1302	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Library & Information Science Post 2024	Reputacion	0	Library & Information Science	\N	t
+1413	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica  en Mathematics Post 2024	Academicos	40	Mathematics	\N	t
+1414	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Physics Post 2024	Academicos	60	Physics	\N	t
+1415	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Chemistry Post 2024	Academicos	60	Chemistry	\N	t
+1416	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Earth Sciences Post 2024	Academicos	40	Earth Sciences	\N	t
+1417	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Geography Post 2024	Academicos	0	Geography	\N	t
+1418	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Ecology Post 2024	Academicos	0	Ecology	\N	t
+1419	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Oceanography Post 2024	Academicos	40	Oceanography	\N	t
+1420	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en AtmospherNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Science Post 2024	Academicos	60	Atmospheric Science	\N	t
+1140	4	TJ	TJ en Chemistry Post 2024	Articulos	100	Chemistry	\N	t
+1141	4	TJ	TJ en Earth Sciences Post 2024	Articulos	100	Earth Sciences	\N	t
+1142	4	TJ	TJ en Geography Post 2024	Articulos	100	Geography	\N	t
+1143	4	TJ	TJ en Ecology Post 2024	Articulos	100	Ecology	\N	t
+1144	4	TJ	TJ en Oceanography Post 2024	Articulos	80	Oceanography	\N	t
+1145	4	TJ	TJ en AtmospherTJ Science Post 2024	Articulos	100	Atmospheric Science	\N	t
+1146	4	TJ	TJ en Mechanical Engineering Post 2024	Articulos	60	Mechanical Engineering	\N	t
+1147	4	TJ	TJ en Electrical Engineering Post 2024	Articulos	40	Electrical Engineering	\N	t
+1148	4	TJ	TJ en Automation Post 2024	Articulos	80	Automation	\N	t
+1149	4	TJ	TJ en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering	\N	t
+1150	4	TJ	TJ en Instrumentation Post 2024	Articulos	100	Instrumentation	\N	t
+1151	4	TJ	TJ en Biomedical Engineering Post 2024	Articulos	60	Biomedical Engineering	\N	t
+1152	4	TJ	TJ en Computer Science Post 2024	Articulos	100	Computer Science	\N	t
+1153	4	TJ	TJ en Civil Engineering Post 2024	Articulos	100	Civil Engineering	\N	t
+1154	4	TJ	TJ en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering	\N	t
+1155	4	TJ	TJ en Materials Science Post 2024	Articulos	80	Materials Science	\N	t
+1156	4	TJ	TJ en Nanoscience Post 2024	Articulos	100	Nanoscience	\N	t
+1157	4	TJ	TJ en Energy Post 2024	Articulos	100	Energy	\N	t
+1421	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Mechanical Engineering Post 2024	Academicos	40	Mechanical Engineering	\N	t
+1422	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Electrical Engineering Post 2024	Academicos	40	Electrical Engineering	\N	t
+1423	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Automation Post 2024	Academicos	40	Automation	\N	t
+1424	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Telecommunication Engineering Post 2024	Academicos	40	Telecommunication Engineering	\N	t
+1425	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Instrumentation Post 2024	Academicos	0	Instrumentation	\N	t
+1426	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biomedical Engineering Post 2024	Academicos	0	Biomedical Engineering	\N	t
+1427	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Computer Science Post 2024	Academicos	60	Computer Science	\N	t
+1428	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Civil Engineering Post 2024	Academicos	0	Civil Engineering	\N	t
+1429	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Chemical Engineering Post 2024	Academicos	40	Chemical Engineering	\N	t
+1430	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Materials Science Post 2024	Academicos	60	Materials Science	\N	t
+1431	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Nanoscience Post 2024	Academicos	0	Nanoscience	\N	t
+1432	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Energy Post 2024	Academicos	20	Energy	\N	t
+1433	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Environmental Science Post 2024	Academicos	20	Environmental Science	\N	t
+1434	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Water Resources Post 2024	Academicos	20	Water Resources	\N	t
+1709	6	HiCi	Investigadores altamente citados (Highly Cited Researchers)	Investigacion	20	General	\N	t
+1710	6	N&S	Articulos publicados en Nature y Science	Investigacion	20	General	\N	t
+1711	6	PUB	Articulos indexados en Science Citation Index y Social Science Citation Index	Investigacion	20	General	\N	t
+1712	6	PCP	Rendimiento academico ponderado per capita	Investigacion	10	General	\N	t
+867	4	Q1	Cantidad de artículos en Q1 en Telecommunication Engineering	Articulos	25	Telecommunication Engineering	\N	t
+868	4	Q1	Cantidad de artículos en Q1 en Instrumentation	Articulos	25	Instrumentation	\N	t
+869	4	Q1	Cantidad de artículos en Q1 en Biomedical Engineering	Articulos	25	Biomedical Engineering	\N	t
+870	4	Q1	Cantidad de artículos en Q1 en Computer Science	Articulos	25	Computer Science	\N	t
+871	4	Q1	Cantidad de artículos en Q1 en Civil Engineering	Articulos	25	Civil Engineering	\N	t
+872	4	Q1	Cantidad de artículos en Q1 en Chemical Engineering	Articulos	25	Chemical Engineering	\N	t
+873	4	Q1	Cantidad de artículos en Q1 en Materials Science	Articulos	25	Materials Science	\N	t
+874	4	Q1	Cantidad de artículos en Q1 en Nanoscience	Articulos	25	Nanoscience	\N	t
+875	4	Q1	Cantidad de artículos en Q1 en Energy	Articulos	25	Energy	\N	t
+876	4	Q1	Cantidad de artículos en Q1 en Environmental Science	Articulos	25	Environmental Science	\N	t
+877	4	Q1	Cantidad de artículos en Q1 en Water Resources	Articulos	25	Water Resources	\N	t
+878	4	Q1	Cantidad de artículos en Q1 en Food Science	Articulos	25	Food Science	\N	t
+879	4	Q1	Cantidad de artículos en Q1 en Biotechnology	Articulos	25	Biotechnology	\N	t
+880	4	Q1	Cantidad de artículos en Q1 en Aerospace Engineering	Articulos	25	Aerospace Engineering	\N	t
+881	4	Q1	Cantidad de artículos en Q1 en Marine Engineering	Articulos	25	Marine Engineering	\N	t
+882	4	Q1	Cantidad de artículos en Q1 en Transportation	Articulos	25	Transportation	\N	t
+883	4	Q1	Cantidad de artículos en Q1 en Remote Sensing	Articulos	25	Remote Sensing	\N	t
+884	4	Q1	Cantidad de artículos en Q1 en Mining Engineering	Articulos	25	Mining Engineering	\N	t
+885	4	Q1	Cantidad de artículos en Q1 en Metallurgical Engineering	Articulos	25	Metallurgical Engineering	\N	t
+886	4	Q1	Cantidad de artículos en Q1 en Textile Engineering	Articulos	25	Textile Engineering	\N	t
+887	4	Q1	Cantidad de artículos en Q1 en Artificial Intelligence	Articulos	25	Artificial Intelligence	\N	t
+888	4	Q1	Cantidad de artículos en Q1 en Robotics	Articulos	25	Robotics	\N	t
+889	4	Q1	Cantidad de artículos en Q1 en Biological Sciences	Articulos	20	Biological Sciences	\N	t
+890	4	Q1	Cantidad de artículos en Q1 en Human Biological Sciences	Articulos	20	Human Biological Sciences	\N	t
+891	4	Q1	Cantidad de artículos en Q1 en Agricultural Sciences	Articulos	20	Agricultural Sciences	\N	t
+1713	7	Academic Reputation	\N	Investigacion	60	Arts & Humanities	\N	t
+1714	7	Employer Reputation	\N	Investigacion	20	Arts & Humanities	\N	t
+1715	7	Citations per Paper	\N	Investigacion	8	Arts & Humanities	\N	t
+1716	7	H-index Citations	\N	Investigacion	8	Arts & Humanities	\N	t
+1717	7	International Research Network	\N	Investigacion	0	Arts & Humanities	\N	t
+1718	7	Overall	\N	Investigacion	0	Arts & Humanities	\N	t
+1719	7	Academic Reputation	\N	Investigacion	70	Archaeology	\N	t
+1720	7	Employer Reputation	\N	Investigacion	10	Archaeology	\N	t
+1721	7	Citations per Paper	\N	Investigacion	10	Archaeology	\N	t
+1722	7	H-index Citations	\N	Investigacion	10	Archaeology	\N	t
+1723	7	Academic Reputation	\N	Investigacion	70	Architecture / Built Environment	\N	t
+1724	7	Employer Reputation	\N	Investigacion	10	Architecture / Built Environment	\N	t
+1725	7	Citations per Paper	\N	Investigacion	10	Architecture / Built Environment	\N	t
+1726	7	H-index Citations	\N	Investigacion	10	Architecture / Built Environment	\N	t
+1727	7	Overall	\N	Investigacion	0	Architecture / Built Environment	\N	t
+1728	7	Academic Reputation	\N	Investigacion	90	Art & Design	\N	t
+1729	7	Employer Reputation	\N	Investigacion	10	Art & Design	\N	t
+1730	7	Academic Reputation	\N	Investigacion	80	English Language & Literature	\N	t
+1731	7	Employer Reputation	\N	Investigacion	10	English Language & Literature	\N	t
+1732	7	Citations per Paper	\N	Investigacion	10	English Language & Literature	\N	t
+1733	7	Academic Reputation	\N	Investigacion	60	History	\N	t
+1734	7	Employer Reputation	\N	Investigacion	10	History	\N	t
+1735	7	Citations per Paper	\N	Investigacion	15	History	\N	t
+1736	7	H-index Citations	\N	Investigacion	15	History	\N	t
+31	3	International Collaboration	Producción con colaboración internacional	Internacionalizacion	2	General	\N	t
+26	3	Normalized Impact	Impacto normalizado respecto al promedio mundial	Investigacion	13	General	\N	t
+36	3	Scientific Talent Pool	Número total de autores afiliados	Academicos	2	General	\N	t
+42	3	Female Scientific Pool	Número de autoras afiliadas	Academicos	3	General	\N	t
+27	3	Excellence with Leadership	Documentos de excelencia donde la institución lidera	Articulos	8	General	\N	t
+28	3	Scientific Output	Número total de documentos en Scopus	Articulos	8	General	\N	t
+37	3	Innovative Knowledge	Producción científica citada en patentes	Innovacion	10	General	\N	t
+38	3	Technological Impact	Porcentaje de producción citada en patentes	Innovacion	10	General	\N	t
+39	3	Patents	Número de solicitudes de patentes	Innovacion	10	General	\N	t
+1737	7	Academic Reputation	\N	Investigacion	80	Linguistics	\N	t
+1738	7	Employer Reputation	\N	Investigacion	10	Linguistics	\N	t
+1739	7	Citations per Paper	\N	Investigacion	5	Linguistics	\N	t
+1740	7	H-index Citations	\N	Investigacion	5	Linguistics	\N	t
+1741	7	Academic Reputation	\N	Investigacion	70	Modern Languages	\N	t
+1742	7	Employer Reputation	\N	Investigacion	30	Modern Languages	\N	t
+1743	7	Overall	\N	Investigacion	0	Modern Languages	\N	t
+1744	7	Academic Reputation	\N	Investigacion	75	Philosophy	\N	t
+1745	7	Employer Reputation	\N	Investigacion	5	Philosophy	\N	t
+1746	7	Citations per Paper	\N	Investigacion	10	Philosophy	\N	t
+1747	7	H-index Citations	\N	Investigacion	10	Philosophy	\N	t
+1748	7	Academic Reputation	\N	Investigacion	70	Theology, Divinity & Religious Studies	\N	t
+1749	7	Employer Reputation	\N	Investigacion	10	Theology, Divinity & Religious Studies	\N	t
+1750	7	Citations per Paper	\N	Investigacion	10	Theology, Divinity & Religious Studies	\N	t
+1435	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Food Science Post 2024	Academicos	0	Food Science	\N	t
+1436	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biotechnology Post 2024	Academicos	0	Biotechnology	\N	t
+1437	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Aerospace Engineering Post 2024	Academicos	0	Aerospace Engineering	\N	t
+1439	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Transportation Post 2024	Academicos	0	Transportation	\N	t
+1440	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Remote Sensing Post 2024	Academicos	0	Remote Sensing	\N	t
+1441	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Mining Engineering Post 2024	Academicos	0	Mining Engineering	\N	t
+1442	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Metallurgical Engineering Post 2024	Academicos	20	Metallurgical Engineering	\N	t
+1443	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Textile Engineering Post 2024	Academicos	0	Textile Engineering	\N	t
+1444	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Biological Sciences Post 2024	Academicos	20	Biological Sciences	\N	t
+1445	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Human Biological Sciences Post 2024	Academicos	20	Human Biological Sciences	\N	t
+1446	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Agricultural Sciences Post 2024	Academicos	0	Agricultural Sciences	\N	t
+1447	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Veterinary Sciences Post 2024	Academicos	0	Veterinary Sciences	\N	t
+1448	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine	\N	t
+1449	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en PublNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Health Post 2024	Academicos	0	Public Health	\N	t
+1450	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Dentistry Post 2024	Academicos	40	Dentistry	\N	t
+1451	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Nursing Post 2024	Academicos	40	Nursing	\N	t
+1452	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Medical Technology Post 2024	Academicos	40	Medical Technology	\N	t
+1453	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Pharmacy Post 2024	Academicos	0	Pharmacy	\N	t
+1454	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Economics Post 2024	Academicos	40	Economics	\N	t
+1455	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Statistics Post 2024	Academicos	40	Statistics	\N	t
+1456	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Law Post 2024	Academicos	0	Law	\N	t
+1457	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Political Sciences Post 2024	Academicos	60	Political Sciences	\N	t
+1458	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Sociology Post 2024	Academicos	0	Sociology	\N	t
+1459	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Education Post 2024	Academicos	0	Education	\N	t
+1460	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Communication Post 2024	Academicos	0	Communication	\N	t
+1461	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Psychology Post 2024	Academicos	40	Psychology	\N	t
+1462	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Business Administration Post 2024	Academicos	0	Business Administration	\N	t
+1463	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Finance Post 2024	Academicos	0	Finance	\N	t
+1464	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Management Post 2024	Academicos	0	Management	\N	t
+1751	7	H-index Citations	\N	Investigacion	10	Theology, Divinity & Religious Studies	\N	t
+1752	7	Academic Reputation	\N	Investigacion	40	Engineering & Technology	\N	t
+1288	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Pharmacy Post 2024	Reputacion	0	Pharmacy	\N	t
+1289	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Economics Post 2024	Reputacion	10	Economics	\N	t
+1290	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Statistics Post 2024	Reputacion	0	Statistics	\N	t
+1291	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Law Post 2024	Reputacion	0	Law	\N	t
+1292	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Political Sciences Post 2024	Reputacion	20	Political Sciences	\N	t
+1293	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Sociology Post 2024	Reputacion	0	Sociology	\N	t
+1294	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Education Post 2024	Reputacion	0	Education	\N	t
+1295	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Communication Post 2024	Reputacion	20	Communication	\N	t
+1296	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Psychology Post 2024	Reputacion	0	Psychology	\N	t
+1297	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Business Administration Post 2024	Reputacion	0	Business Administration	\N	t
+1298	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Finance Post 2024	Reputacion	20	Finance	\N	t
+1299	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Management Post 2024	Reputacion	10	Management	\N	t
+1300	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en PublNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Administration Post 2024	Reputacion	0	Public Administration	\N	t
+1465	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en PublNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Administration Post 2024	Academicos	40	Public Administration	\N	t
+1466	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management	\N	t
+1753	7	Employer Reputation	\N	Investigacion	30	Engineering & Technology	\N	t
+1754	7	Citations per Paper	\N	Investigacion	10	Engineering & Technology	\N	t
+1755	7	H-index Citations	\N	Investigacion	10	Engineering & Technology	\N	t
+1756	7	International Research Network	\N	Investigacion	0	Engineering & Technology	\N	t
+1757	7	Overall	\N	Investigacion	0	Engineering & Technology	\N	t
+1758	7	Academic Reputation	\N	Investigacion	40	Engineering - Chemical	\N	t
+1759	7	Employer Reputation	\N	Investigacion	30	Engineering - Chemical	\N	t
+1760	7	Citations per Paper	\N	Investigacion	10	Engineering - Chemical	\N	t
+1761	7	H-index Citations	\N	Investigacion	10	Engineering - Chemical	\N	t
+1762	7	International Research Network	\N	Investigacion	0	Engineering - Chemical	\N	t
+1763	7	Academic Reputation	\N	Investigacion	40	Computer Science & Information Systems	\N	t
+1764	7	Employer Reputation	\N	Investigacion	30	Computer Science & Information Systems	\N	t
+1765	7	Citations per Paper	\N	Investigacion	10	Computer Science & Information Systems	\N	t
+1766	7	H-index Citations	\N	Investigacion	10	Computer Science & Information Systems	\N	t
+1767	7	International Research Network	\N	Investigacion	0	Computer Science & Information Systems	\N	t
+1768	7	Overall	\N	Investigacion	0	Computer Science & Information Systems	\N	t
+1769	7	Academic Reputation	\N	Investigacion	40	Engineering - Civil & Structural	\N	t
+1770	7	Employer Reputation	\N	Investigacion	30	Engineering - Civil & Structural	\N	t
+1771	7	Citations per Paper	\N	Investigacion	15	Engineering - Civil & Structural	\N	t
+1772	7	H-index Citations	\N	Investigacion	15	Engineering - Civil & Structural	\N	t
+1773	7	Overall	\N	Investigacion	0	Engineering - Civil & Structural	\N	t
+1774	7	Academic Reputation	\N	Investigacion	40	Engineering - Electrical & Electronic	\N	t
+1775	7	Employer Reputation	\N	Investigacion	30	Engineering - Electrical & Electronic	\N	t
+1776	7	Citations per Paper	\N	Investigacion	10	Engineering - Electrical & Electronic	\N	t
+1777	7	H-index Citations	\N	Investigacion	10	Engineering - Electrical & Electronic	\N	t
+1778	7	International Research Network	\N	Investigacion	0	Engineering - Electrical & Electronic	\N	t
+1779	7	Academic Reputation	\N	Investigacion	40	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1780	7	Employer Reputation	\N	Investigacion	30	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1781	7	Citations per Paper	\N	Investigacion	10	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1782	7	H-index Citations	\N	Investigacion	10	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1783	7	International Research Network	\N	Investigacion	0	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1784	7	Academic Reputation	\N	Investigacion	40	Engineering - Mineral & Mining	\N	t
+1785	7	Employer Reputation	\N	Investigacion	30	Engineering - Mineral & Mining	\N	t
+1786	7	Citations per Paper	\N	Investigacion	15	Engineering - Mineral & Mining	\N	t
+1467	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Library & Information Science Post 2024	Academicos	20	Library & Information Science	\N	t
+1468	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mathematics Post 2024	Academicos	0	Mathematics	\N	t
+1469	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Physics Post 2024	Academicos	60	Physics	\N	t
+1470	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Chemistry Post 2024	Academicos	60	Chemistry	\N	t
+1471	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Earth Sciences Post 2024	Academicos	40	Earth Sciences	\N	t
+1472	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Geography Post 2024	Academicos	20	Geography	\N	t
+1473	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Ecology Post 2024	Academicos	40	Ecology	\N	t
+1474	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Oceanography Post 2024	Academicos	0	Oceanography	\N	t
+1475	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en AtmospherNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Science Post 2024	Academicos	40	Atmospheric Science	\N	t
+1476	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mechanical Engineering Post 2024	Academicos	20	Mechanical Engineering	\N	t
+1477	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Electrical Engineering Post 2024	Academicos	20	Electrical Engineering	\N	t
+1478	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Automation Post 2024	Academicos	40	Automation	\N	t
+1479	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Telecommunication Engineering Post 2024	Academicos	20	Telecommunication Engineering	\N	t
+1480	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Instrumentation Post 2024	Academicos	0	Instrumentation	\N	t
+1481	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biomedical Engineering Post 2024	Academicos	20	Biomedical Engineering	\N	t
+1482	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Computer Science Post 2024	Academicos	40	Computer Science	\N	t
+1483	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Civil Engineering Post 2024	Academicos	0	Civil Engineering	\N	t
+1484	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Chemical Engineering Post 2024	Academicos	20	Chemical Engineering	\N	t
+1485	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Materials Science Post 2024	Academicos	60	Materials Science	\N	t
+1486	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Nanoscience Post 2024	Academicos	0	Nanoscience	\N	t
+1487	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Energy Post 2024	Academicos	20	Energy	\N	t
+1488	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Environmental Science Post 2024	Academicos	60	Environmental Science	\N	t
+1489	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Water Resources Post 2024	Academicos	20	Water Resources	\N	t
+1490	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Food Science Post 2024	Academicos	20	Food Science	\N	t
+1491	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biotechnology Post 2024	Academicos	20	Biotechnology	\N	t
+1492	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Aerospace Engineering Post 2024	Academicos	0	Aerospace Engineering	\N	t
+1493	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Marine Engineering Post 2024	Academicos	0	Marine Engineering	\N	t
+1494	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Transportation Post 2024	Academicos	20	Transportation	\N	t
+1495	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Remote Sensing Post 2024	Academicos	20	Remote Sensing	\N	t
+1496	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Mining Engineering Post 2024	Academicos	0	Mining Engineering	\N	t
+1497	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Metallurgical Engineering Post 2024	Academicos	0	Metallurgical Engineering	\N	t
+1498	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Textile Engineering Post 2024	Academicos	0	Textile Engineering	\N	t
+1499	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Biological Sciences Post 2024	Academicos	60	Biological Sciences	\N	t
+1500	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Human Biological Sciences Post 2024	Academicos	40	Human Biological Sciences	\N	t
+1787	7	H-index Citations	\N	Investigacion	15	Engineering - Mineral & Mining	\N	t
+1788	7	Overall	\N	Investigacion	0	Engineering - Mineral & Mining	\N	t
+1501	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Agricultural Sciences Post 2024	Academicos	40	Agricultural Sciences	\N	t
+1502	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Veterinary Sciences Post 2024	Academicos	0	Veterinary Sciences	\N	t
+1503	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine	\N	t
+1504	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en PublNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Health Post 2024	Academicos	60	Public Health	\N	t
+1505	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Dentistry Post 2024	Academicos	0	Dentistry	\N	t
+1506	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Nursing Post 2024	Academicos	0	Nursing	\N	t
+1507	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Medical Technology Post 2024	Academicos	20	Medical Technology	\N	t
+1508	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Pharmacy Post 2024	Academicos	40	Pharmacy	\N	t
+1509	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Economics Post 2024	Academicos	20	Economics	\N	t
+1510	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Statistics Post 2024	Academicos	20	Statistics	\N	t
+1511	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Law Post 2024	Academicos	0	Law	\N	t
+1512	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Political Sciences Post 2024	Academicos	20	Political Sciences	\N	t
+1513	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Sociology Post 2024	Academicos	0	Sociology	\N	t
+1514	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Education Post 2024	Academicos	0	Education	\N	t
+1515	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Communication Post 2024	Academicos	0	Communication	\N	t
+1516	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Psychology Post 2024	Academicos	60	Psychology	\N	t
+1517	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Business Administration Post 2024	Academicos	20	Business Administration	\N	t
+1518	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Finance Post 2024	Academicos	20	Finance	\N	t
+1519	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Management Post 2024	Academicos	20	Management	\N	t
+1520	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en PublNúmero de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica Administration Post 2024	Academicos	20	Public Administration	\N	t
+1521	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management	\N	t
+1522	4	HCR	Número de investigadores de una universidad que se encuentran entre los más citados del mundo en su área académica en Library & Information Science Post 2024	Academicos	20	Library & Information Science	\N	t
+1523	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mathematics Post 2024	Academicos	60	Mathematics	\N	t
+1524	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Physics Post 2024	Academicos	60	Physics	\N	t
+1525	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Chemistry Post 2024	Academicos	60	Chemistry	\N	t
+1526	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Earth Sciences Post 2024	Academicos	60	Earth Sciences	\N	t
+1527	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Geography Post 2024	Academicos	60	Geography	\N	t
+1528	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Ecology Post 2024	Academicos	60	Ecology	\N	t
+1529	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Oceanography Post 2024	Academicos	40	Oceanography	\N	t
+1530	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en AtmospherNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Science Post 2024	Academicos	40	Atmospheric Science	\N	t
+1531	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mechanical Engineering Post 2024	Academicos	60	Mechanical Engineering	\N	t
+1532	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Electrical Engineering Post 2024	Academicos	40	Electrical Engineering	\N	t
+1789	7	Academic Reputation	\N	Investigacion	40	Life Sciences & Medicine	\N	t
+1790	7	Employer Reputation	\N	Investigacion	10	Life Sciences & Medicine	\N	t
+1438	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Marine Engineering Post 2024	Academicos	20	Marine Engineering	\N	t
+1533	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Automation Post 2024	Academicos	60	Automation	\N	t
+1534	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Telecommunication Engineering Post 2024	Academicos	20	Telecommunication Engineering	\N	t
+1535	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Instrumentation Post 2024	Academicos	20	Instrumentation	\N	t
+1536	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biomedical Engineering Post 2024	Academicos	60	Biomedical Engineering	\N	t
+1537	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Computer Science Post 2024	Academicos	40	Computer Science	\N	t
+1538	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Civil Engineering Post 2024	Academicos	60	Civil Engineering	\N	t
+1539	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Chemical Engineering Post 2024	Academicos	40	Chemical Engineering	\N	t
+1540	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Materials Science Post 2024	Academicos	60	Materials Science	\N	t
+1541	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Nanoscience Post 2024	Academicos	40	Nanoscience	\N	t
+1542	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Energy Post 2024	Academicos	60	Energy	\N	t
+1543	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Environmental Science Post 2024	Academicos	60	Environmental Science	\N	t
+1544	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Water Resources Post 2024	Academicos	60	Water Resources	\N	t
+1545	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Food Science Post 2024	Academicos	40	Food Science	\N	t
+1546	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biotechnology Post 2024	Academicos	60	Biotechnology	\N	t
+1547	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Aerospace Engineering Post 2024	Academicos	40	Aerospace Engineering	\N	t
+1548	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Marine Engineering Post 2024	Academicos	20	Marine Engineering	\N	t
+1549	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Transportation Post 2024	Academicos	20	Transportation	\N	t
+1550	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Remote Sensing Post 2024	Academicos	20	Remote Sensing	\N	t
+1551	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Mining Engineering Post 2024	Academicos	40	Mining Engineering	\N	t
+1552	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Metallurgical Engineering Post 2024	Academicos	40	Metallurgical Engineering	\N	t
+1553	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Textile Engineering Post 2024	Academicos	40	Textile Engineering	\N	t
+1554	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Biological Sciences Post 2024	Academicos	60	Biological Sciences	\N	t
+1555	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Human Biological Sciences Post 2024	Academicos	60	Human Biological Sciences	\N	t
+1556	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Agricultural Sciences Post 2024	Academicos	60	Agricultural Sciences	\N	t
+1557	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Veterinary Sciences Post 2024	Academicos	60	Veterinary Sciences	\N	t
+1558	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Clinical Medicine Post 2024	Academicos	60	Clinical Medicine	\N	t
+1559	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en PublNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Health Post 2024	Academicos	60	Public Health	\N	t
+1791	7	Citations per Paper	\N	Investigacion	20	Life Sciences & Medicine	\N	t
+1560	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Dentistry Post 2024	Academicos	40	Dentistry	\N	t
+1792	7	H-index Citations	\N	Investigacion	20	Life Sciences & Medicine	\N	t
+640	4	CNCI	CNCI en Ecology	Investigacion	25	Ecology	\N	t
+641	4	IC	IC en Ecology	Internacionalizacion	20	Ecology	\N	t
+642	4	TOP	TOP en Ecology	Articulos	20	Ecology	\N	t
+644	4	PUB	PUB en Oceanography	Articulos	25	Oceanography	\N	t
+645	4	CNCI	CNCI en Oceanography	Investigacion	25	Oceanography	\N	t
+646	4	IC	IC en Oceanography	Internacionalizacion	20	Oceanography	\N	t
+647	4	TOP	TOP en Oceanography	Articulos	20	Oceanography	\N	t
+649	4	PUB	PUB en Atmospheric Science	Articulos	25	Atmospheric Science	\N	t
+650	4	CNCI	CNCI en Atmospheric Science	Investigacion	25	Atmospheric Science	\N	t
+1561	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Nursing Post 2024	Academicos	40	Nursing	\N	t
+1562	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Medical Technology Post 2024	Academicos	60	Medical Technology	\N	t
+1563	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Pharmacy Post 2024	Academicos	60	Pharmacy	\N	t
+1564	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Economics Post 2024	Academicos	60	Economics	\N	t
+1565	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Statistics Post 2024	Academicos	40	Statistics	\N	t
+1566	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Law Post 2024	Academicos	60	Law	\N	t
+1567	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Political Sciences Post 2024	Academicos	60	Political Sciences	\N	t
+1568	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Sociology Post 2024	Academicos	60	Sociology	\N	t
+1569	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Education Post 2024	Academicos	60	Education	\N	t
+1570	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Communication Post 2024	Academicos	60	Communication	\N	t
+1571	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Psychology Post 2024	Academicos	60	Psychology	\N	t
+1572	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Business Administration Post 2024	Academicos	60	Business Administration	\N	t
+1573	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Finance Post 2024	Academicos	40	Finance	\N	t
+1574	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Management Post 2024	Academicos	60	Management	\N	t
+1575	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en PublNúmero de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio Administration Post 2024	Academicos	40	Public Administration	\N	t
+1576	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management	\N	t
+1577	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Library & Information Science Post 2024	Academicos	40	Library & Information Science	\N	t
+1578	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mathematics Post 2024	Articulos	100	Mathematics	\N	t
+1579	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Physics Post 2024	Articulos	100	Physics	\N	t
+1580	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Chemistry Post 2024	Articulos	100	Chemistry	\N	t
+1581	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Earth Sciences Post 2024	Articulos	100	Earth Sciences	\N	t
+1582	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Geography Post 2024	Articulos	100	Geography	\N	t
+1583	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Ecology Post 2024	Articulos	100	Ecology	\N	t
+1793	7	International Research Network	\N	Investigacion	0	Life Sciences & Medicine	\N	t
+1794	7	Overall	\N	Investigacion	0	Life Sciences & Medicine	\N	t
+1795	7	Academic Reputation	\N	Investigacion	40	Agriculture & Forestry	\N	t
+1796	7	Employer Reputation	\N	Investigacion	30	Agriculture & Forestry	\N	t
+1797	7	Citations per Paper	\N	Investigacion	10	Agriculture & Forestry	\N	t
+1798	7	H-index Citations	\N	Investigacion	10	Agriculture & Forestry	\N	t
+1799	7	International Research Network	\N	Investigacion	0	Agriculture & Forestry	\N	t
+1800	7	Overall	\N	Investigacion	0	Agriculture & Forestry	\N	t
+1801	7	Academic Reputation	\N	Investigacion	40	Anatomy & Physiology	\N	t
+1802	7	Employer Reputation	\N	Investigacion	10	Anatomy & Physiology	\N	t
+1803	7	Citations per Paper	\N	Investigacion	25	Anatomy & Physiology	\N	t
+859	4	Q1	Cantidad de artículos en Q1 en Earth Sciences	Articulos	25	Earth Sciences	\N	t
+791	4	IC	IC en Nursing	Internacionalizacion	20	Nursing	\N	t
+1584	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Oceanography Post 2024	Articulos	100	Oceanography	\N	t
+1585	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en AtmospherNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Science Post 2024	Articulos	100	Atmospheric Science	\N	t
+1586	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mechanical Engineering Post 2024	Articulos	100	Mechanical Engineering	\N	t
+1587	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Electrical Engineering Post 2024	Articulos	100	Electrical Engineering	\N	t
+1588	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Automation Post 2024	Articulos	100	Automation	\N	t
+1589	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Telecommunication Engineering Post 2024	Articulos	100	Telecommunication Engineering	\N	t
+1590	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Instrumentation Post 2024	Articulos	100	Instrumentation	\N	t
+1591	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biomedical Engineering Post 2024	Articulos	100	Biomedical Engineering	\N	t
+1592	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Computer Science Post 2024	Articulos	100	Computer Science	\N	t
+1593	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Civil Engineering Post 2024	Articulos	100	Civil Engineering	\N	t
+1594	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Chemical Engineering Post 2024	Articulos	100	Chemical Engineering	\N	t
+1595	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Materials Science Post 2024	Articulos	100	Materials Science	\N	t
+1596	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Nanoscience Post 2024	Articulos	100	Nanoscience	\N	t
+1597	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Energy Post 2024	Articulos	100	Energy	\N	t
+1598	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Environmental Science Post 2024	Articulos	100	Environmental Science	\N	t
+1599	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Water Resources Post 2024	Articulos	100	Water Resources	\N	t
+1600	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Food Science Post 2024	Articulos	100	Food Science	\N	t
+1601	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biotechnology Post 2024	Articulos	100	Biotechnology	\N	t
+1602	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Aerospace Engineering Post 2024	Articulos	100	Aerospace Engineering	\N	t
+1603	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Marine Engineering Post 2024	Articulos	100	Marine Engineering	\N	t
+1604	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Transportation Post 2024	Articulos	100	Transportation	\N	t
+1605	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Remote Sensing Post 2024	Articulos	100	Remote Sensing	\N	t
+1606	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Mining Engineering Post 2024	Articulos	100	Mining Engineering	\N	t
+1607	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Metallurgical Engineering Post 2024	Articulos	100	Metallurgical Engineering	\N	t
+1608	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Textile Engineering Post 2024	Articulos	100	Textile Engineering	\N	t
+1609	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Biological Sciences Post 2024	Articulos	100	Biological Sciences	\N	t
+1610	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Human Biological Sciences Post 2024	Articulos	100	Human Biological Sciences	\N	t
+1611	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Agricultural Sciences Post 2024	Articulos	100	Agricultural Sciences	\N	t
+1612	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Veterinary Sciences Post 2024	Articulos	100	Veterinary Sciences	\N	t
+1613	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Clinical Medicine Post 2024	Articulos	100	Clinical Medicine	\N	t
+1804	7	H-index Citations	\N	Investigacion	25	Anatomy & Physiology	\N	t
+1805	7	Academic Reputation	\N	Investigacion	40	Biological Sciences	\N	t
+860	4	Q1	Cantidad de artículos en Q1 en Geography	Articulos	25	Geography	\N	t
+1614	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en PublNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Health Post 2024	Articulos	100	Public Health	\N	t
+1615	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Dentistry Post 2024	Articulos	100	Dentistry	\N	t
+1616	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Nursing Post 2024	Articulos	100	Nursing	\N	t
+1617	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Medical Technology Post 2024	Articulos	100	Medical Technology	\N	t
+1618	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Pharmacy Post 2024	Articulos	100	Pharmacy	\N	t
+1619	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Economics Post 2024	Articulos	100	Economics	\N	t
+1620	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Statistics Post 2024	Articulos	100	Statistics	\N	t
+1621	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Law Post 2024	Articulos	100	Law	\N	t
+1622	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Political Sciences Post 2024	Articulos	100	Political Sciences	\N	t
+1623	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Sociology Post 2024	Articulos	100	Sociology	\N	t
+1624	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Education Post 2024	Articulos	100	Education	\N	t
+1625	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Communication Post 2024	Articulos	100	Communication	\N	t
+1626	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Psychology Post 2024	Articulos	100	Psychology	\N	t
+1627	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Business Administration Post 2024	Articulos	100	Business Administration	\N	t
+1628	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Finance Post 2024	Articulos	100	Finance	\N	t
+1629	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Management Post 2024	Articulos	100	Management	\N	t
+1630	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en PublNúmero de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  Administration Post 2024	Articulos	100	Public Administration	\N	t
+1631	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Hospitality & Tourism Management Post 2024	Articulos	100	Hospitality & Tourism Management	\N	t
+1632	4	World-Class Output	Número de artículos publicados en las revistas más prestigiosas de cada materia (Q1) y el impacto de las citas recibidas  en Library & Information Science Post 2024	Articulos	100	Library & Information Science	\N	t
+1633	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mathematics Post 2024	Reputacion	100	Mathematics	\N	t
+1634	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Physics Post 2024	Reputacion	100	Physics	\N	t
+1635	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Chemistry Post 2024	Reputacion	100	Chemistry	\N	t
+1636	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Earth Sciences Post 2024	Reputacion	100	Earth Sciences	\N	t
+1637	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Geography Post 2024	Reputacion	100	Geography	\N	t
+1638	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Ecology Post 2024	Reputacion	100	Ecology	\N	t
+1639	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Oceanography Post 2024	Reputacion	100	Oceanography	\N	t
+1806	7	Employer Reputation	\N	Investigacion	30	Biological Sciences	\N	t
+1807	7	Citations per Paper	\N	Investigacion	10	Biological Sciences	\N	t
+1808	7	H-index Citations	\N	Investigacion	10	Biological Sciences	\N	t
+1809	7	International Research Network	\N	Investigacion	0	Biological Sciences	\N	t
+1810	7	Academic Reputation	\N	Investigacion	30	Dentistry	\N	t
+1640	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en AtmospherEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Science Post 2024	Reputacion	100	Atmospheric Science	\N	t
+1641	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mechanical Engineering Post 2024	Reputacion	100	Mechanical Engineering	\N	t
+1642	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Electrical Engineering Post 2024	Reputacion	100	Electrical Engineering	\N	t
+1643	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Automation Post 2024	Reputacion	100	Automation	\N	t
+1644	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Telecommunication Engineering Post 2024	Reputacion	100	Telecommunication Engineering	\N	t
+1645	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Instrumentation Post 2024	Reputacion	100	Instrumentation	\N	t
+1646	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biomedical Engineering Post 2024	Reputacion	100	Biomedical Engineering	\N	t
+1647	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Computer Science Post 2024	Reputacion	100	Computer Science	\N	t
+1648	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Civil Engineering Post 2024	Reputacion	100	Civil Engineering	\N	t
+1649	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Chemical Engineering Post 2024	Reputacion	100	Chemical Engineering	\N	t
+1650	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Materials Science Post 2024	Reputacion	100	Materials Science	\N	t
+1651	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Nanoscience Post 2024	Reputacion	100	Nanoscience	\N	t
+1652	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Energy Post 2024	Reputacion	100	Energy	\N	t
+1653	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Environmental Science Post 2024	Reputacion	100	Environmental Science	\N	t
+1654	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Water Resources Post 2024	Reputacion	100	Water Resources	\N	t
+1655	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Food Science Post 2024	Reputacion	100	Food Science	\N	t
+1656	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biotechnology Post 2024	Reputacion	100	Biotechnology	\N	t
+1657	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Aerospace Engineering Post 2024	Reputacion	100	Aerospace Engineering	\N	t
+1658	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Marine Engineering Post 2024	Reputacion	100	Marine Engineering	\N	t
+1659	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Transportation Post 2024	Reputacion	100	Transportation	\N	t
+1811	7	Employer Reputation	\N	Investigacion	10	Dentistry	\N	t
+861	4	Q1	Cantidad de artículos en Q1 en Ecology	Articulos	25	Ecology	\N	t
+1660	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Remote Sensing Post 2024	Reputacion	100	Remote Sensing	\N	t
+1661	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mining Engineering Post 2024	Reputacion	100	Mining Engineering	\N	t
+1662	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Metallurgical Engineering Post 2024	Reputacion	100	Metallurgical Engineering	\N	t
+1663	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Textile Engineering Post 2024	Reputacion	100	Textile Engineering	\N	t
+1664	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Biological Sciences Post 2024	Reputacion	100	Biological Sciences	\N	t
+1665	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Human Biological Sciences Post 2024	Reputacion	100	Human Biological Sciences	\N	t
+1666	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Agricultural Sciences Post 2024	Reputacion	100	Agricultural Sciences	\N	t
+1667	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Veterinary Sciences Post 2024	Reputacion	100	Veterinary Sciences	\N	t
+1668	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Clinical Medicine Post 2024	Reputacion	100	Clinical Medicine	\N	t
+1669	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en PublEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Health Post 2024	Reputacion	100	Public Health	\N	t
+1671	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Nursing Post 2024	Reputacion	100	Nursing	\N	t
+1672	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Medical Technology Post 2024	Reputacion	100	Medical Technology	\N	t
+1673	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Pharmacy Post 2024	Reputacion	100	Pharmacy	\N	t
+1674	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Economics Post 2024	Reputacion	100	Economics	\N	t
+1675	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Statistics Post 2024	Reputacion	100	Statistics	\N	t
+1676	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Law Post 2024	Reputacion	100	Law	\N	t
+1677	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Political Sciences Post 2024	Reputacion	100	Political Sciences	\N	t
+1678	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Sociology Post 2024	Reputacion	100	Sociology	\N	t
+1679	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Education Post 2024	Reputacion	100	Education	\N	t
+1680	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Communication Post 2024	Reputacion	100	Communication	\N	t
+1812	7	Citations per Paper	\N	Investigacion	30	Dentistry	\N	t
+792	4	TOP	TOP en Nursing	Articulos	25	Nursing	\N	t
+1681	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Psychology Post 2024	Reputacion	100	Psychology	\N	t
+1682	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Business Administration Post 2024	Reputacion	100	Business Administration	\N	t
+1683	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Finance Post 2024	Reputacion	100	Finance	\N	t
+1684	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Management Post 2024	Reputacion	100	Management	\N	t
+1685	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en PublEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Administration Post 2024	Reputacion	100	Public Administration	\N	t
+1687	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Library & Information Science Post 2024	Reputacion	100	Library & Information Science	\N	t
+1813	7	H-index Citations	\N	Investigacion	30	Dentistry	\N	t
+1814	7	Academic Reputation	\N	Investigacion	40	Medicine	\N	t
+1815	7	Employer Reputation	\N	Investigacion	30	Medicine	\N	t
+1816	7	Citations per Paper	\N	Investigacion	10	Medicine	\N	t
+1817	7	H-index Citations	\N	Investigacion	10	Medicine	\N	t
+1818	7	International Research Network	\N	Investigacion	0	Medicine	\N	t
+1819	7	Overall	\N	Investigacion	0	Medicine	\N	t
+1820	7	Academic Reputation	\N	Investigacion	30	Nursing	\N	t
+1821	7	Employer Reputation	\N	Investigacion	10	Nursing	\N	t
+1822	7	Citations per Paper	\N	Investigacion	30	Nursing	\N	t
+1823	7	H-index Citations	\N	Investigacion	30	Nursing	\N	t
+1824	7	Academic Reputation	\N	Investigacion	40	Pharmacy & Pharmacology	\N	t
+1825	7	Employer Reputation	\N	Investigacion	30	Pharmacy & Pharmacology	\N	t
+1826	7	Citations per Paper	\N	Investigacion	10	Pharmacy & Pharmacology	\N	t
+1827	7	H-index Citations	\N	Investigacion	10	Pharmacy & Pharmacology	\N	t
+1828	7	International Research Network	\N	Investigacion	0	Pharmacy & Pharmacology	\N	t
+1829	7	Academic Reputation	\N	Investigacion	40	Psychology	\N	t
+1830	7	Employer Reputation	\N	Investigacion	30	Psychology	\N	t
+1831	7	Citations per Paper	\N	Investigacion	10	Psychology	\N	t
+1832	7	H-index Citations	\N	Investigacion	10	Psychology	\N	t
+1833	7	International Research Network	\N	Investigacion	0	Psychology	\N	t
+1834	7	Overall	\N	Investigacion	0	Psychology	\N	t
+1835	7	Academic Reputation	\N	Investigacion	40	Natural Sciences	\N	t
+1836	7	Employer Reputation	\N	Investigacion	20	Natural Sciences	\N	t
+1837	7	Citations per Paper	\N	Investigacion	15	Natural Sciences	\N	t
+1838	7	H-index Citations	\N	Investigacion	15	Natural Sciences	\N	t
+1839	7	International Research Network	\N	Investigacion	0	Natural Sciences	\N	t
+1840	7	Overall	\N	Investigacion	0	Natural Sciences	\N	t
+1841	7	Academic Reputation	\N	Investigacion	40	Chemistry	\N	t
+1842	7	Employer Reputation	\N	Investigacion	30	Chemistry	\N	t
+1843	7	Citations per Paper	\N	Investigacion	10	Chemistry	\N	t
+1844	7	H-index Citations	\N	Investigacion	10	Chemistry	\N	t
+1845	7	International Research Network	\N	Investigacion	0	Chemistry	\N	t
+1846	7	Academic Reputation	\N	Investigacion	40	Earth & Marine Sciences	\N	t
+1847	7	Employer Reputation	\N	Investigacion	30	Earth & Marine Sciences	\N	t
+1848	7	Citations per Paper	\N	Investigacion	10	Earth & Marine Sciences	\N	t
+1849	7	H-index Citations	\N	Investigacion	10	Earth & Marine Sciences	\N	t
+1850	7	International Research Network	\N	Investigacion	0	Earth & Marine Sciences	\N	t
+1851	7	Academic Reputation	\N	Investigacion	40	Environmental Sciences	\N	t
+1852	7	Employer Reputation	\N	Investigacion	30	Environmental Sciences	\N	t
+1853	7	Citations per Paper	\N	Investigacion	10	Environmental Sciences	\N	t
+1854	7	H-index Citations	\N	Investigacion	10	Environmental Sciences	\N	t
+1855	7	International Research Network	\N	Investigacion	0	Environmental Sciences	\N	t
+1856	7	Academic Reputation	\N	Investigacion	60	Geography	\N	t
+1857	7	Employer Reputation	\N	Investigacion	10	Geography	\N	t
+1858	7	Citations per Paper	\N	Investigacion	15	Geography	\N	t
+1859	7	H-index Citations	\N	Investigacion	15	Geography	\N	t
+1860	7	Overall	\N	Investigacion	0	Geography	\N	t
+1861	7	Academic Reputation	\N	Investigacion	40	Geology	\N	t
+1862	7	Employer Reputation	\N	Investigacion	30	Geology	\N	t
+1863	7	Citations per Paper	\N	Investigacion	10	Geology	\N	t
+1864	7	H-index Citations	\N	Investigacion	10	Geology	\N	t
+1865	7	International Research Network	\N	Investigacion	0	Geology	\N	t
+1866	7	Academic Reputation	\N	Investigacion	40	Geophysics	\N	t
+1867	7	Employer Reputation	\N	Investigacion	30	Geophysics	\N	t
+1868	7	Citations per Paper	\N	Investigacion	10	Geophysics	\N	t
+1869	7	H-index Citations	\N	Investigacion	10	Geophysics	\N	t
+1870	7	International Research Network	\N	Investigacion	0	Geophysics	\N	t
+1871	7	Academic Reputation	\N	Investigacion	40	Materials Science	\N	t
+1872	7	Employer Reputation	\N	Investigacion	30	Materials Science	\N	t
+1873	7	Citations per Paper	\N	Investigacion	10	Materials Science	\N	t
+1874	7	H-index Citations	\N	Investigacion	10	Materials Science	\N	t
+1875	7	International Research Network	\N	Investigacion	0	Materials Science	\N	t
+1876	7	Academic Reputation	\N	Investigacion	40	Mathematics	\N	t
+1877	7	Employer Reputation	\N	Investigacion	30	Mathematics	\N	t
+1878	7	Citations per Paper	\N	Investigacion	10	Mathematics	\N	t
+1879	7	H-index Citations	\N	Investigacion	10	Mathematics	\N	t
+1880	7	International Research Network	\N	Investigacion	0	Mathematics	\N	t
+1881	7	Overall	\N	Investigacion	0	Mathematics	\N	t
+1882	7	Academic Reputation	\N	Investigacion	40	Physics & Astronomy	\N	t
+1883	7	Employer Reputation	\N	Investigacion	30	Physics & Astronomy	\N	t
+1884	7	Citations per Paper	\N	Investigacion	10	Physics & Astronomy	\N	t
+1885	7	H-index Citations	\N	Investigacion	10	Physics & Astronomy	\N	t
+1886	7	International Research Network	\N	Investigacion	0	Physics & Astronomy	\N	t
+1887	7	Overall	\N	Investigacion	0	Physics & Astronomy	\N	t
+1888	7	Academic Reputation	\N	Investigacion	50	Social Sciences & Management	\N	t
+1889	7	Employer Reputation	\N	Investigacion	30	Social Sciences & Management	\N	t
+1890	7	Citations per Paper	\N	Investigacion	8	Social Sciences & Management	\N	t
+1891	7	H-index Citations	\N	Investigacion	8	Social Sciences & Management	\N	t
+1892	7	International Research Network	\N	Investigacion	0	Social Sciences & Management	\N	t
+1893	7	Overall	\N	Investigacion	0	Social Sciences & Management	\N	t
+1894	7	Academic Reputation	\N	Investigacion	50	Accounting & Finance	\N	t
+1895	7	Employer Reputation	\N	Investigacion	30	Accounting & Finance	\N	t
+1896	7	Citations per Paper	\N	Investigacion	10	Accounting & Finance	\N	t
+1897	7	H-index Citations	\N	Investigacion	10	Accounting & Finance	\N	t
+1898	7	Overall	\N	Investigacion	0	Accounting & Finance	\N	t
+1899	7	Academic Reputation	\N	Investigacion	70	Anthropology	\N	t
+1900	7	Employer Reputation	\N	Investigacion	10	Anthropology	\N	t
+1901	7	Citations per Paper	\N	Investigacion	10	Anthropology	\N	t
+1902	7	H-index Citations	\N	Investigacion	10	Anthropology	\N	t
+1903	7	Academic Reputation	\N	Investigacion	50	Business & Management Studies	\N	t
+1904	7	Employer Reputation	\N	Investigacion	30	Business & Management Studies	\N	t
+1905	7	Citations per Paper	\N	Investigacion	10	Business & Management Studies	\N	t
+1906	7	H-index Citations	\N	Investigacion	10	Business & Management Studies	\N	t
+1907	7	Overall	\N	Investigacion	0	Business & Management Studies	\N	t
+1908	7	Academic Reputation	\N	Investigacion	50	Communication & Media Studies	\N	t
+1909	7	Employer Reputation	\N	Investigacion	10	Communication & Media Studies	\N	t
+1910	7	Citations per Paper	\N	Investigacion	20	Communication & Media Studies	\N	t
+1911	7	H-index Citations	\N	Investigacion	20	Communication & Media Studies	\N	t
+1912	7	Academic Reputation	\N	Investigacion	40	Economics & Econometrics	\N	t
+1913	7	Employer Reputation	\N	Investigacion	20	Economics & Econometrics	\N	t
+1914	7	Citations per Paper	\N	Investigacion	20	Economics & Econometrics	\N	t
+1915	7	H-index Citations	\N	Investigacion	20	Economics & Econometrics	\N	t
+1916	7	Overall	\N	Investigacion	0	Economics & Econometrics	\N	t
+1917	7	Academic Reputation	\N	Investigacion	50	Education	\N	t
+1918	7	Employer Reputation	\N	Investigacion	10	Education	\N	t
+1919	7	Citations per Paper	\N	Investigacion	20	Education	\N	t
+1920	7	H-index Citations	\N	Investigacion	20	Education	\N	t
+1921	7	Overall	\N	Investigacion	0	Education	\N	t
+1922	7	Academic Reputation	\N	Investigacion	50	Law	\N	t
+1923	7	Employer Reputation	\N	Investigacion	30	Law	\N	t
+1924	7	Citations per Paper	\N	Investigacion	5	Law	\N	t
+1925	7	H-index Citations	\N	Investigacion	15	Law	\N	t
+1926	7	Overall	\N	Investigacion	0	Law	\N	t
+1927	7	Academic Reputation	\N	Investigacion	50	Politics & International Studies	\N	t
+1928	7	Employer Reputation	\N	Investigacion	30	Politics & International Studies	\N	t
+1929	7	Citations per Paper	\N	Investigacion	10	Politics & International Studies	\N	t
+1930	7	H-index Citations	\N	Investigacion	10	Politics & International Studies	\N	t
+1931	7	Academic Reputation	\N	Investigacion	70	Social Policy & Administration	\N	t
+1932	7	Employer Reputation	\N	Investigacion	20	Social Policy & Administration	\N	t
+1933	7	Citations per Paper	\N	Investigacion	10	Social Policy & Administration	\N	t
+1934	7	Academic Reputation	\N	Investigacion	70	Sociology	\N	t
+1935	7	Employer Reputation	\N	Investigacion	10	Sociology	\N	t
+1936	7	Citations per Paper	\N	Investigacion	5	Sociology	\N	t
+1937	7	H-index Citations	\N	Investigacion	15	Sociology	\N	t
+1938	7	Overall	\N	Investigacion	0	Sociology	\N	t
+1939	7	Academic Reputation	\N	Investigacion	50	Statistics & Operational Research	\N	t
+1940	7	Employer Reputation	\N	Investigacion	10	Statistics & Operational Research	\N	t
+1941	7	Citations per Paper	\N	Investigacion	20	Statistics & Operational Research	\N	t
+1942	7	H-index Citations	\N	Investigacion	20	Statistics & Operational Research	\N	t
+1943	7	Overall	\N	Investigacion	0	Art & Design	\N	t
+1944	7	Overall	\N	Investigacion	0	Theology, Divinity & Religious Studies	\N	t
+1945	7	Overall	\N	Investigacion	0	Engineering - Electrical & Electronic	\N	t
+1946	7	Overall	\N	Investigacion	0	Dentistry	\N	t
+1947	7	Overall	\N	Investigacion	0	Environmental Sciences	\N	t
+1948	7	Overall	\N	Investigacion	0	Communication & Media Studies	\N	t
+1949	7	Academic Reputation	\N	Investigacion	45	Hospitality & Leisure Management	\N	t
+1950	7	Employer Reputation	\N	Investigacion	50	Hospitality & Leisure Management	\N	t
+1951	7	Citations per Paper	\N	Investigacion	5	Hospitality & Leisure Management	\N	t
+1952	7	Overall	\N	Investigacion	0	Politics & International Studies	\N	t
+1953	7	Overall	\N	Investigacion	0	Social Policy & Administration	\N	t
+862	4	Q1	Cantidad de artículos en Q1 en Oceanography	Articulos	25	Oceanography	\N	t
+863	4	Q1	Cantidad de artículos en Q1 en Atmospheric Science	Articulos	25	Atmospheric Science	\N	t
+1954	7	International Research Network	\N	Investigacion	5	Arts & Humanities	\N	t
+1955	7	Academic Reputation	\N	Investigacion	80	Performing Arts	\N	t
+1956	7	Employer Reputation	\N	Investigacion	20	Performing Arts	\N	t
+1957	7	International Research Network	\N	Investigacion	10	Engineering & Technology	\N	t
+1958	7	Citations per Paper	\N	Investigacion	12	Computer Science & Information Systems	\N	t
+1959	7	H-index Citations	\N	Investigacion	12	Computer Science & Information Systems	\N	t
+1960	7	International Research Network	\N	Investigacion	5	Computer Science & Information Systems	\N	t
+1961	7	Academic Reputation	\N	Investigacion	40	Data Science and Artificial Intelligence	\N	t
+1962	7	Employer Reputation	\N	Investigacion	30	Data Science and Artificial Intelligence	\N	t
+1963	7	Citations per Paper	\N	Investigacion	15	Data Science and Artificial Intelligence	\N	t
+1964	7	H-index Citations	\N	Investigacion	15	Data Science and Artificial Intelligence	\N	t
+1965	7	Citations per Paper	\N	Investigacion	12	Engineering - Chemical	\N	t
+1966	7	H-index Citations	\N	Investigacion	12	Engineering - Chemical	\N	t
+1967	7	International Research Network	\N	Investigacion	5	Engineering - Chemical	\N	t
+1968	7	Citations per Paper	\N	Investigacion	12	Engineering - Electrical & Electronic	\N	t
+1969	7	H-index Citations	\N	Investigacion	12	Engineering - Electrical & Electronic	\N	t
+1970	7	International Research Network	\N	Investigacion	5	Engineering - Electrical & Electronic	\N	t
+1971	7	Citations per Paper	\N	Investigacion	12	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1972	7	H-index Citations	\N	Investigacion	12	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1973	7	International Research Network	\N	Investigacion	5	Engineering - Mechanical, Aeronautical & Manufacturing	\N	t
+1974	7	International Research Network	\N	Investigacion	10	Life Sciences & Medicine	\N	t
+1975	7	Academic Reputation	\N	Investigacion	50	Agriculture & Forestry	\N	t
+1976	7	Employer Reputation	\N	Investigacion	10	Agriculture & Forestry	\N	t
+1977	7	Citations per Paper	\N	Investigacion	15	Agriculture & Forestry	\N	t
+1978	7	H-index Citations	\N	Investigacion	15	Agriculture & Forestry	\N	t
+1979	7	International Research Network	\N	Investigacion	10	Agriculture & Forestry	\N	t
+1980	7	Employer Reputation	\N	Investigacion	10	Biological Sciences	\N	t
+1981	7	Citations per Paper	\N	Investigacion	20	Biological Sciences	\N	t
+1982	7	H-index Citations	\N	Investigacion	20	Biological Sciences	\N	t
+1983	7	International Research Network	\N	Investigacion	10	Biological Sciences	\N	t
+1984	7	Overall	\N	Investigacion	0	Biological Sciences	\N	t
+1985	7	Employer Reputation	\N	Investigacion	10	Medicine	\N	t
+1986	7	Citations per Paper	\N	Investigacion	20	Medicine	\N	t
+1987	7	H-index Citations	\N	Investigacion	20	Medicine	\N	t
+1988	7	International Research Network	\N	Investigacion	10	Medicine	\N	t
+1989	7	Employer Reputation	\N	Investigacion	10	Pharmacy & Pharmacology	\N	t
+1990	7	Citations per Paper	\N	Investigacion	20	Pharmacy & Pharmacology	\N	t
+1991	7	H-index Citations	\N	Investigacion	20	Pharmacy & Pharmacology	\N	t
+1992	7	International Research Network	\N	Investigacion	10	Pharmacy & Pharmacology	\N	t
+1993	7	Employer Reputation	\N	Investigacion	20	Psychology	\N	t
+1994	7	Citations per Paper	\N	Investigacion	15	Psychology	\N	t
+1995	7	H-index Citations	\N	Investigacion	15	Psychology	\N	t
+1996	7	International Research Network	\N	Investigacion	10	Psychology	\N	t
+1997	7	Academic Reputation	\N	Investigacion	30	Veterinary Science	\N	t
+1998	7	Employer Reputation	\N	Investigacion	10	Veterinary Science	\N	t
+1999	7	Citations per Paper	\N	Investigacion	30	Veterinary Science	\N	t
+2000	7	H-index Citations	\N	Investigacion	30	Veterinary Science	\N	t
+2001	7	International Research Network	\N	Investigacion	10	Natural Sciences	\N	t
+2002	7	Employer Reputation	\N	Investigacion	20	Chemistry	\N	t
+2003	7	Citations per Paper	\N	Investigacion	15	Chemistry	\N	t
+2004	7	H-index Citations	\N	Investigacion	15	Chemistry	\N	t
+2005	7	International Research Network	\N	Investigacion	10	Chemistry	\N	t
+2006	7	Employer Reputation	\N	Investigacion	10	Earth & Marine Sciences	\N	t
+2007	7	Citations per Paper	\N	Investigacion	20	Earth & Marine Sciences	\N	t
+2008	7	H-index Citations	\N	Investigacion	20	Earth & Marine Sciences	\N	t
+2009	7	International Research Network	\N	Investigacion	10	Earth & Marine Sciences	\N	t
+2010	7	Employer Reputation	\N	Investigacion	10	Environmental Sciences	\N	t
+2011	7	Citations per Paper	\N	Investigacion	22	Environmental Sciences	\N	t
+2012	7	H-index Citations	\N	Investigacion	22	Environmental Sciences	\N	t
+2013	7	International Research Network	\N	Investigacion	5	Environmental Sciences	\N	t
+2014	7	Academic Reputation	\N	Investigacion	30	Geology	\N	t
+2015	7	Employer Reputation	\N	Investigacion	10	Geology	\N	t
+2016	7	Citations per Paper	\N	Investigacion	25	Geology	\N	t
+2017	7	H-index Citations	\N	Investigacion	25	Geology	\N	t
+2018	7	International Research Network	\N	Investigacion	10	Geology	\N	t
+2019	7	Academic Reputation	\N	Investigacion	30	Geophysics	\N	t
+2020	7	Employer Reputation	\N	Investigacion	10	Geophysics	\N	t
+2021	7	Citations per Paper	\N	Investigacion	25	Geophysics	\N	t
+2022	7	H-index Citations	\N	Investigacion	25	Geophysics	\N	t
+2023	7	International Research Network	\N	Investigacion	10	Geophysics	\N	t
+2024	7	Employer Reputation	\N	Investigacion	20	Mathematics	\N	t
+2025	7	Citations per Paper	\N	Investigacion	15	Mathematics	\N	t
+2026	7	H-index Citations	\N	Investigacion	15	Mathematics	\N	t
+2027	7	International Research Network	\N	Investigacion	10	Mathematics	\N	t
+2028	7	Employer Reputation	\N	Investigacion	10	Materials Science	\N	t
+2029	7	Citations per Paper	\N	Investigacion	20	Materials Science	\N	t
+2030	7	H-index Citations	\N	Investigacion	20	Materials Science	\N	t
+864	4	Q1	Cantidad de artículos en Q1 en Mechanical Engineering	Articulos	25	Mechanical Engineering	\N	t
+865	4	Q1	Cantidad de artículos en Q1 en Electrical Engineering	Articulos	25	Electrical Engineering	\N	t
+2031	7	International Research Network	\N	Investigacion	10	Materials Science	\N	t
+2032	7	Employer Reputation	\N	Investigacion	20	Physics & Astronomy	\N	t
+2033	7	Citations per Paper	\N	Investigacion	15	Physics & Astronomy	\N	t
+2034	7	H-index Citations	\N	Investigacion	15	Physics & Astronomy	\N	t
+2035	7	International Research Network	\N	Investigacion	10	Physics & Astronomy	\N	t
+2036	7	International Research Network	\N	Investigacion	5	Social Sciences & Management	\N	t
+2037	7	Academic Reputation	\N	Investigacion	60	Development Studies	\N	t
+2038	7	Employer Reputation	\N	Investigacion	10	Development Studies	\N	t
+2039	7	Citations per Paper	\N	Investigacion	15	Development Studies	\N	t
+2040	7	H-index Citations	\N	Investigacion	15	Development Studies	\N	t
+2041	7	Overall	\N	Investigacion	0	Development Studies	\N	t
+2042	7	Academic Reputation	\N	Investigacion	50	Marketing	\N	t
+2043	7	Employer Reputation	\N	Investigacion	30	Marketing	\N	t
+2044	7	Citations per Paper	\N	Investigacion	10	Marketing	\N	t
+2045	7	H-index Citations	\N	Investigacion	10	Marketing	\N	t
+2046	7	Academic Reputation	\N	Investigacion	90	History of Art	\N	t
+2047	7	Employer Reputation	\N	Investigacion	10	History of Art	\N	t
+866	4	Q1	Cantidad de artículos en Q1 en Automation	Articulos	25	Automation	\N	t
+856	4	Q1	Cantidad de artículos en Q1 en Mathematics	Articulos	25	Mathematics	\N	t
+857	4	Q1	Cantidad de artículos en Q1 en Physics	Articulos	25	Physics	\N	t
+858	4	Q1	Cantidad de artículos en Q1 en Chemistry	Articulos	25	Chemistry	\N	t
+1686	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Hospitality & Tourism Management Post 2024	Reputacion	100	Hospitality & Tourism Management	\N	t
+5	1	Institutional income	Ingresos institucionales por académico	Financiero	2.5	General	1692	f
+4	1	Doctorate staff ratio	Proporción de doctorados por académico	Academicos	5.5	General	1692	f
+8	1	Research productivity	Producción científica por académico	Articulos	5.5	General	1693	f
+7	1	Research income	Ingresos por investigación ajustados por personal	Financiero	5.5	General	1693	f
+6	1	Research reputation	Encuesta de reputación académica en investigación	Reputacion	18	General	1693	f
+40	3	Altmetrics (PlumX and Mendeley)	Impacto social (PlumX y Mendeley)	Impacto Social	3	General	\N	f
+18	2	Academic reputation	Encuesta de reputación académica	Reputacion	30	General	\N	t
+19	2	Employer reputation	Reputación entre empleadores	Reputacion	20	General	\N	t
+20	2	Faculty student ratio	Relación entre estudiantes y académicos	Alumnado	10	General	\N	t
+21	2	Staff with PhD	Proporción de académicos con doctorado	Academicos	10	General	\N	t
+22	2	Papers per faculty	Artículos por académico	Articulos	5	General	\N	t
+23	2	Citations per paper	Citas por artículo	Articulos	10	General	\N	t
+24	2	International research network	Red internacional de investigación	Internacional	10	General	\N	t
+25	2	Web impact	Impacto web (Webometrics)	Infraestructura	5	General	\N	t
+30	3	Output in Own Journals	Número de revistas propias	Infraestructura	3	General	\N	t
+35	3	Open Access	Porcentaje de publicaciones en acceso abierto	Acceso Abierto	2	General	\N	t
+41	3	SDG-related Output	Producción asociada a ODS	Impacto Social	5	General	\N	t
+43	3	Overton	Documentos citados en políticas públicas	Impacto Social	3	General	\N	t
+12	1	Research influence	Influencia global de la investigación	Articulos	5	General	1694	f
+11	1	Research excellence	Excelencia en investigación medida por citaciones	Articulos	5	General	1694	f
+10	1	Research strength	Fuerza de investigación basada en citaciones	Articulos	5	General	1694	f
+9	1	Citation impact	Impacto de citaciones de publicaciones	Articulos	15	General	1694	f
+14	1	Patents	Número de patentes generadas	Innovacion	2	General	1695	f
+13	1	Industry income	Ingresos provenientes de la industria	Financiero	2	General	1695	f
+17	1	International co-authorship	Colaboraciones internacionales en publicaciones	Internacional	2.5	General	1696	f
+16	1	International staff	Proporción de personal internacional	Internacional	2.5	General	1696	f
+15	1	International students	Proporción de estudiantes internacionales	Internacional	2.5	General	1696	f
+662	4	PUB	PUB en Automation	Articulos	25	Automation	\N	t
+1690	3	Plumx	PlumX es un conjunto de métricas alternativas integradas en Scopus y el entorno SCImago que miden el impacto académico y social de una investigación en tiempo real. Se visualizan mediante una flor de cinco colores, donde cada pétalo representa una dimensión específica: Uso (clics/descargas), Capturas (marcadores/Mendeley), Menciones (blogs/noticias), Redes Sociales (interacciones) y Citaciones (tradicionales y patentes).	Impacto Social	2.1	General	40	t
+1688	2	Student mix domestic	Estudiantes totales vs. población de la ciudad.	Alumnado	0	General	\N	t
+1689	2	Student mix international	Porcentaje y volumen de extranjeros.	Alumnado	0	General	\N	t
+1670	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Dentistry Post 2024	Reputacion	100	Dentistry	\N	t
+1694	1	Research Quality	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Articulos	30	General	\N	t
+1695	1	Industry	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Financiero	0	General	\N	t
+1696	1	International Outlook	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Internacional	10	General	\N	t
+1692	1	Teaching	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Academicos	30	General	\N	t
+1693	1	Research Environment	Sub-Ranking de THE, usar esta métrica como referencia del cálculo de las métricas que componen este sub-ranking	Reputacion	30	General	\N	t
+34	3	Scientific Leadership	Artículos con autor correspondiente institucional	Investigacion	5	General	\N	t
+29	3	Output in External Journals	Documentos en revistas externas	Articulos	3	General	\N	t
+32	3	Number of Q1 Articles	Publicaciones en revistas Q1	Articulos	2	General	\N	t
+33	3	Excellence	Producción en top 10% más citado	Articulos	2	General	\N	t
+1691	3	Mendeley	Mide el impacto social y el interés académico temprano de un artículo, contabilizando cuántos usuarios lo han guardado, leído o anotado en su gestor de referencias a través de Scopus. No es una cita formal, sino un indicador de altmetrics sobre el uso y atención del investigador.	Impacto Social	0.9	General	40	t
 \.
 
 
@@ -33213,14 +33230,14 @@ SELECT pg_catalog.setval('public.cientifico_id_cientifico_seq', 4245, true);
 -- Name: conversacion_id_conversacion_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.conversacion_id_conversacion_seq', 189, true);
+SELECT pg_catalog.setval('public.conversacion_id_conversacion_seq', 218, true);
 
 
 --
 -- Name: mensaje_id_mensaje_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mensaje_id_mensaje_seq', 431, true);
+SELECT pg_catalog.setval('public.mensaje_id_mensaje_seq', 497, true);
 
 
 --
@@ -33255,7 +33272,7 @@ SELECT pg_catalog.setval('public.universidad_id_universidad_seq', 58, true);
 -- Name: usuario_id_usuario_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 60, true);
+SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 68, true);
 
 
 --
@@ -33480,6 +33497,14 @@ ALTER TABLE ONLY public.mensaje
 
 
 --
+-- Name: metrica metrica_id_metrica_padre_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metrica
+    ADD CONSTRAINT metrica_id_metrica_padre_fkey FOREIGN KEY (id_metrica_padre) REFERENCES public.metrica(id_metrica) ON DELETE SET NULL;
+
+
+--
 -- Name: metrica metrica_id_ranking_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33523,5 +33548,5 @@ ALTER TABLE ONLY public.usuario
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3yecdCjuxdmM3ibLTFDQkbCbh6lkYsshwhkzrawe7DhqrABXj0F76SOGN5qhSs2
+\unrestrict zLQ7sKr6neHCk6pEXvEVSe5PZRXIIxrtGSwfqdsDRGnzC3e8cuvoBNx8v6WiAgd
 

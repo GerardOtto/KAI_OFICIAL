@@ -47,6 +47,7 @@ Orden de trabajo: primero mira si la base responde; si no responde o solo respon
 - No tienes acceso a cuentas de usuario, conversaciones, mensajes, notificaciones ni planes de suscripción, y no debes intentarlo: tus herramientas solo alcanzan las tablas académicas. Si te preguntan por datos de usuarios, responde que esa información queda fuera de tu alcance por diseño.
 - Los pesos de las métricas cambiaron a lo largo de los años en varios rankings (con claridad en Shanghai GRAS y THE). Antes de sumar o comparar pesos, comprueba de qué años son; una suma que mezcla versiones de la metodología no significa nada.
 - Shanghai GRAS y QS por Disciplina son multidisciplinarios: sus métricas se repiten por disciplina. Agregarlas sin fijar una disciplina produce cifras infladas y sin sentido.
+- Algunos rankings publican su metodología en dos niveles: los pilares y los indicadores que cada pilar agrupa (THE Latam trae los dos). Para sumar pesos usa solo las métricas con `pondera` verdadero; las demás son el otro nivel de la misma jerarquía y duplicarían el total. La columna `parte_de` dice a qué pilar pertenece cada indicador, y sirve para explicar la composición sin sumarla dos veces.
 
 # Formato
 La interfaz renderiza Markdown (GitHub Flavored Markdown).
@@ -263,6 +264,12 @@ def buscar_metricas(ranking_id: int, texto: str = "", disciplina: str = "") -> s
     años corresponde cada valor. Filtra siempre que el ranking sea grande
     (Shanghai GRAS y QS por Disciplina tienen cientos de métricas).
 
+    La columna `pondera` distingue los dos niveles en que algunos rankings
+    publican su metodología: los pilares y los indicadores que cada pilar agrupa.
+    Para sumar pesos usa solo las filas con `pondera` verdadero; las demás son el
+    otro nivel de la misma jerarquía y duplicarían el total. La columna
+    `parte_de` nombra el agregador al que pertenece cada componente.
+
     Args:
         ranking_id: ID del ranking (ver listar_rankings).
         texto: Fragmento del nombre o de la descripción de la métrica. Vacío para no filtrar por texto.
@@ -271,20 +278,23 @@ def buscar_metricas(ranking_id: int, texto: str = "", disciplina: str = "") -> s
     return _consulta(
         f"""
         SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.tipo_metrica, m.peso_metrica,
+               m.pondera, p.nombre_metrica AS parte_de,
                string_agg(DISTINCT mu.anio_metrica::text, ', ' ORDER BY mu.anio_metrica::text) AS anios_del_peso,
                left(coalesce(m.descripcion_metrica, ''), 120) AS descripcion
         FROM metrica m
         LEFT JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+        LEFT JOIN metrica p ON p.id_metrica = m.id_metrica_padre
         WHERE m.id_ranking = :rid
           AND ({_contiene('m.nombre_metrica', 'txt')}
                OR {_contiene('m.descripcion_metrica', 'txt')})
           AND {_contiene('m.disciplina', 'dis')}
         GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.tipo_metrica,
-                 m.peso_metrica, m.descripcion_metrica
+                 m.peso_metrica, m.pondera, p.nombre_metrica, m.descripcion_metrica
         ORDER BY m.disciplina, m.nombre_metrica
         """,
         {"rid": ranking_id, "txt": texto or "", "dis": disciplina or ""},
-        ["id_metrica", "metrica", "disciplina", "tipo", "peso_%", "anios_del_peso", "descripcion"],
+        ["id_metrica", "metrica", "disciplina", "tipo", "peso_%", "pondera", "parte_de",
+         "anios_del_peso", "descripcion"],
         "Ninguna métrica coincide con ese filtro. Prueba sin filtros o revisa el ranking con detalle_ranking.",
     )
 

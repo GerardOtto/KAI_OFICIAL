@@ -38,6 +38,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | Batería | Qué verifica |
 |---|---|
 | `herramientas` | Las diez herramientas de consulta y la contención de `consulta_sql` |
+| `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Declaración conjunta de búsqueda y herramientas, recuento y repliegue |
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
@@ -83,7 +84,7 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 |---|---|
 | `encabezado` | Sin desborde horizontal y con navegación en catorce anchos |
 | `tendencias` | Orden de las vistas y vista predeterminada |
-| `glosario` | Exclusión de un ranking, agregación multidisciplinaria y globo informativo |
+| `glosario` | Exclusión de un ranking, agregación multidisciplinaria, jerarquía de métricas y globo informativo |
 | `portada` | Estructura, planes y orden de los turnos |
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |

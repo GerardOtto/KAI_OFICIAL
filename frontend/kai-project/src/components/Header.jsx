@@ -1,105 +1,24 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../auth/AuthContext";
 import AuthModal from "./AuthModal";
 
+// Los modos de Simulación se eligen dentro del propio módulo, con el mismo
+// selector que las vistas de Tendencias; aquí basta un enlace a la sección.
+// /simulacion redirige al modo por defecto.
 const NAV = [
   { label: "Asistente", to: "/asistente" },
   { label: "Tendencias", to: "/tendencias" },
-];
-
-const NAV_AFTER_DROPDOWNS = [
+  { label: "Simulación", to: "/simulacion" },
   { label: "Glosario", to: "/metricas" },
   { label: "Resumen", to: "/ranking" },
-];
-
-const OPCIONES_SIMULACION = [
-  {
-    to: "/simulacion/unitaria",
-    label: "Unitaria",
-    sub: "Una institución · sliders",
-    desc: "Ajusta cada métrica de tu institución con un slider y mira el efecto en su score y posición.",
-  },
-  {
-    to: "/simulacion/comparada",
-    label: "Comparada",
-    sub: "Varias instituciones · matriz",
-    desc: "Edita celda por celda una matriz de instituciones y métricas; el ranking se reordena en vivo.",
-  },
 ];
 
 const navLinkClass = ({ isActive }) =>
   `flex items-center px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
     isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
   }`;
-
-function NavDropdown({ label, opciones }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef(null);
-
-  const activo = opciones.some(o => location.pathname === o.to);
-
-  const abrir = () => {
-    clearTimeout(closeTimer.current);
-    setOpen(true);
-  };
-  const cerrarConDelay = () => {
-    closeTimer.current = setTimeout(() => setOpen(false), 120);
-  };
-
-  return (
-    <div className="relative h-full flex items-center" onMouseEnter={abrir} onMouseLeave={cerrarConDelay}>
-      <button
-        onClick={() => setOpen(v => !v)}
-        className={`relative flex items-center gap-1.5 px-4 h-full text-[11px] uppercase tracking-widest transition-colors ${
-          activo ? "text-white" : "text-outlineSoft hover:text-white"
-        }`}
-      >
-        {label}
-        <span className="text-[8px] text-outlineSoft">▾</span>
-        {activo && <span className="absolute left-4 right-4 bottom-0 h-[2px] bg-white" />}
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 w-[330px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
-          {opciones.map(o => {
-            const esActual = location.pathname === o.to;
-            return (
-              <button
-                key={o.to}
-                onClick={() => { navigate(o.to); setOpen(false); }}
-                className={`w-full text-left px-3.5 py-3 transition-colors ${
-                  esActual ? "bg-white/[.08]" : "hover:bg-white/[.05]"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`font-body font-semibold text-[12.5px] ${esActual ? "text-white" : "text-[#dcdcdc]"}`}>
-                    {o.label}
-                  </span>
-                  {esActual && <span className="text-[9px] text-accent">✓ actual</span>}
-                </div>
-                <div className="text-[11px] text-[#8a8a8a] mt-0.5">{o.sub}</div>
-                <div className="text-[10.5px] leading-relaxed text-[#6f6f6f] mt-1">{o.desc}</div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Todos los destinos en una sola lista, para el menú compacto de pantallas
-// estrechas. Se deriva de las mismas constantes que el nav ancho, de modo que
-// añadir una sección no obligue a acordarse de tocar dos sitios.
-const DESTINOS = [
-  ...NAV,
-  ...OPCIONES_SIMULACION.map(o => ({ label: `Simulación · ${o.label}`, to: o.to })),
-  ...NAV_AFTER_DROPDOWNS,
-];
 
 function MenuCompacto() {
   const navigate = useNavigate();
@@ -122,8 +41,10 @@ function MenuCompacto() {
         <>
           <div className="fixed inset-0 z-30" onClick={() => setAbierto(false)} />
           <div className="absolute top-full left-0 mt-2 w-[250px] bg-[#1a1a1a] border border-white/[.16] shadow-[0_16px_40px_rgba(0,0,0,.55)] p-1.5 z-40">
-            {DESTINOS.map(d => {
-              const esActual = location.pathname === d.to;
+            {/* Misma lista que el nav ancho. Se compara por prefijo para que
+                /simulacion/unitaria marque «Simulación» como actual. */}
+            {NAV.map(d => {
+              const esActual = location.pathname.startsWith(d.to);
               return (
                 <button
                   key={d.to}
@@ -245,23 +166,13 @@ export default function Header() {
         style={{ height: "36px", filter: "invert(1)", mixBlendMode: "screen", cursor: "pointer" }}
       />
 
-      {/* Desde `lg` y no desde `md`: medido, el nav ocupa 672 px y el encabezado
-          completo necesita 940, de modo que entre 768 y 940 desbordaba la página
-          horizontalmente en todas las vistas. Condensarlo hasta caber en 768
-          exigía recortar el texto a 10 px sin espaciado, ilegible para el uso al
-          que va destinado. Los menús desplegables se posicionan de forma
-          absoluta dentro del nav, así que tampoco cabía hacerlo desplazable sin
-          recortarlos. */}
+      {/* Desde `lg` y no desde `md`: el nav completo no cabe junto al logotipo y
+          los controles de usuario en anchos de tableta, y condensarlo exigiría
+          recortar el texto hasta volverlo ilegible. Por debajo de `lg` lo
+          sustituye el menú compacto. */}
       <nav className="hidden lg:flex items-center h-full gap-1">
+        {/* NavLink compara por prefijo: /simulacion/comparada activa «Simulación». */}
         {NAV.map(section => (
-          <NavLink key={section.label} to={section.to} className={navLinkClass}>
-            {section.label}
-          </NavLink>
-        ))}
-
-        <NavDropdown label="Simulación" opciones={OPCIONES_SIMULACION} />
-
-        {NAV_AFTER_DROPDOWNS.map(section => (
           <NavLink key={section.label} to={section.to} className={navLinkClass}>
             {section.label}
           </NavLink>

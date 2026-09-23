@@ -27,6 +27,8 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 BATERIAS = [
     ("herramientas", "test_herramientas.py",
      "Las diez herramientas de consulta y la contención de la consulta SQL", False, False),
+    ("pesos", "test_pesos_de_metricas.py",
+     "Coherencia de los pesos: cada ranking reparte 100 % y una sola vez", False, False),
     ("motor-gemini", "test_motor_gemini.py",
      "Ciclo de herramientas, tokens y errores del motor Gemini", False, False),
     ("busqueda-web", "test_busqueda_web.py",

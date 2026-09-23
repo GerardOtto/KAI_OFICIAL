@@ -8,9 +8,11 @@ import SimulacionUnitaria from "../components/simulacion/SimulacionUnitaria";
 import SimulacionComparada from "../components/simulacion/SimulacionComparada";
 import AgenteIA from "../components/simulacion/AgenteIA";
 
+// Mismo selector que las vistas de Tendencias. El modo vive en la URL
+// (/simulacion/:modo), así que sigue siendo direccionable por enlace.
 const MODOS = [
-  { modo: "unitaria", label: "Unitaria" },
-  { modo: "comparada", label: "Comparada" },
+  { modo: "unitaria", label: "Unitaria", sub: "una institución · sliders" },
+  { modo: "comparada", label: "Comparada", sub: "varias instituciones · matriz" },
 ];
 
 export default function Simulacion() {
@@ -61,30 +63,38 @@ export default function Simulacion() {
     <div className="min-h-screen bg-background text-white">
       <main className="max-w-[1600px] mx-auto px-8 pt-[22px] pb-10">
 
-        {/* Título + tabs de modo */}
-        <section className="flex items-end justify-between gap-4 flex-wrap mb-1">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
-              Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}
-            </p>
-            <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
-              Simulación de escenarios
-            </h2>
-          </div>
-          <div className="flex gap-1.5">
-            {MODOS.map(m => (
+        {/* Título */}
+        <section className="mb-1">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
+            Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}
+          </p>
+          <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
+            Simulación de escenarios
+          </h2>
+        </section>
+
+        {/* Pestañas de modo */}
+        <div className="flex gap-2 pt-[18px]">
+          {MODOS.map(m => {
+            const activa = modo === m.modo;
+            return (
               <button
                 key={m.modo}
                 onClick={() => navigate(`/simulacion/${m.modo}`)}
-                className={`font-body font-semibold text-[11px] py-2 px-4 border transition-colors ${
-                  modo === m.modo ? "bg-white text-[#111] border-white" : "bg-[#1c1c1c] text-[#9a9a9a] border-white/[.14] hover:text-white"
+                className={`text-left px-3.5 py-[9px] border transition-colors ${
+                  activa ? "bg-white border-white" : "border-white/[.14] hover:border-white/40"
                 }`}
               >
-                {m.label}
+                <div className={`font-body font-semibold text-[12px] ${activa ? "text-[#111]" : "text-[#9a9a9a]"}`}>
+                  {m.label}
+                </div>
+                <div className={`font-body text-[10px] mt-0.5 ${activa ? "text-black/50" : "text-[#6f6f6f]"}`}>
+                  {m.sub}
+                </div>
               </button>
-            ))}
-          </div>
-        </section>
+            );
+          })}
+        </div>
 
         {/* Controles: ranking / año / instituciones */}
         <div className="flex items-end gap-3 flex-wrap py-4 mb-2 border-b border-white/[.08]">

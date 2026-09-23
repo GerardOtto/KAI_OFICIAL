@@ -197,7 +197,54 @@ await esperar(400);
 comprobar("al salir de la celda desaparece",
   (await ev(`return document.querySelectorAll('[role=tooltip]').length;`)) === 0);
 
-console.log("\n=== 7. Sin errores de JavaScript ===");
+console.log("\n=== 7. THE Latam: un solo nivel de la jerarquía compone el peso ===");
+// THE Latam publica su metodología en dos niveles —cinco pilares y los diecisiete
+// indicadores que agrupan— y la base guarda los dos. Sumarlos daba 200 %.
+await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 950, deviceScaleFactor: 1, mobile: false });
+await esperar(700);
+const the = await ev(`
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
+  return [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
+    .map(f => ({ dim: f.children[0].innerText.trim(),
+                 texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | ') }))
+    .filter(x => x.texto);
+`);
+console.log("    " + JSON.stringify(the));
+const sumaThe = the.reduce((s, c) => {
+  const m = c.texto.match(/([\d.,]+)\s*%/);
+  return s + (m ? parseFloat(m[1].replace(/\./g, "").replace(",", ".")) : 0);
+}, 0);
+comprobar(`las dimensiones de THE Latam suman 100 % (dan ${sumaThe.toFixed(1)})`,
+  Math.abs(sumaThe - 100) <= 0.5, sumaThe.toFixed(2));
+comprobar("las dimensiones que se miden dentro de otro pilar llevan la marca «ref»",
+  the.some(c => /\bref\b/i.test(c.texto)), JSON.stringify(the));
+comprobar("ninguna celda marcada como referencia muestra además un porcentaje",
+  the.filter(c => /\bref\b/i.test(c.texto)).every(c => !/%/.test(c.texto)),
+  JSON.stringify(the.filter(c => /\bref\b/i.test(c.texto))));
+
+// En el desglose los indicadores siguen presentes, marcados y sin sumar.
+const celdaThe = await ev(`
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
+  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
+    .find(f => /%/.test(f.children[col]?.innerText || ''));
+  const r = fila.children[col].getBoundingClientRect();
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+           dim: fila.children[0].innerText.trim() };
+`);
+await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: celdaThe.x, y: celdaThe.y });
+await esperar(500);
+const globoThe = await ev(`
+  const g = document.querySelector('[role=tooltip]');
+  return g ? g.innerText.replace(/\\n+/g, ' | ') : null;
+`);
+console.log(`    desglose de ${celdaThe.dim}: ${globoThe}`);
+comprobar("el desglose conserva los indicadores de referencia",
+  globoThe != null && /ref/i.test(globoThe), globoThe);
+await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
+
+console.log("\n=== 8. Sin errores de JavaScript ===");
 const relevantes = errores.filter((t) => !/favicon|DevTools/i.test(t));
 comprobar("la consola no registró errores", relevantes.length === 0, JSON.stringify(relevantes).slice(0, 400));
 

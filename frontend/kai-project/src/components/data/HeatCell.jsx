@@ -63,12 +63,19 @@ function Globo({ rect, dimension, ranking, datos }) {
       </div>
 
       <div className="px-3 py-2 border-b border-outline/30">
-        <p className="text-[11px] text-[#c4c4c4] leading-relaxed">
-          <span className="font-semibold text-white">{porcentaje(datos.peso)}</span>{" "}
-          {datos.multi
-            ? `del peso de una disciplina, en promedio sobre ${datos.nDisciplinas} disciplinas`
-            : "del peso del ranking"}
-        </p>
+        {datos.soloReferencia ? (
+          <p className="text-[11px] text-[#c4c4c4] leading-relaxed">
+            El ranking mide esta dimensión{datos.parteDe ? <> dentro de <span className="font-mono text-white">{datos.parteDe}</span></> : " dentro de otro pilar"},
+            así que no reparte peso por separado.
+          </p>
+        ) : (
+          <p className="text-[11px] text-[#c4c4c4] leading-relaxed">
+            <span className="font-semibold text-white">{porcentaje(datos.peso)}</span>{" "}
+            {datos.multi
+              ? `del peso de una disciplina, en promedio sobre ${datos.nDisciplinas} disciplinas`
+              : "del peso del ranking"}
+          </p>
+        )}
         {datos.valor != null && (
           <p className="text-[11px] text-[#c4c4c4] leading-relaxed mt-1">
             {datos.multi ? "Promedio de " : ""}
@@ -85,8 +92,16 @@ function Globo({ rect, dimension, ranking, datos }) {
       <div className="px-3 py-2 flex flex-col gap-1">
         {visibles.map(m => (
           <div key={m.nombre} className="flex items-baseline justify-between gap-3">
-            <span className="text-[11px] text-[#c4c4c4] truncate">{m.nombre}</span>
+            {/* Un indicador de referencia se atenúa y lleva el pilar del que
+                forma parte: su peso está contado dentro de ese pilar, no aparte. */}
+            <span className={`text-[11px] truncate ${m.referencia ? "text-[#7a7a7a]" : "text-[#c4c4c4]"}`}
+                  title={m.referencia && m.parteDe ? `Forma parte de ${m.parteDe}` : undefined}>
+              {m.nombre}
+            </span>
             <span className="font-mono text-[10px] text-outlineSoft shrink-0 tabular-nums">
+              {m.referencia && (
+                <span className="px-1 mr-1 border border-white/15 text-[8px] uppercase tracking-wider">ref</span>
+              )}
               {porcentaje(m.peso)}
               {m.valor != null && <span className="text-white"> · {numero(m.valor)}</span>}
             </span>
@@ -113,9 +128,13 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado })
   const salir = useCallback(() => setRect(null), []);
 
   const tieneMetrica = datos != null;
-  const style = tieneMetrica
-    ? { backgroundColor: `oklch(0.72 0.13 250 / ${alphaForPeso(datos.peso)})`, borderColor: "rgba(255,255,255,.08)" }
-    : { backgroundColor: "rgba(255,255,255,.02)", borderColor: "rgba(255,255,255,.05)" };
+  // Tres estados: reparte peso (intensidad azul), se mide dentro de otro pilar
+  // (gris tenue, distinguible de la celda vacía) y no se mide.
+  const style = !tieneMetrica
+    ? { backgroundColor: "rgba(255,255,255,.02)", borderColor: "rgba(255,255,255,.05)" }
+    : datos.soloReferencia
+      ? { backgroundColor: "rgba(255,255,255,.045)", borderColor: "rgba(255,255,255,.09)" }
+      : { backgroundColor: `oklch(0.72 0.13 250 / ${alphaForPeso(datos.peso)})`, borderColor: "rgba(255,255,255,.08)" };
 
   const valor = datos?.valor ?? null;
 
@@ -135,7 +154,14 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado })
       >
         <span className="font-mono text-[9.5px] flex items-center gap-1"
               style={{ color: tieneMetrica ? "rgba(255,255,255,.6)" : "#5a5a5a" }}>
-          {tieneMetrica ? porcentaje(datos.peso) : "no mide"}
+          {!tieneMetrica ? "no mide" : datos.soloReferencia ? (
+            // 0 % se leería como «el ranking no la valora», cuando lo que ocurre
+            // es que su peso está contado dentro de otro pilar.
+            <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"
+                  title={datos.parteDe ? `Se mide dentro de ${datos.parteDe}` : "Se mide dentro de otro pilar"}>
+              ref
+            </span>
+          ) : porcentaje(datos.peso)}
           {/* Marca que la cifra es un promedio entre disciplinas y no una suma:
               sin ella, un 53 % de GRAS y uno de QS se leerían como lo mismo. Se
               escribe la palabra en vez de un símbolo como ⌀, que según la fuente

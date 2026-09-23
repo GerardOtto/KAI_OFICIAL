@@ -82,6 +82,9 @@ def root():
 # Autenticación
 # ---------------------------------------------------------------------------
 
+MENSAJE_SOLO_GOOGLE = "Su cuenta está verificada, solo puede ingresar vía su cuenta de Google."
+
+
 class RegistroRequest(BaseModel):
     nombre: str
     correo: str
@@ -136,10 +139,12 @@ def registro(req: RegistroRequest):
     db = SessionLocal()
     try:
         existe = db.execute(
-            text("SELECT id_usuario FROM usuario WHERE lower(correo_usuario) = :c"),
+            text("SELECT id_usuario, google_sub FROM usuario WHERE lower(correo_usuario) = :c"),
             {"c": correo},
         ).first()
         if existe:
+            if existe.google_sub:
+                raise HTTPException(status_code=409, detail=MENSAJE_SOLO_GOOGLE)
             raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo.")
 
         id_usuario = db.execute(text("""
@@ -166,13 +171,14 @@ def login(req: LoginRequest):
             WHERE lower(correo_usuario) = :c
         """), {"c": correo}).first()
 
+        # Una cuenta con Google no admite contraseña: se avisa antes de comprobar
+        # la clave, para que el usuario sepa por dónde entrar.
+        if fila is not None and fila.google_sub:
+            raise HTTPException(status_code=401, detail=MENSAJE_SOLO_GOOGLE)
+
         # Mismo mensaje para correo inexistente y clave incorrecta: revelar cuál
         # de los dos falló permitiría enumerar las cuentas registradas.
         if fila is None or not auth.verificar_clave(req.clave, fila.clave_usuario):
-            if fila is not None and fila.clave_usuario is None and fila.google_sub:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Esta cuenta se creó con Google. Usa el botón «Continuar con Google».")
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
         db.execute(text("UPDATE usuario SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id_usuario = :i"),
@@ -189,7 +195,12 @@ def login_google(req: GoogleRequest):
 
     Google devuelve un ID token firmado; aquí se verifica y se traduce a una
     sesión propia. Si el correo ya existe con contraseña local, se vincula la
-    cuenta de Google a ese mismo usuario en lugar de crear un duplicado.
+    cuenta de Google a ese mismo usuario en lugar de crear un duplicado, y la
+    contraseña se elimina: desde entonces solo se entra con Google.
+
+    Borrar la contraseña cierra el secuestro previo de cuentas: como el registro
+    local no verifica el correo, alguien pudo registrarse antes con un correo
+    ajeno; al vincularlo su dueño real, esa contraseña deja de servir.
     """
     datos = auth.verificar_token_google(req.credential)
 
@@ -213,6 +224,7 @@ def login_google(req: GoogleRequest):
             db.execute(text("""
                 UPDATE usuario
                    SET google_sub = :g,
+                       clave_usuario = NULL,
                        avatar_url = COALESCE(avatar_url, :a),
                        correo_verificado = TRUE,
                        ultimo_acceso = CURRENT_TIMESTAMP
@@ -659,10 +671,17 @@ def get_metricas_por_tipo(tipo: str):
                 m.peso_metrica,
                 m.tipo_metrica,
                 m.disciplina,
+                -- Un ranking puede publicar su metodología en dos niveles. Quien
+                -- sume pesos debe usar solo las que ponderan: las demás son el
+                -- otro nivel de la misma jerarquía y duplicarían el total.
+                m.pondera,
+                m.id_metrica_padre,
+                p.nombre_metrica AS nombre_metrica_padre,
                 r.id_ranking,
                 r.nombre_ranking
             FROM metrica m
             JOIN ranking r ON r.id_ranking = m.id_ranking
+            LEFT JOIN metrica p ON p.id_metrica = m.id_metrica_padre
             WHERE m.tipo_metrica = :tipo
             ORDER BY r.nombre_ranking, m.nombre_metrica
         """), {"tipo": tipo})

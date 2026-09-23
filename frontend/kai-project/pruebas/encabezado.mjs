@@ -86,9 +86,10 @@ const opciones = await ev(`
     .filter(t => t && !/^men\\u00fa/i.test(t) && !/iniciar sesi/i.test(t));
 `);
 console.log("    opciones:", JSON.stringify(opciones));
-comprobar("el menú abre con los seis destinos", opciones.length >= 6, String(opciones.length));
-comprobar("incluye las dos simulaciones",
-  opciones.filter(o => /Simulaci/i.test(o)).length >= 2,
+comprobar("el menú abre con los cinco destinos", opciones.length === 5, String(opciones.length));
+// Los modos de Simulación se eligen dentro del módulo, no desde la navegación.
+comprobar("ofrece Simulación como una sola entrada",
+  opciones.filter(o => /Simulaci/i.test(o)).length === 1,
   JSON.stringify(opciones));
 // Los censos de investigadores se retiraron del encabezado: sus páginas y sus
 // datos siguen ahí, pero ya no se ofrece acceso desde la navegación.
