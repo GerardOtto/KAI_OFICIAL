@@ -40,7 +40,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `herramientas` | Las diez herramientas de consulta y la contención de `consulta_sql` |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
-| `busqueda-web` | Declaración conjunta de búsqueda y herramientas, recuento y repliegue |
+| `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
 | `planes` | Cuotas por motor, tope diario, margen comercial y rol de administrador |
 | `chat` | Recorrido completo de `/chat` con sesión y base reales |
@@ -88,10 +88,21 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `portada` | Estructura, planes y orden de los turnos |
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
+| `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
 
-Las dos últimas ejercitan la interfaz del asistente y necesitan además un backend
-con el proveedor sustituido por un doble, con la aplicación compilada apuntando a
-él. Se omiten si no se define `KAI_API_URL`.
+`motores` y `respuestas_markdown` ejercitan la interfaz del asistente y necesitan
+además un backend con el proveedor sustituido por un doble, con la aplicación
+compilada apuntando a él. Se omiten si no se define `KAI_API_URL`.
+
+`reporte` es la excepción a todo lo anterior: no mira la aplicación compilada,
+sino que importa los módulos de origen para componer PDF y dibujar gráficos sin
+atravesar la interfaz. Necesita el servidor de desarrollo, y se omite si no se
+define `KAI_DEV_URL`:
+
+```bash
+npx vite --port 5198 --strictPort
+KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
+```
 
 ### Dos trampas del control programático del navegador
 

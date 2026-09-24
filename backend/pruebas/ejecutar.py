@@ -32,7 +32,7 @@ BATERIAS = [
     ("motor-gemini", "test_motor_gemini.py",
      "Ciclo de herramientas, tokens y errores del motor Gemini", False, False),
     ("busqueda-web", "test_busqueda_web.py",
-     "Declaración conjunta de búsqueda y herramientas, y repliegue", False, False),
+     "Internet como herramienta a demanda, cuota y cadena de modelos", False, False),
     ("convivencia", "test_convivencia_motores.py",
      "Motor fijado por conversación y aislamiento del contexto", False, False),
     ("planes", "test_planes.py",
@@ -100,6 +100,10 @@ def main():
     entorno = {**os.environ}
     entorno.setdefault("GEMINI_API_KEY", "clave-de-prueba")
     entorno["PYTHONIOENCODING"] = "utf-8"
+    # Las esperas entre reintentos del motor Gemini, a cero: lo que se verifica es
+    # que reintente y cuántas veces, no que el proceso duerma diez segundos por
+    # cada caso de error.
+    entorno.setdefault("GEMINI_ESPERAS_503", "0,0,0")
 
     print(f"Ejecutando {len(seleccion)} baterías\n")
     resultados = []

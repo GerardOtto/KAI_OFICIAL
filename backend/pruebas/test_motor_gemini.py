@@ -117,9 +117,9 @@ comprobar("assistant -> model", roles == ["user", "model", "user"], roles)
 print("\n=== 3. Instrucción de sistema y herramientas en la configuración ===")
 cfg = doble.peticiones[0]["config"]
 comprobar("lleva la instrucción de sistema compartida", "KAI" in (cfg.system_instruction or ""))
-comprobar("declara todas las herramientas de consulta",
-          len(cfg.tools[0].function_declarations) == len(POR_NOMBRE),
-          f"{len(cfg.tools[0].function_declarations)} declaradas frente a {len(POR_NOMBRE)} definidas")
+comprobar("declara todas las herramientas de consulta, más la de internet",
+          len(cfg.tools[0].function_declarations) == len(POR_NOMBRE) + 1,
+          f"{len(cfg.tools[0].function_declarations)} declaradas frente a {len(POR_NOMBRE)} de datos")
 comprobar("desactiva la ejecución automática del SDK",
           cfg.automatic_function_calling.disable is True)
 
@@ -179,7 +179,7 @@ def error_api(codigo, mensaje, estado="ERROR"):
 
 casos = [
     (403, "API key not valid", "clave de la API de Gemini no es válida"),
-    (404, "models/x is not found", "no existe o no está disponible"),
+    (404, "models/x is not found", "existe o está disponible"),
     (429, "Resource has been exhausted: quota", "cuota de la API de Gemini"),
     (429, "too many requests", "demasiadas solicitudes"),
     (400, "billing account required", "facturación activa"),
@@ -195,8 +195,11 @@ for codigo, mensaje, esperado in casos:
     r = g.responder([{"role": "user", "content": "x"}])
     comprobar(f"{codigo} '{mensaje[:22]}'", not r["ok"] and esperado in r["texto"], r["texto"])
 
+# Un 503 se reintenta y, agotados los intentos, se prueba con el siguiente modelo
+# de la cadena: el guion tiene que dar de sí para todos ellos.
+LLAMADAS_HASTA_RENDIRSE = (len(g.ESPERAS_TRAS_503) + 1) * len(g.MODELOS)
 con_cliente([genai_errors.ServerError(503, {"error": {"code": 503, "message": "overloaded"}})
-             for _ in range(6)])
+             for _ in range(LLAMADAS_HASTA_RENDIRSE + 2)])
 r = g.responder([{"role": "user", "content": "x"}])
 comprobar("503 -> servicio caído", not r["ok"] and "caído o sobrecargado" in r["texto"], r["texto"])
 
@@ -209,6 +212,34 @@ comprobar("un 503 pasajero se reintenta en vez de rendirse",
           r["ok"] and "segunda" in r["texto"], r["texto"])
 comprobar("el reintento es una llamada más, no un turno nuevo",
           len(doble.peticiones) == 2, len(doble.peticiones))
+
+# Cuántas veces se reintenta. Medido en vivo, la mitad de las llamadas a
+# gemini-3.1-flash-lite devuelve 503 por saturación; con un solo reintento, una
+# consulta de datos —que necesita dos llamadas— saldría adelante menos de la
+# mitad de las veces.
+intentos = len(g.ESPERAS_TRAS_503) + 1
+doble = con_cliente([genai_errors.ServerError(503, {"error": {"code": 503, "message": "overloaded"}})
+                     for _ in range(LLAMADAS_HASTA_RENDIRSE + 2)])
+r = g.responder([{"role": "user", "content": "x"}])
+comprobar("se agotan los intentos con cada modelo de la cadena antes de rendirse",
+          len(doble.peticiones) == LLAMADAS_HASTA_RENDIRSE,
+          f"{len(doble.peticiones)} de {LLAMADAS_HASTA_RENDIRSE}")
+comprobar("son al menos tres intentos", intentos >= 3, intentos)
+comprobar("el mensaje de error dice cuántas veces se intentó",
+          str(intentos) in r["texto"], r["texto"])
+comprobar("el mensaje ofrece derivar al otro motor", "Claude" in r["texto"], r["texto"])
+
+# Un 500 y un 504 son igual de pasajeros que un 503; un 400 no.
+for codigo in (500, 502, 504):
+    doble = con_cliente([genai_errors.ServerError(codigo, {"error": {"code": codigo, "message": "x"}}),
+                         respuesta_texto("Funcionó al reintentar.")])
+    r = g.responder([{"role": "user", "content": "x"}])
+    comprobar(f"un {codigo} pasajero también se reintenta", r["ok"], r["texto"])
+
+doble = con_cliente([error_api(400, "invalid argument"), respuesta_texto("no debería llegar aquí")])
+r = g.responder([{"role": "user", "content": "x"}])
+comprobar("un 400 no se reintenta: no mejora repitiéndolo",
+          len(doble.peticiones) == 1, len(doble.peticiones))
 
 con_cliente([RuntimeError("algo raro")])
 r = g.responder([{"role": "user", "content": "x"}])

@@ -29,7 +29,15 @@ const SONDAS = {
   portada: "Estructura, planes y orden de los turnos",
   respuestas_markdown: "Énfasis, tablas, listas y desbordamiento",
   motores: "Selector de motores y derivación",
+  reporte: "Composición del PDF y dibujo del bloque de gráfico",
 };
+
+// La del reporte importa los módulos de origen por su ruta, así que necesita el
+// servidor de desarrollo y no la aplicación compilada:
+//   npx vite --port 5198 --strictPort
+// Sin KAI_DEV_URL se omite, igual que las del asistente.
+const REQUIERE_DEV = new Set(["reporte"]);
+const hayServidorDeDesarrollo = Boolean(process.env.KAI_DEV_URL);
 
 // Estas dos ejercitan la interfaz del asistente, así que además de la aplicación
 // necesitan un backend con el proveedor de lenguaje sustituido por un doble
@@ -45,7 +53,9 @@ const disponibles = readdirSync(AQUI)
 const pedidas = process.argv.slice(2);
 const seleccion = pedidas.length
   ? pedidas.filter(n => disponibles.includes(n))
-  : disponibles.filter(n => !REQUIEREN_ASISTENTE.has(n) || hayBackendDePrueba);
+  : disponibles.filter(n =>
+      (!REQUIEREN_ASISTENTE.has(n) || hayBackendDePrueba) &&
+      (!REQUIERE_DEV.has(n) || hayServidorDeDesarrollo));
 
 const omitidas = disponibles.filter(n => !seleccion.includes(n));
 
@@ -98,6 +108,8 @@ const ejecutar = nombre => new Promise(resolve => {
   const inicio = Date.now();
   const hijo = spawn(process.execPath, [join(AQUI, `${nombre}.mjs`)], {
     env: { ...process.env, KAI_APP_URL: APP, KAI_CDP_URL: CDP },
+    // La sonda del reporte se lanza contra el servidor de desarrollo, no contra
+    // la aplicación compilada; hereda KAI_DEV_URL del entorno.
   });
   let salida = "";
   hijo.stdout.on("data", d => (salida += d));
@@ -134,8 +146,14 @@ console.log("\n" + "=".repeat(74));
 console.log(`${resultados.length} sondas · ${total} comprobaciones · ${fallidas} fallidas`);
 console.log(rojas.length ? `SONDAS EN ROJO: ${rojas.join(", ")}` : "TODO EN VERDE");
 if (omitidas.length) {
-  console.log(`\nOmitidas por falta de backend de prueba: ${omitidas.join(", ")}`);
-  console.log("Para incluirlas, levanta un backend con el proveedor sustituido y define");
-  console.log("KAI_API_URL con su dirección, compilando antes la aplicación contra ella.");
+  console.log(`\nOmitidas por falta de servicios: ${omitidas.join(", ")}`);
+  if (omitidas.some(n => REQUIEREN_ASISTENTE.has(n))) {
+    console.log("  · asistente: levanta un backend con el proveedor sustituido y define");
+    console.log("    KAI_API_URL con su dirección, compilando antes la aplicación contra ella.");
+  }
+  if (omitidas.some(n => REQUIERE_DEV.has(n))) {
+    console.log("  · reporte: levanta el servidor de desarrollo (npx vite --port 5198)");
+    console.log("    y define KAI_DEV_URL con su dirección.");
+  }
 }
 process.exit(rojas.length ? 1 : 0);

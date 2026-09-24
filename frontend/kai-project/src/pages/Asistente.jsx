@@ -3,6 +3,7 @@ import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
+import { generarReporteEjecutivo } from "../reportes/reporteEjecutivo";
 
 const hora = (fecha) =>
   new Date(fecha).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -22,6 +23,13 @@ const SendIcon = () => (
 const SparkleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" />
+  </svg>
+);
+
+const ReportIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M8 17v-4M12 17v-6M16 17v-2" />
   </svg>
 );
 
@@ -51,6 +59,9 @@ export default function Asistente() {
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  // Id del mensaje cuyo reporte se está componiendo: el PDF tarda un instante y
+  // sin esta marca el botón parecería no haber respondido.
+  const [generando, setGenerando] = useState(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -129,6 +140,34 @@ export default function Asistente() {
     }
   };
 
+  const tituloConversacion =
+    conversaciones.find((c) => c.id_conversacion === idConversacion)?.titulo || "";
+
+  /** Descarga el reporte ejecutivo con la conversación hasta esta respuesta.
+   *
+   * El corte es hasta el mensaje del botón y no la conversación entera porque el
+   * botón aparece en cada respuesta: quien lo pulsa en la tercera espera un
+   * documento con esas tres consultas, no con las que vinieran después.
+   */
+  const generarReporte = async (idMensaje) => {
+    const hasta = mensajes.findIndex((m) => m.id === idMensaje);
+    if (hasta < 0 || generando) return;
+    setGenerando(idMensaje);
+    setError("");
+    try {
+      await generarReporteEjecutivo({
+        mensajes: mensajes.slice(0, hasta + 1),
+        conversacion: tituloConversacion,
+        usuario,
+        motor: motorActivo?.nombre || "",
+      });
+    } catch (e) {
+      setError(`No se pudo generar el reporte: ${e.message}`);
+    } finally {
+      setGenerando(null);
+    }
+  };
+
   const enviar = async (texto) => {
     const contenido = (texto ?? input).trim();
     if (!contenido || cargando) return;
@@ -136,9 +175,15 @@ export default function Asistente() {
 
     setError("");
     setInput("");
+    // El identificador del mensaje optimista se guarda aparte porque, si el turno
+    // falla, hay que retirar exactamente este y no cualquier otro: filtrar por el
+    // prefijo «tmp-» borraba también las preguntas ya respondidas de la misma
+    // sesión —que conservan ese prefijo mientras no se recargue la conversación—
+    // y dejaba sus respuestas huérfanas en pantalla y en el reporte.
+    const idOptimista = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setMensajes((prev) => [
       ...prev,
-      { id: `tmp-${Date.now()}`, role: "user", content: contenido, time: hora(Date.now()) },
+      { id: idOptimista, role: "user", content: contenido, time: hora(Date.now()) },
     ]);
     setCargando(true);
 
@@ -151,7 +196,7 @@ export default function Asistente() {
         // un error de red: se retira el mensaje optimista y se devuelve el texto,
         // para no dejar en pantalla un turno que no existe en el historial.
         setError(r.content);
-        setMensajes((prev) => prev.filter((m) => !String(m.id).startsWith("tmp-")));
+        setMensajes((prev) => prev.filter((m) => m.id !== idOptimista));
         setInput(contenido);
         return;
       }
@@ -172,7 +217,7 @@ export default function Asistente() {
     } catch (e) {
       // 429 es la cuota agotada: el mensaje del servidor ya explica qué hacer.
       setError(e.message);
-      setMensajes((prev) => prev.filter((m) => !String(m.id).startsWith("tmp-")));
+      setMensajes((prev) => prev.filter((m) => m.id !== idOptimista));
       setInput(contenido);
       if (e.status === 401) refrescar();
     } finally {
@@ -279,11 +324,24 @@ export default function Asistente() {
                       desplazarse dentro del mensaje en vez de estirar la página. */}
                   <Markdown className="max-w-3xl min-w-0">{m.content}</Markdown>
                 </div>
-                {m.tokens != null && m.tokens > 0 && (
-                  <span className="pl-11 font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f]">
-                    {m.time} · {m.tokens.toLocaleString("es-CL")} tokens
-                  </span>
-                )}
+                {/* El reporte es opcional y se compone en el navegador: no hay
+                    petición al servidor ni consumo de cuota al pulsarlo. */}
+                <div className="pl-11 flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={() => generarReporte(m.id)}
+                    disabled={generando != null}
+                    title="Descargar un PDF con esta conversación hasta aquí"
+                    className="flex items-center gap-1.5 px-2.5 py-1 border border-outline/40 font-mono text-[9px] uppercase tracking-widest text-outlineSoft hover:border-white/50 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-wait"
+                  >
+                    <ReportIcon />
+                    {generando === m.id ? "Componiendo…" : "Reporte ejecutivo"}
+                  </button>
+                  {m.tokens != null && m.tokens > 0 && (
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f]">
+                      {m.time} · {m.tokens.toLocaleString("es-CL")} tokens
+                    </span>
+                  )}
+                </div>
               </div>
             )
           )}

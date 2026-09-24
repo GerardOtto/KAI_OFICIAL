@@ -12,7 +12,7 @@ la profundidad del razonamiento y el precio.
 | Motor | Modelo | Para qué | Costo relativo |
 |---|---|---|---|
 | **Claude** (por defecto) | `claude-opus-5` | Razonamiento profundo: comparaciones entre rankings, preguntas de varios pasos, interpretación de tendencias | Alto |
-| **Gemini** | `gemini-3.1-flash-lite` | Respuestas rápidas: consultas directas de datos, «qué métricas tiene X», «qué años hay cargados» | Bajo |
+| **Gemini** | `gemini-3.5-flash-lite` | Respuestas rápidas: consultas directas de datos, «qué métricas tiene X», «qué años hay cargados» | Bajo |
 
 - **Registro y despacho:** [`backend/app/motores.py`](../backend/app/motores.py)
 - **Herramientas y contrato de respuesta comunes:** [`backend/app/herramientas.py`](../backend/app/herramientas.py)
@@ -121,30 +121,49 @@ corrija la consulta y reintente.
 ## 3. La búsqueda en internet
 
 En los dos proveedores la búsqueda **la ejecuta el servidor del proveedor**, no
-este backend: el modelo la invoca, el proveedor busca y devuelve el resultado ya
-incorporado al turno. No hay que contratar ni configurar ningún buscador aparte,
-y el backend nunca abre una conexión saliente a internet por su cuenta.
+este backend: el modelo la invoca, el proveedor busca y devuelve el resultado. No
+hay que contratar ni configurar ningún buscador aparte, y el backend nunca abre
+una conexión saliente a internet por su cuenta.
+
+La diferencia está en **cuándo se ofrece**:
 
 | | Claude | Gemini |
 |---|---|---|
 | Herramientas | `web_search_20260209` y `web_fetch_20260209` | `google_search` y `url_context` |
-| Cómo se declaran | Entradas sueltas en la lista de `tools` | **Dentro del mismo objeto `Tool`** que las funciones propias |
-| Requisito extra | Ninguno | `tool_config.include_server_side_tool_invocations = True` |
-| Cómo llega la ejecución | Bloques de resultado en la respuesta | Partes `toolCall`/`toolResponse`, distintas de las `functionCall` |
-| Tope por turno | `CLAUDE_MAX_BUSQUEDAS` (5 por defecto) | Lo decide el proveedor |
+| Cuándo se declaran | En todas las peticiones | **Solo en la consulta que resuelve `buscar_en_internet`** |
+| Cómo la pide el modelo | Directamente | Llamando a la función `buscar_en_internet` |
+| Cómo llega la ejecución | Bloques de resultado en la respuesta | Como resultado de la herramienta, igual que los de la base |
+| Tope por turno | `CLAUDE_MAX_BUSQUEDAS` (5 por defecto) | Lo decide el modelo, una llamada por búsqueda |
 
-Dos detalles de implementación que no son evidentes:
+En **Claude**, el `tool_runner` del SDK separa por sí mismo las herramientas que
+sabe ejecutar aquí de las que solo tiene que declarar, así que basta con añadir
+las de servidor a la lista. Como la respuesta final llega partida en varios
+bloques de texto con los resultados intercalados, se **concatenan todos**:
+quedarse con el primero devolvía la respuesta a medias.
 
-- **En Claude**, el `tool_runner` del SDK separa por sí mismo las herramientas
-  que sabe ejecutar aquí de las que solo tiene que declarar, así que basta con
-  añadir las de servidor a la lista. Como la respuesta final llega partida en
-  varios bloques de texto con los resultados de búsqueda intercalados, se
-  **concatenan todos**: quedarse con el primero devolvía la respuesta a medias.
-- **En Gemini**, combinar herramientas integradas con funciones propias solo está
-  disponible en los modelos **Gemini 3** y sigue en *Preview*. Si el proveedor
-  rechazara la combinación, el motor se repliega a las herramientas de base de
-  datos, responde igualmente y recuerda el rechazo para no repetir la llamada
-  fallida en cada turno.
+### Por qué en Gemini internet es una herramienta y no una capacidad
+
+Hasta el 24 de septiembre de 2026 el motor declaraba `google_search` en todas las
+peticiones, combinada con las funciones propias. Tenía dos problemas:
+
+- **Invitaba a buscar lo que la base ya responde.** La capacidad estaba siempre
+  ahí, y un modelo pequeño la usa.
+- **Agotada la cuota diaria de búsqueda —independiente de la de tokens—, Google
+  rechazaba la petición entera en la validación**, con un 429 en dos décimas de
+  segundo. Un saludo fallaba igual que una consulta a internet.
+
+Ahora el motor declara una función más, `buscar_en_internet`, junto a las diez de
+datos. Cuando el modelo la llama, el backend hace **una consulta aparte** —esa sí
+con `google_search` y `url_context`, y con su propia instrucción de sistema— y le
+devuelve el resumen como resultado de herramienta. Consecuencias:
+
+- La cuota de búsqueda solo se gasta cuando se busca de verdad.
+- Si esa cuota está agotada, el modelo recibe un aviso como resultado de la
+  herramienta y **termina el turno con lo que haya en la base**, advirtiéndolo.
+  La suspensión dura `GEMINI_ESPERA_CUOTA_WEB` segundos (1800 por defecto) para
+  no gastar una llamada perdida en cada consulta.
+- Los tokens de la búsqueda se suman a los del turno: es una llamada al modelo
+  como cualquier otra y se cobra contra la cuota del plan.
 
 ### Costo
 
@@ -218,23 +237,35 @@ archivo `.env`.
 | Variable | Obligatoria | Notas |
 |---|---|---|
 | `GEMINI_API_KEY` | Para usar el motor Gemini | Sin ella el motor se muestra deshabilitado |
-| `GEMINI_MODEL` | No | Por defecto `gemini-3.1-flash-lite`. Ver más abajo |
+| `GEMINI_MODELOS` | No | Cadena de modelos separados por comas. Por defecto `gemini-3.5-flash-lite,gemini-3.1-flash-lite` |
+| `GEMINI_MODEL` | No | Variable antigua. Si está, su modelo encabeza la cadena |
+| `GEMINI_ESPERAS_503` | No | Segundos entre reintentos. Por defecto `1,3,6`, es decir cuatro intentos |
+| `GEMINI_ESPERA_CUOTA_WEB` | No | Segundos que se suspende la búsqueda tras un 429. Por defecto 1800 |
 
 `GOOGLE_API_KEY` funciona como alternativa a `GEMINI_API_KEY`, por compatibilidad
 con el nombre que usa el SDK.
 
 ### Cambiar de modelo
 
-`gemini-3.1-flash-lite` es, al escribir esto (7 de septiembre de 2026), el modelo
-más económico que Google sirve a claves nuevas y que admite llamada a funciones
-—imprescindible aquí, porque el asistente no responde de memoria: consulta la
-base de datos—. El identificador es configurable precisamente porque esto cambia:
+No hay un modelo único, sino una **cadena**: si el primero agota sus reintentos
+por saturación, el motor pasa al siguiente y lo registra. Una vez que uno
+responde, el turno se queda con él, porque el historial de un turno con llamadas
+a herramientas lleva firmas de razonamiento que pertenecen al modelo que las
+produjo.
 
 ```
-GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODELOS=gemini-3.5-flash-lite,gemini-3.1-flash-lite
 ```
 
-Tres comprobaciones antes de cambiarlo, todas aprendidas a la fuerza:
+`gemini-3.5-flash-lite` encabeza la cadena desde el 24 de septiembre de 2026.
+
+Sustituyó a `gemini-3.1-flash-lite`, que era más barato pero dejó de estar
+disponible en la práctica: medido ese día con turnos completos de consulta a la
+base, uno de cada cuatro se perdía por saturación del modelo y los que salían
+adelante tardaban entre 26 y 118 segundos. El mismo turno contra 3.5-flash-lite
+respondió las cuatro veces, entre 3,7 y 7 segundos.
+
+Cuatro comprobaciones antes de cambiarlo, todas aprendidas a la fuerza:
 
 - **Que el modelo admita *function calling***. Uno que no lo haga arrancará sin
   error y fallará en la primera consulta.
@@ -246,6 +277,12 @@ Tres comprobaciones antes de cambiarlo, todas aprendidas a la fuerza:
   basta: `gemini-2.5-flash-lite` sigue listado y es más barato (0,10 / 0,40 USD),
   pero la API responde *«no longer available to new users»* y remite a la
   generación siguiente. La única prueba fiable es una consulta real.
+- **Que responda con holgura, no solo que responda.** Un modelo saturado
+  devuelve 503 *«This model is currently experiencing high demand»*, y como una
+  consulta de datos necesita dos llamadas —pedir la herramienta y redactar con su
+  resultado—, la probabilidad de perder el turno se multiplica. Hay que medirlo
+  con varios turnos completos, no con una llamada suelta: `gemini-3.8-flash`
+  responde 503 de inmediato en todos los intentos pese a estar listado.
 
 Los precios están en la [página de tarifas](https://ai.google.dev/gemini-api/docs/pricing);
 los modelos vigentes, en la [lista de modelos](https://ai.google.dev/gemini-api/docs/models).
@@ -259,7 +296,12 @@ Precios por millón de tokens:
 | Motor | Entrada | Salida |
 |---|---|---|
 | `claude-opus-5` | 5,00 USD | 25,00 USD |
-| `gemini-3.1-flash-lite` | 0,25 USD | 1,50 USD |
+| `gemini-3.5-flash-lite` | por confirmar en la página de tarifas | por confirmar |
+
+El precio de `gemini-3.1-flash-lite`, el modelo anterior, era 0,25 / 1,50 USD. El
+del actual hay que confirmarlo antes de rehacer los márgenes de los planes: la
+disponibilidad obligó a cambiar de modelo y el costo por token puede no ser el
+mismo.
 
 La entrada cuesta **20 veces menos** y la salida, **algo más de 16 veces menos**.
 Medido sobre una consulta real —«¿qué rankings hay cargados?», que obliga al
@@ -366,20 +408,25 @@ tope de ocho ciclos por turno impide que se quede reintentando.
 Verificado con pruebas automatizadas contra la base de datos real: las diez
 herramientas, la contención de `consulta_sql` (28 intentos de evasión, incluidos
 los identificadores entre comillas y las subconsultas), el ciclo de herramientas
-y la contabilidad de tokens y búsquedas de Gemini, su repliegue si el proveedor
-rechaza la combinación, la traducción de errores, el bloqueo del motor dentro de
-una conversación y el recorrido completo de `/chat` con autenticación real.
+y la contabilidad de tokens y búsquedas de Gemini, internet como herramienta a
+demanda —incluido qué ocurre cuando su cuota está agotada—, la cadena de modelos
+de respaldo, la traducción de errores, el bloqueo del motor dentro de una
+conversación y el recorrido completo de `/chat` con autenticación real.
 
 En Claude está verificado que el `tool_runner` separa correctamente las diez
 herramientas locales de las dos de servidor y declara las doce a la API.
 
+Verificado además **contra la API real de Gemini**: el ciclo completo de
+herramientas, que el límite de privacidad se sostiene frente a un intento directo
+de extracción, que la petición corriente no declara las herramientas de internet y
+que, sin cuota de búsqueda, el motor lo comunica en vez de fallar.
+
 **No verificado contra el proveedor en vivo**, por falta de saldo en la cuenta de
-Anthropic y de cuota diaria en la clave gratuita de Gemini el día de la
-implementación:
+Anthropic:
 
 - Que Claude use efectivamente `web_search` y devuelva citas.
-- Que Gemini acepte en la práctica la combinación de `google_search` con las
-  funciones propias. La forma de la petición sigue la documentación oficial de
-  Google y el SDK la admite; el repliegue automático cubre el caso de que no.
 
-La primera consulta real de cada motor confirmará ambas cosas.
+Tampoco se ha podido ejercitar una búsqueda real de Gemini de extremo a extremo:
+la cuota diaria de `google_search` de la clave gratuita lleva agotada desde antes
+del cambio. Lo que sí está verificado es el camino alternativo, que es el que
+importa para que el turno no se pierda.

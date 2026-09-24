@@ -23,7 +23,6 @@ sys.path.insert(0, RAIZ)
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(RAIZ, ".env"))
-from google.genai import types
 
 from app import assistant_gemini as g
 
@@ -73,42 +72,35 @@ fuga = any(marca in r["texto"] for marca in ("@gmail", "@universidad", "correo_u
 comprobar("no aparece ningún dato personal en la respuesta", not fuga, r["texto"][:250])
 
 print("\n=== 4. Estado de la búsqueda web tras los turnos ===")
-print(f"    combinación admitida: {g._combinacion_admitida}")
 suspendida = g._web_suspendida_hasta > time.time()
 print(f"    búsqueda suspendida por cuota: {suspendida}")
 comprobar("el motor sigue operativo aunque la búsqueda esté limitada por cuota",
           r["ok"], "el turno anterior falló")
 
-print("\n=== 5. Combinación de herramienta integrada y funciones, en vivo ===")
-# google_search está agotada por cuota; url_context es una integrada equivalente
-# en cuanto al mecanismo y no comparte esa cuota.
-try:
-    respuesta = g.cliente().models.generate_content(
-        model=g.MODEL,
-        contents="Abre https://www.topuniversities.com/world-university-rankings y dime en una "
-                 "frase qué es. Y dime qué rankings hay en la base con tu herramienta.",
-        config=types.GenerateContentConfig(
-            tools=[types.Tool(url_context=types.UrlContext(),
-                              function_declarations=g.DECLARACIONES)],
-            tool_config=g.CONFIG_HERRAMIENTAS,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-            max_output_tokens=400),
-    )
-    partes = [p for p in respuesta.candidates[0].content.parts]
-    tipos = sorted({t for p in partes for t in
-                    ("tool_call", "tool_response", "function_call", "text")
-                    if getattr(p, t, None) is not None})
-    llamadas = [c.name for c in (respuesta.function_calls or [])]
-    print(f"    tipos de parte devueltos: {tipos}")
-    print(f"    funciones propias invocadas: {llamadas}")
-    comprobar("el servidor ejecuta la herramienta integrada (tool_call/tool_response)",
-              "tool_call" in tipos and "tool_response" in tipos, str(tipos))
-    comprobar("y las funciones propias llegan como function_call en la misma respuesta",
-              "function_call" in tipos and llamadas == ["listar_rankings"],
-              f"tipos={tipos} llamadas={llamadas}")
-except Exception as e:
-    comprobar("la combinación integrada + funciones funciona en vivo", False,
-              f"{type(e).__name__}: {str(e)[:200]}")
+print("\n=== 5. La búsqueda en internet, en vivo ===")
+# Comprueba el mecanismo de `_buscar_en_internet`: una llamada aparte con las
+# herramientas integradas de Google. Si la cuota de `google_search` está agotada
+# —lo habitual en el nivel gratuito—, lo que se verifica es justamente que el
+# motor lo detecte y lo comunique en vez de fallar.
+texto, entrada, salida, n = g._buscar_en_internet(
+    "¿Qué es el ranking QS World University Rankings? Una frase.", g.MODELOS[0])
+print(f"    búsquedas informadas: {n}   tokens: {entrada}+{salida}")
+print(f"    respuesta: {texto[:160]}")
+if texto == g.SIN_INTERNET:
+    comprobar("sin cuota de búsqueda, se informa en vez de fallar", n == 0 and g._web_suspendida_hasta > time.time())
+else:
+    comprobar("la búsqueda devuelve texto utilizable", len(texto) > 40, texto[:120])
+    comprobar("y se contabiliza al menos una búsqueda", n >= 1, str(n))
+
+print("\n=== 6. Internet no se declara en la petición corriente ===")
+# La frontera que separa «responde con la base» de «sal a internet»: si la
+# búsqueda volviera a declararse en cada petición, la cuota se agotaría sola y
+# el modelo buscaría lo que la base ya responde.
+config = g._configuracion()
+comprobar("la configuración del turno no lleva las integradas de Google",
+          config.tools[0].google_search is None and config.tools[0].url_context is None)
+comprobar("pero sí la herramienta que el modelo puede pedir",
+          any(d.name == g.BUSQUEDA for d in config.tools[0].function_declarations))
 
 print("\n" + "=" * 62)
 print(f"FALLOS: {len(fallos)}" + (f" -> {fallos}" if fallos else "  (todo correcto)"))

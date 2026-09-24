@@ -106,7 +106,7 @@ Además de la migración, el servicio de backend necesita estas variables
 | `JWT_HORAS_VALIDEZ` | no | Por defecto 12 |
 | `GOOGLE_CLIENT_ID` | no | Sin ella el botón de Google no aparece |
 | `GEMINI_API_KEY` | no | Sin ella el motor Gemini se muestra deshabilitado. Ver `docs/asistente-motores.md` |
-| `GEMINI_MODEL` | no | Por defecto `gemini-3.1-flash-lite` |
+| `GEMINI_MODEL` | no | Por defecto `gemini-3.5-flash-lite` |
 
 Para generar un secreto:
 

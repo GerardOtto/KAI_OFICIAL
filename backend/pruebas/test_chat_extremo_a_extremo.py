@@ -75,13 +75,20 @@ class ClienteFalso:
         self.turnos += 1
         self.recibido.append(contents)
         if self.turnos == 1:
-            # Primer turno: pide datos a la base y "busca" en internet.
-            return Respuesta(llamadas=[Llamada("buscar_universidades", {"texto": "Católica"})],
-                             busquedas=["ranking QS 2026"])
-        # Segundo turno: contesta usando lo que devolvió la herramienta.
+            # Primera llamada: el modelo pide datos a la base.
+            return Respuesta(llamadas=[Llamada("buscar_universidades", {"texto": "Católica"})])
+        if self.turnos == 2:
+            # Segunda: con los datos delante, decide que además necesita internet.
+            return Respuesta(llamadas=[Llamada(g.BUSQUEDA, {"consulta": "ranking QS 2026"})])
+        if self.turnos == 3:
+            # Tercera: la consulta aparte que resuelve la búsqueda. Llega como
+            # texto suelto, no como historial, y es la única que informa de
+            # consultas al buscador.
+            return Respuesta(texto="QS publicó su edición 2026.", busquedas=["ranking QS 2026"])
+        # Cuarta: contesta usando lo que devolvieron las dos herramientas.
         salida = str(contents[-1])
-        marca = "PUCV-ENCONTRADA" if "Catolica de Valparaiso" in salida else "SIN-DATOS"
-        return Respuesta(texto=f"Resultado: {marca}")
+        marca = "PUCV-ENCONTRADA" if "Catolica de Valparaiso" in str(self.recibido) else "SIN-DATOS"
+        return Respuesta(texto=f"Resultado: {marca} {salida[:0]}")
 
 
 falso = ClienteFalso()
@@ -132,8 +139,11 @@ try:
     comprobar("el turno fue correcto", cuerpo.get("ok") is True, str(cuerpo)[:250])
     comprobar("la herramienta se ejecutó contra la base real",
               "PUCV-ENCONTRADA" in cuerpo.get("content", ""), cuerpo.get("content", "")[:200])
-    comprobar("se contabilizaron los tokens de los dos turnos",
-              cuerpo["uso"]["tokens_entrada"] == 3000 and cuerpo["uso"]["tokens_salida"] == 400,
+    # Cuatro llamadas al proveedor: consulta a la base, petición de internet, la
+    # búsqueda en sí y la redacción final. Los tokens de la búsqueda también se
+    # cobran: es una llamada al modelo como cualquier otra.
+    comprobar("se contabilizaron los tokens de las cuatro llamadas",
+              cuerpo["uso"]["tokens_entrada"] == 6000 and cuerpo["uso"]["tokens_salida"] == 800,
               str(cuerpo["uso"]))
     comprobar("la respuesta informa de la búsqueda web", cuerpo["uso"]["busquedas"] == 1,
               str(cuerpo["uso"]))

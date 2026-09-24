@@ -1,6 +1,16 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import GraficoBarras from "./GraficoBarras";
+
+/** Lenguaje del bloque cercado que el asistente usa para comparar cifras. */
+const LENGUAJE_GRAFICO = "language-kai-grafico";
+
+/** Texto crudo de un bloque cercado, tal como lo escribió el modelo. */
+function textoDelBloque(nodo) {
+  const hijos = nodo?.props?.children;
+  return Array.isArray(hijos) ? hijos.join("") : String(hijos ?? "");
+}
 
 /** Corrige el Markdown que los modelos escriben mal antes de renderizarlo.
  *
@@ -70,11 +80,20 @@ const COMPONENTES = {
       {children}
     </code>
   ),
-  pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto bg-surfaceHigh border border-outline/40 p-3 font-mono text-[12px] leading-relaxed [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0">
-      {children}
-    </pre>
-  ),
+  // El bloque ```kai-grafico no es código: es una comparación de cifras que se
+  // dibuja. Se intercepta en `pre`, que es donde react-markdown envuelve el
+  // bloque cercado, y no en `code`, para no tocar el código en línea.
+  pre: ({ children }) => {
+    const bloque = Array.isArray(children) ? children[0] : children;
+    if (String(bloque?.props?.className || "").includes(LENGUAJE_GRAFICO)) {
+      return <GraficoBarras fuente={textoDelBloque(bloque)} />;
+    }
+    return (
+      <pre className="my-3 overflow-x-auto bg-surfaceHigh border border-outline/40 p-3 font-mono text-[12px] leading-relaxed [&_code]:bg-transparent [&_code]:border-0 [&_code]:p-0">
+        {children}
+      </pre>
+    );
+  },
 
   table: ({ children }) => (
     <Desbordable>

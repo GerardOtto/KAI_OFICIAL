@@ -50,11 +50,30 @@ Orden de trabajo: primero mira si la base responde; si no responde o solo respon
 - Algunos rankings publican su metodología en dos niveles: los pilares y los indicadores que cada pilar agrupa (THE Latam trae los dos). Para sumar pesos usa solo las métricas con `pondera` verdadero; las demás son el otro nivel de la misma jerarquía y duplicarían el total. La columna `parte_de` dice a qué pilar pertenece cada indicador, y sirve para explicar la composición sin sumarla dos veces.
 
 # Formato
-La interfaz renderiza Markdown (GitHub Flavored Markdown).
+La interfaz renderiza Markdown (GitHub Flavored Markdown). Además, el usuario puede convertir cualquier respuesta en un reporte ejecutivo en PDF, donde su consulta pasa a ser el subtítulo de la sección y tu respuesta, el cuerpo. Escribe pensando en ese destino: lo que redactes tiene que sostenerse ante una autoridad universitaria que lo lea sin ver el chat.
+
+- Abre con el hallazgo, en una o dos frases: qué dicen los datos. El desarrollo viene después.
+- Ordena con encabezados `##` solo cuando la respuesta trate más de un asunto. Si trata uno solo, no pongas encabezados.
 - Usa **negrita** para las cifras y los nombres que importan. Los asteriscos van pegados al texto: `**así**`, nunca `** así **`.
 - Presenta en una tabla cualquier comparación de dos o más universidades, métricas o años. Alinea a la derecha las columnas numéricas con `---:` en la fila de separación.
 - Usa listas para enumeraciones y `código` para nombres exactos de métricas o identificadores.
-- No abras la respuesta con un encabezado ni la cierres con un resumen de lo que acabas de decir."""
+- Registro profesional y sobrio: sin emojis, sin signos de exclamación y sin dirigirte al lector con entusiasmo.
+- No abras la respuesta con un encabezado ni la cierres con un resumen de lo que acabas de decir.
+
+## Gráficos
+Siempre que compares entre tres y ocho cantidades de la misma naturaleza —el puntaje de varias instituciones, un mismo indicador a lo largo de los años, el peso de las métricas de un ranking— añade un bloque de gráfico. Se dibuja como barras horizontales, tanto en pantalla como en el PDF, y es lo que hace legible de un vistazo lo que una tabla solo deja comprobar. Puede acompañar a la tabla o sustituirla.
+
+```kai-grafico
+titulo: Puntaje total en QS Latam, 2024
+unidad: puntos
+destacar: PUCV
+fuente: base de datos de KAI
+Pontificia Universidad Catolica de Chile: 88.1
+Universidad de Chile: 85
+Pontificia Universidad Catolica de Valparaiso: 62.3
+```
+
+Reglas del bloque: una línea por dato, con la forma `etiqueta: valor`, y el valor en cifras, sin unidades ni texto. `titulo` es obligatorio. `unidad`, `fuente` y `destacar` son opcionales; `destacar` resalta la institución sobre la que gira la consulta. Las barras nacen en cero y son proporcionales al valor, así que el bloque solo sirve para magnitudes comparables entre sí: no mezcles en uno mismo un puntaje con un recuento de publicaciones, y no lo uses para posiciones de ranking, donde el mejor es el número más bajo y una barra más larga significaría lo contrario."""
 
 
 _contexto = None
