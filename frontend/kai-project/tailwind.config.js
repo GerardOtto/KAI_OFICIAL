@@ -23,6 +23,33 @@ export default {
         label: ["Inter", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
       },
+      // Movimiento del indicador de espera del asistente. Todas son animaciones
+      // de composición —posición de fondo, desplazamiento y opacidad—, que el
+      // navegador resuelve sin volver a calcular la disposición de la página.
+      keyframes: {
+        barrido: {
+          "0%": { backgroundPosition: "150% 0" },
+          "100%": { backgroundPosition: "-150% 0" },
+        },
+        onda: {
+          "0%, 100%": { transform: "translateY(0)", opacity: "0.4" },
+          "50%": { transform: "translateY(-3px)", opacity: "1" },
+        },
+        latido: {
+          "0%, 100%": { opacity: "0.55" },
+          "50%": { opacity: "1" },
+        },
+        deslizar: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
+      },
+      animation: {
+        barrido: "barrido 2.2s linear infinite",
+        onda: "onda 1.1s ease-in-out infinite",
+        latido: "latido 1.8s ease-in-out infinite",
+        deslizar: "deslizar 1.4s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

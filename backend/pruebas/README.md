@@ -89,15 +89,17 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
 | `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
+| `revelado` | Aparición progresiva de la respuesta e indicador de espera |
 
 `motores` y `respuestas_markdown` ejercitan la interfaz del asistente y necesitan
 además un backend con el proveedor sustituido por un doble, con la aplicación
 compilada apuntando a él. Se omiten si no se define `KAI_API_URL`.
 
-`reporte` es la excepción a todo lo anterior: no mira la aplicación compilada,
-sino que importa los módulos de origen para componer PDF y dibujar gráficos sin
-atravesar la interfaz. Necesita el servidor de desarrollo, y se omite si no se
-define `KAI_DEV_URL`:
+`reporte` y `revelado` son la excepción a todo lo anterior: no miran la
+aplicación compilada, sino que importan los módulos de origen y montan los
+componentes sueltos —para componer PDF, dibujar gráficos o cronometrar la
+aparición del texto— sin atravesar la interfaz. Necesitan el servidor de
+desarrollo, y se omiten si no se define `KAI_DEV_URL`:
 
 ```bash
 npx vite --port 5198 --strictPort

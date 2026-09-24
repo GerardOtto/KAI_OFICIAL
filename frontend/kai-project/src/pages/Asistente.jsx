@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
+import Cargando from "../components/asistente/Cargando";
+import { SparkleIcon } from "../components/asistente/iconos";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
 import { generarReporteEjecutivo } from "../reportes/reporteEjecutivo";
@@ -17,12 +19,6 @@ const PaperclipIcon = () => (
 const SendIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
     <path d="M2 21 23 12 2 3v7l15 2-15 2z" />
-  </svg>
-);
-
-const SparkleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" />
   </svg>
 );
 
@@ -62,6 +58,10 @@ export default function Asistente() {
   // Id del mensaje cuyo reporte se está componiendo: el PDF tarda un instante y
   // sin esta marca el botón parecería no haber respondido.
   const [generando, setGenerando] = useState(null);
+  // Respuesta que debe aparecer palabra a palabra: solo la recién llegada. Las
+  // que se leen desde el historial se muestran enteras, porque ahí el revelado
+  // sería un estorbo entre el usuario y algo que ya había leído.
+  const [idRevelable, setIdRevelable] = useState(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -89,11 +89,25 @@ export default function Asistente() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [mensajes, cargando]);
 
+  /** Mantiene la vista al final mientras la respuesta crece.
+   *
+   * Sin desplazamiento suave, que a este ritmo se quedaría atrás, y solo si la
+   * vista ya estaba abajo: quien ha subido a releer algo anterior no quiere que
+   * el texto que aparece le arrastre la pantalla.
+   */
+  const seguirElFinal = useCallback(() => {
+    const caja = scrollRef.current;
+    if (!caja) return;
+    const restante = caja.scrollHeight - caja.scrollTop - caja.clientHeight;
+    if (restante < 160) caja.scrollTop = caja.scrollHeight;
+  }, []);
+
   const seleccionar = useCallback(async (id) => {
     setError("");
     try {
       const datos = await abrir(id);
       setIdConversacion(id);
+      setIdRevelable(null);
       setMotor(datos.motor);
       setMensajes(datos.mensajes.map((m) => ({
         id: m.id_mensaje,
@@ -112,6 +126,7 @@ export default function Asistente() {
     setMensajes([]);
     setInput("");
     setError("");
+    setIdRevelable(null);
   };
 
   /** Lleva un mensaje a una conversación nueva con otro motor.
@@ -128,6 +143,7 @@ export default function Asistente() {
     setMotor(motorDestino);
     setInput(texto);
     setError("");
+    setIdRevelable(null);
     inputRef.current?.focus();
   };
 
@@ -202,11 +218,13 @@ export default function Asistente() {
       }
 
       const esNueva = idConversacion === null;
+      const idRespuesta = `a-${Date.now()}`;
       setIdConversacion(r.id_conversacion);
+      setIdRevelable(idRespuesta);
       setMensajes((prev) => [
         ...prev,
         {
-          id: `a-${Date.now()}`,
+          id: idRespuesta,
           role: "assistant",
           content: r.content,
           time: hora(Date.now()),
@@ -322,7 +340,13 @@ export default function Asistente() {
                       `min-w-0` permite que el contenedor se encoja por debajo de
                       su contenido, que es lo que deja a una tabla ancha
                       desplazarse dentro del mensaje en vez de estirar la página. */}
-                  <Markdown className="max-w-3xl min-w-0">{m.content}</Markdown>
+                  <Markdown
+                    className="max-w-3xl min-w-0"
+                    revelar={m.id === idRevelable}
+                    alAvanzar={seguirElFinal}
+                  >
+                    {m.content}
+                  </Markdown>
                 </div>
                 {/* El reporte es opcional y se compone en el navegador: no hay
                     petición al servidor ni consumo de cuota al pulsarlo. */}
@@ -346,14 +370,7 @@ export default function Asistente() {
             )
           )}
 
-          {cargando && (
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-surfaceHigh border border-outline/50 text-white mt-1">
-                <SparkleIcon />
-              </div>
-              <p className="text-outlineSoft text-sm italic mt-1.5">Consultando la base de datos…</p>
-            </div>
-          )}
+          {cargando && <Cargando />}
         </div>
 
         <div className="border-t border-outline/30 px-10 py-5">

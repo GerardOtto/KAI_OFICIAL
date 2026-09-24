@@ -30,13 +30,14 @@ const SONDAS = {
   respuestas_markdown: "Énfasis, tablas, listas y desbordamiento",
   motores: "Selector de motores y derivación",
   reporte: "Composición del PDF y dibujo del bloque de gráfico",
+  revelado: "Aparición progresiva de la respuesta e indicador de espera",
 };
 
-// La del reporte importa los módulos de origen por su ruta, así que necesita el
+// Estas importan los módulos de origen por su ruta, así que necesitan el
 // servidor de desarrollo y no la aplicación compilada:
 //   npx vite --port 5198 --strictPort
-// Sin KAI_DEV_URL se omite, igual que las del asistente.
-const REQUIERE_DEV = new Set(["reporte"]);
+// Sin KAI_DEV_URL se omiten, igual que las del asistente.
+const REQUIERE_DEV = new Set(["reporte", "revelado"]);
 const hayServidorDeDesarrollo = Boolean(process.env.KAI_DEV_URL);
 
 // Estas dos ejercitan la interfaz del asistente, así que además de la aplicación

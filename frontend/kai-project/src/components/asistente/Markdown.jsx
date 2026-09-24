@@ -2,6 +2,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import GraficoBarras from "./GraficoBarras";
+import useRevelado from "./useRevelado";
+import { recorteSeguro } from "./revelado";
 
 /** Lenguaje del bloque cercado que el asistente usa para comparar cifras. */
 const LENGUAJE_GRAFICO = "language-kai-grafico";
@@ -124,8 +126,15 @@ const COMPONENTES = {
  *
  * Solo se aplica a los mensajes del modelo. Lo que escribe el usuario se muestra
  * literal: interpretarlo cambiaría su texto delante de sus ojos.
+ *
+ * Con `revelar`, el texto aparece por palabras en vez de de golpe. Mientras dura
+ * la aparición se recorta por donde el marcado esté completo, para que no se vea
+ * una tabla a medio formar ni un gráfico en forma de bloque de código.
  */
-export default function Markdown({ children, className = "" }) {
+export default function Markdown({ children, className = "", revelar = false, alAvanzar }) {
+  const { visible, revelando } = useRevelado(children || "", revelar, alAvanzar);
+  const texto = revelando ? recorteSeguro(visible) : visible;
+
   return (
     <div className={`text-white/80 ${className}`}>
       <ReactMarkdown
@@ -140,7 +149,7 @@ export default function Markdown({ children, className = "" }) {
         // de lo que escribe el usuario: no debe poder inyectar marcado.
         skipHtml
       >
-        {normalizar(children)}
+        {normalizar(texto)}
       </ReactMarkdown>
     </div>
   );

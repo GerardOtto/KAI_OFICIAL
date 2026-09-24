@@ -241,6 +241,7 @@ archivo `.env`.
 | `GEMINI_MODEL` | No | Variable antigua. Si está, su modelo encabeza la cadena |
 | `GEMINI_ESPERAS_503` | No | Segundos entre reintentos. Por defecto `1,3,6`, es decir cuatro intentos |
 | `GEMINI_ESPERA_CUOTA_WEB` | No | Segundos que se suspende la búsqueda tras un 429. Por defecto 1800 |
+| `GEMINI_MAX_CICLOS` | No | Vueltas del ciclo de herramientas por turno. Por defecto 15 |
 
 `GOOGLE_API_KEY` funciona como alternativa a `GEMINI_API_KEY`, por compatibilidad
 con el nombre que usa el SDK.
@@ -399,11 +400,55 @@ ejemplo, porque el modelo pasó `"PUCV"` donde se esperaba un identificador
 numérico—, el motor Gemini le devuelve el error al modelo como resultado de la
 herramienta, para que corrija el argumento y vuelva a intentar. Un modelo pequeño
 se equivoca más al construir argumentos, y esta vía de recuperación le sirve. El
-tope de ocho ciclos por turno impide que se quede reintentando.
+tope de vueltas por turno —`GEMINI_MAX_CICLOS`, quince por defecto— impide que se
+quede reintentando.
+
+El número es un margen, no una medida: un turno corriente gasta dos o tres
+vueltas y una comparación entre instituciones y años, cuatro o cinco. Conviene
+saber qué encarece subirlo: cada vuelta es una petición completa que reenvía la
+conversación **y todos los resultados de herramientas acumulados**, así que las
+últimas cuestan bastante más que las primeras, y en el nivel gratuito cuentan
+también contra el límite de peticiones por minuto. El aviso «encadenó más de N
+consultas» apareciendo con una pregunta razonable es la señal de que el tope se
+quedó corto.
 
 ---
 
-## 8. Estado
+## 8. La espera y la aparición de la respuesta
+
+`/chat` no emite en flujo: el turno puede encadenar hasta quince ciclos de
+herramientas, y la respuesta se devuelve entera cuando termina el último. Entre
+la pregunta y esa entrega no hay nada que informar, así que la interfaz resuelve
+los dos momentos por separado.
+
+**Mientras se espera** (`components/asistente/Cargando.jsx`) se muestra un
+indicador animado: la marca del asistente latiendo, la etiqueta recorrida por un
+barrido de luz, tres puntos en onda y una barra indeterminada. A los tres
+segundos aparece un cronómetro y, a los quince, una nota de que la consulta sigue
+en curso. Todo el movimiento es CSS sobre elementos que ya están en la página
+—ninguna imagen que descargar— y se detiene con `prefers-reduced-motion`.
+
+El indicador no anuncia etapas («analizando», «redactando»): el servidor no
+informa del progreso, y fingirlo sería inventar. Dice lo único que se sabe con
+certeza —que la consulta sigue en curso y cuánto lleva—.
+
+**Al llegar la respuesta**, el texto aparece por palabras en lugar de de golpe
+(`revelado.js` y `useRevelado.js`). No es flujo de datos: el texto ya está
+completo en el navegador y solo se entrega a la vista de forma gradual, en entre
+0,3 y 2 segundos según su largo. Por eso no cuesta ni una petición ni un token, y
+no cambia nada del backend.
+
+Mientras dura la aparición, el texto se recorta por donde el marcado esté
+completo: un bloque de gráfico sin cerrar se dibujaría como código y una tabla a
+medias saltaría de párrafo a tabla en cada avance, así que ambos se mantienen
+ocultos hasta que terminan y entonces aparecen de una vez. Solo se revela la
+respuesta recién llegada; las que se abren desde el historial se muestran enteras.
+
+La verificación está en la sonda `revelado` (25 comprobaciones).
+
+---
+
+## 9. Estado
 
 Verificado con pruebas automatizadas contra la base de datos real: las diez
 herramientas, la contención de `consulta_sql` (28 intentos de evasión, incluidos

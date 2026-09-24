@@ -64,7 +64,14 @@ MODEL = MODELOS[0]
 
 # Tope de vueltas del ciclo de herramientas. Sin él, un modelo que se empeñe en
 # volver a consultar lo mismo encadenaría llamadas hasta agotar la cuota.
-MAX_CICLOS = 8
+#
+# No es una medida de lo que hace falta, sino un margen: un turno corriente gasta
+# dos o tres vueltas y una comparación entre instituciones y años, cuatro o cinco.
+# Queda configurable porque el número correcto depende del modelo —uno pequeño
+# necesita más vueltas para corregir sus propios argumentos— y porque cada vuelta
+# es una petición más a la API, que en el nivel gratuito también se cuenta por
+# minuto.
+MAX_CICLOS = int(os.getenv("GEMINI_MAX_CICLOS", "15"))
 
 CONSOLA_GOOGLE = "aistudio.google.com/apikey"
 
