@@ -2,7 +2,7 @@
   {
     "archivo": "chile.html",
     "url": "https://www.webometrics.info/en/Latin_America/Chile",
-    "fecha_descarga": "2026-09-25T04:12:38+00:00",
+    "fecha_descarga": "2026-09-25T04:49:23+00:00",
     "metodo": "requests",
     "sha256": null,
     "notas": "fallo: ConnectionError: HTTPSConnectionPool(host='www.webometrics.info', port=443): Max retries exceeded with url: /en/Latin_America/Chile (Caused by NameResolutionError(\"HTTPSConnection(host='www.webometrics.info', port=443): Failed to resolve 'www.webometrics.info' ([Errno 11001] getaddrinfo failed)\"))"

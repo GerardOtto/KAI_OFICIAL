@@ -454,5 +454,13 @@
     "metodo": "requests",
     "sha256": "dba53a3a2ec891fe490d860c6355f1aaca7d88b6915a54ebe2c600982fc2b57e",
     "notas": "idp 1209"
+  },
+  {
+    "archivo": "ranking_chile_2026.csv",
+    "url": "https://www.scimagoir.com/getdata.php?ranking=Overall&area=&sector=&country=CHL&year=2026&top=0&format=csv&type=download",
+    "fecha_descarga": "2026-09-25T04:48:30+00:00",
+    "metodo": "requests",
+    "sha256": "c4b1c994422002f6da4c1c25029a8d70921e963850dbcb6d65f485a54c7c37bf",
+    "notas": "edición 2026, ventana 2020-2024"
   }
 ]

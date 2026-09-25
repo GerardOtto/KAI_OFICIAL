@@ -1,0 +1,10 @@
+[
+  {
+    "archivo": "proyectos_adjudicados.csv",
+    "url": "https://raw.githubusercontent.com/ANID-GITHUB/Historico-de-Proyectos-Adjudicados/master/BDH_HISTORICA.csv",
+    "fecha_descarga": "2026-09-25T05:04:27+00:00",
+    "metodo": "requests",
+    "sha256": "f7e1659b058d510121fd9c62de2a99b8da1137328e049149ea9b66415bb62f63",
+    "notas": "base histórica de proyectos adjudicados"
+  }
+]
