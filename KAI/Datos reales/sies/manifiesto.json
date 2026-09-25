@@ -1,0 +1,34 @@
+[
+  {
+    "archivo": "matricula_2007_2026.zip",
+    "url": "https://www.mifuturo.cl/wp-content/uploads/2026/07/Matricula_2007_2026_WEB_10_07_2026.zip",
+    "fecha_descarga": "2026-09-25T04:23:57+00:00",
+    "metodo": "requests",
+    "sha256": "4ac169c2edab7c6832e961392976d0d822c57dc89a9478e0704c25981145e236",
+    "notas": "matricula"
+  },
+  {
+    "archivo": "matricula_2026.zip",
+    "url": "https://www.mifuturo.cl/wp-content/uploads/2026/07/Matricula_2026_WEB_10_07_2026.zip",
+    "fecha_descarga": "2026-09-25T04:27:12+00:00",
+    "metodo": "requests",
+    "sha256": "7ed72882d6591616b8aa4a35877be99cb71ecd5f8c1e9787be49511071c6defb",
+    "notas": "matrícula 2026"
+  },
+  {
+    "archivo": "personal_academico_2008_2025.xlsx",
+    "url": "https://mifuturo.cl/wp-content/uploads/2025/12/PAC_web_2008_2025_SIES_EE.xlsx",
+    "fecha_descarga": "2026-09-25T04:23:37+00:00",
+    "metodo": "requests",
+    "sha256": "82285c6194207aada5396b9c80c47f9541a26b95a9616d0049daaebc718a7886",
+    "notas": "personal_academico"
+  },
+  {
+    "archivo": "titulados_2007_2025.xlsx",
+    "url": "https://www.mifuturo.cl/wp-content/uploads/2026/05/TITULADO_2007-2025_web_27_05_2026_E-1.xlsx",
+    "fecha_descarga": "2026-09-25T04:23:52+00:00",
+    "metodo": "requests",
+    "sha256": "6da4c232d4dc753ab1db0a1a5f46ee53f4f4cb2835090b398ed2de7e1fb2b88a",
+    "notas": "titulados"
+  }
+]

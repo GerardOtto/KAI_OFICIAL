@@ -36,6 +36,8 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `scimago.py` | T1.3 | Series de indicadores de las 57 instituciones chilenas, seis ventanas |
 | `qs.py` | T1.2 | Puntajes por indicador de siete ediciones, de las hojas oficiales del repo |
 | `webometrics.py` | T1.4 | Posición mundial y subindicadores (a la espera de que el sitio responda) |
+| `sies.py` | T2.1 | Personal académico y titulados de todas las IES chilenas, 2015-2025 |
+| `tests/test_sies.py` | T2.1 | Valida la agregación contra cifras públicas y contra THE |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del
 formato largo, mapa de nombres y, para las fuentes que lo necesiten, un navegador
@@ -47,6 +49,8 @@ python tools/recoleccion/the.py                 # ~15 min la primera vez
 python tools/recoleccion/scimago.py             # ~4 min
 python tools/recoleccion/qs.py                  # local, sin red
 python tools/recoleccion/webometrics.py
+python tools/recoleccion/sies.py               # ~55 MB la primera vez
+python tools/recoleccion/tests/test_sies.py
 python tools/recoleccion/the.py --solo-procesar # reprocesa sin descargar
 ```
 
@@ -84,6 +88,35 @@ en cuál aparece «Chile».
 IP**: no resuelve. No es un bloqueo ni un 403; el sitio no responde. El guion queda
 escrito y procesa un HTML guardado a mano en `raw/chile.html`.
 
+**SIES.** Las tres bases históricas están en mifuturo.cl, en páginas distintas de
+la que las indexa. La de personal académico trae una fila por institución y año,
+con la cabecera repartida en **tres filas** —grupo, subgrupo y columna— y dos hojas
+paralelas: una cuenta personas y la otra, jornadas completas equivalentes. La de
+titulados son 234.000 filas por programa que hay que agregar.
+
+La **matrícula no se pudo procesar**: el SIES la publica como un ZIP que contiene
+un **RAR**, y este equipo no tiene con qué abrirlo —ni 7-Zip, ni WinRAR, ni `unrar`
+en WSL—. El archivo está descargado en `raw/`; basta instalar un extractor y
+añadir su lectura.
+
+### Validación de la agregación
+
+`tests/test_sies.py` contrasta el resultado con dos fuentes que no son el SIES:
+
+- Las cifras públicas de la PUCV: 675,9 JCE en 2022 frente a los ~650 citados, y
+  65,9 % de JCE con doctorado frente al ~64 % citado. Ambas dentro del 10 %.
+- Lo que las universidades declaran a THE: de las dos cifras que THE publica
+  —estudiantes FTE y razón estudiantes/académico— se deduce cuántos académicos
+  declaró cada una, y se compara con sus JCE del SIES. En 188 pares
+  universidad-año la razón mediana es **1,03**, que es la confirmación de que se
+  está agregando lo correcto.
+
+  Cuarenta y nueve pares se alejan más de un 25 %, y eso **no** es un defecto del
+  guion: son universidades cuya declaración a THE no cuadra con su reporte al
+  Estado. Finis Terrae y Mayor declaran a THE más del doble de académicos que al
+  SIES; la Santa María de 2016, la mitad. Conviene mirarlo antes de usar esas
+  cifras como ancla de calibración.
+
 ## Pendiente
 
 De la fase 1 queda el **perfil** de cada universidad en topuniversities.com
@@ -100,3 +133,4 @@ exigen decidir antes si hay acceso institucional desde este equipo.
 |---|---|---|
 | Ranking Scimago con la ventana 2020-2024 | `scimagoir.com/rankings.php?country=CHL`, botón de exportar (pasa Cloudflare con un navegador visible) | `KAI/Datos reales/scimago/raw/` |
 | Tabla de Webometrics de Chile | `webometrics.info/en/Latin_America/Chile`, guardar la página | `KAI/Datos reales/webometrics/raw/chile.html` |
+| Matrícula del SIES | ya descargada; hace falta un extractor de RAR en el equipo | `KAI/Datos reales/sies/raw/` |

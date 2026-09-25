@@ -184,6 +184,35 @@ def universidades_de_la_base() -> list[str]:
         return sorted({fila["nombre_universidad"].strip() for fila in csv.DictReader(f)})
 
 
+def _forma(texto: str) -> str:
+    """Forma comparable de un nombre: sin tildes, sin puntuación y en minúsculas."""
+    import unicodedata
+    plano = "".join(c for c in unicodedata.normalize("NFD", str(texto))
+                    if unicodedata.category(c) != "Mn")
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in plano.lower()).split())
+
+
+def resolvedor(fuente: str | None = None):
+    """Devuelve una función nombre -> nombre canónico, tolerante a la forma.
+
+    Las fuentes escriben el mismo nombre de maneras que no conviene enumerar una
+    por una: el SIES en mayúsculas, QS con siglas entre paréntesis, THE en inglés.
+    Los alias explícitos mandan; si no hay, se compara la forma normalizada, que
+    resuelve mayúsculas y tildes sin inventar equivalencias entre nombres
+    distintos.
+    """
+    exactos = mapa_de_nombres(fuente)
+    por_forma = {_forma(a): destino for a, destino in exactos.items()}
+    for canonico in {v for v in exactos.values()}:
+        por_forma.setdefault(_forma(canonico), canonico)
+
+    def resolver(nombre: str) -> str | None:
+        limpio = " ".join(str(nombre or "").split())
+        return exactos.get(limpio) or por_forma.get(_forma(limpio))
+
+    return resolver
+
+
 def sin_mapeo(nombres: list[str], fuente: str) -> list[str]:
     """Nombres de la fuente que no tienen equivalencia. Nunca se descartan en
     silencio: el guion debe avisar y el humano decidir si sobran o falta el alias."""
