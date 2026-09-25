@@ -25,7 +25,6 @@ import argparse
 import json
 import os
 import sys
-from collections import Counter
 from pathlib import Path
 
 import requests
@@ -116,7 +115,7 @@ def resumen_de_ventana(id_openalex: str, desde: int, hasta: int) -> dict:
     return {"total": total or 0, "tipos": tipos, "internacional": internacional}
 
 
-def socios(id_openalex: str, desde: int, hasta: int, tope_paginas: int = 6) -> list[tuple[str, str, int]]:
+def socios(id_openalex: str, desde: int, hasta: int) -> list[tuple[str, str, int]]:
     """Instituciones extranjeras con trabajos conjuntos, con su país.
 
     Se piden agregados por institución asociada; OpenAlex devuelve los más
@@ -133,12 +132,34 @@ def socios(id_openalex: str, desde: int, hasta: int, tope_paginas: int = 6) -> l
     return cuenta[:200]
 
 
-def recolectar(universidades: dict[str, str], solo: list[str] | None) -> list[dict]:
+def _archivo_crudo(universidad: str) -> Path:
+    return nav.carpeta(FUENTE) / "raw" / f"{universidad.replace(' ', '_')}.json"
+
+
+def recolectar(universidades: dict[str, str], solo: list[str] | None,
+               rehacer: bool = False) -> list[dict]:
+    """Consulta la API y deja el crudo de cada universidad en `raw/`.
+
+    Si el crudo ya existe se reutiliza en vez de volver a preguntar: son siete
+    peticiones por universidad y la recolección completa pasa de media hora. Con
+    `--rehacer` se ignora lo guardado.
+    """
     filas: list[dict] = []
     objetivo = {k: v for k, v in universidades.items() if not solo or k in solo}
     print(f"{len(objetivo)} universidades por consultar")
 
     for n, (universidad, id_openalex) in enumerate(sorted(objetivo.items()), start=1):
+        guardado = _archivo_crudo(universidad)
+        if guardado.exists() and not rehacer:
+            try:
+                crudo = json.loads(guardado.read_text(encoding="utf-8"))
+            except ValueError:
+                crudo = None
+            if crudo and crudo.get("ventanas"):
+                print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]} · en caché")
+                filas.extend(_filas_de_crudo(universidad, crudo))
+                continue
+
         print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]}")
         crudo = {"id_openalex": id_openalex, "ventanas": {}}
         for desde, hasta in VENTANAS:
@@ -150,22 +171,6 @@ def recolectar(universidades: dict[str, str], solo: list[str] | None) -> list[di
                 continue
             crudo["ventanas"][ventana] = resumen
 
-            url = f"{API}/works?filter=institutions.id:{id_openalex},publication_year:{desde}-{hasta}"
-            filas.append(nav.dato(FUENTE, universidad, "publicaciones_openalex", resumen["total"],
-                                  anio_dato=hasta, ventana=ventana, unidad="trabajos",
-                                  definicion="Trabajos con al menos un autor de la institución",
-                                  url=url, metodo="api"))
-            for tipo, cuenta in sorted(resumen["tipos"].items()):
-                filas.append(nav.dato(FUENTE, universidad, f"publicaciones_openalex_{tipo}", cuenta,
-                                      anio_dato=hasta, ventana=ventana, unidad="trabajos",
-                                      definicion=f"Trabajos de tipo «{tipo}»", url=url, metodo="api"))
-            if resumen["total"]:
-                filas.append(nav.dato(FUENTE, universidad, "pct_colaboracion_internacional",
-                                      round(100 * resumen["internacional"] / resumen["total"], 2),
-                                      anio_dato=hasta, ventana=ventana, unidad="%",
-                                      definicion="Trabajos con coautor de una institución de otro país",
-                                      url=url, metodo="api"))
-
         # Los socios se piden solo para la ventana más reciente: es la que usa QS.
         desde, hasta = VENTANAS[-1]
         try:
@@ -174,15 +179,51 @@ def recolectar(universidades: dict[str, str], solo: list[str] | None) -> list[di
             print(f"      socios: fallo ({type(e).__name__})")
             lista = []
         crudo["socios"] = lista
-        if lista:
-            filas.append(nav.dato(FUENTE, universidad, "socios_recurrentes", len(lista),
-                                  anio_dato=hasta, ventana=f"{desde}-{hasta}", unidad="instituciones",
-                                  definicion=f"Instituciones con {MINIMO_SOCIO} o más trabajos conjuntos",
-                                  url=f"{API}/works", metodo="api"))
+        guardado.write_text(json.dumps(crudo, ensure_ascii=False, indent=1), encoding="utf-8")
+        filas.extend(_filas_de_crudo(universidad, crudo))
 
-        (nav.carpeta(FUENTE) / "raw" / f"{universidad.replace(' ', '_')}.json").write_text(
-            json.dumps(crudo, ensure_ascii=False, indent=1), encoding="utf-8")
+    return filas
 
+
+def _filas_de_crudo(universidad: str, crudo: dict) -> list[dict]:
+    """Formato largo a partir del JSON guardado de una universidad."""
+    id_openalex = crudo.get("id_openalex", "")
+    filas: list[dict] = []
+    for ventana, resumen in crudo.get("ventanas", {}).items():
+        desde, hasta = (int(x) for x in ventana.split("-"))
+        url = f"{API}/works?filter=institutions.id:{id_openalex},publication_year:{desde}-{hasta}"
+        filas.append(nav.dato(FUENTE, universidad, "publicaciones_openalex", resumen["total"],
+                              anio_dato=hasta, ventana=ventana, unidad="trabajos",
+                              definicion="Trabajos con al menos un autor de la institución",
+                              url=url, metodo="api"))
+        for tipo, cuenta in sorted(resumen.get("tipos", {}).items()):
+            filas.append(nav.dato(FUENTE, universidad, f"publicaciones_openalex_{tipo}", cuenta,
+                                  anio_dato=hasta, ventana=ventana, unidad="trabajos",
+                                  definicion=f"Trabajos de tipo «{tipo}»", url=url, metodo="api"))
+        if resumen.get("total"):
+            filas.append(nav.dato(FUENTE, universidad, "pct_colaboracion_internacional",
+                                  round(100 * resumen["internacional"] / resumen["total"], 2),
+                                  anio_dato=hasta, ventana=ventana, unidad="%",
+                                  definicion="Trabajos con coautor de una institución de otro país",
+                                  url=url, metodo="api"))
+
+    socios_guardados = crudo.get("socios") or []
+    if socios_guardados:
+        desde, hasta = VENTANAS[-1]
+        filas.append(nav.dato(FUENTE, universidad, "socios_recurrentes", len(socios_guardados),
+                              anio_dato=hasta, ventana=f"{desde}-{hasta}", unidad="instituciones",
+                              definicion=f"Instituciones con {MINIMO_SOCIO} o más trabajos conjuntos",
+                              url=f"{API}/works", metodo="api"))
+        # Los socios con su país son el insumo de la métrica de red internacional
+        # de QS, que necesita saber cuántos países distintos hay. Algunos socios
+        # llegan sin nombre —OpenAlex tiene fichas incompletas—: se descartan para
+        # el recuento de países en vez de romper la recolección entera.
+        paises = {str(nombre).split(",")[-1].strip()
+                  for _, nombre, _ in socios_guardados if nombre}
+        filas.append(nav.dato(FUENTE, universidad, "socios_recurrentes_paises", len(paises),
+                              anio_dato=hasta, ventana=f"{desde}-{hasta}", unidad="países",
+                              definicion="Países distintos entre los socios recurrentes",
+                              url=f"{API}/works", metodo="api"))
     return filas
 
 
@@ -209,6 +250,8 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--universidades", nargs="*", default=None)
     p.add_argument("--solo-procesar", action="store_true")
+    p.add_argument("--rehacer", action="store_true",
+                   help="ignora lo guardado en raw/ y vuelve a consultar la API")
     args = p.parse_args()
 
     print(f"OpenAlex · cola cortés con {CORREO}")
@@ -218,7 +261,7 @@ def main() -> int:
     universidades = instituciones_chilenas()
     print(f"{len(universidades)} universidades de la base identificadas en OpenAlex")
 
-    filas = recolectar(universidades, args.universidades)
+    filas = recolectar(universidades, args.universidades, rehacer=args.rehacer)
     ruta = nav.escribir_procesado(FUENTE, filas)
     print(f"\n{len(filas):,} filas -> {ruta}".replace(",", "."))
 

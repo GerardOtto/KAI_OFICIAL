@@ -36,7 +36,11 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `scimago.py` | T1.3 | Series de indicadores de las 57 instituciones chilenas, seis ventanas |
 | `qs.py` | T1.2 | Puntajes por indicador de siete ediciones, de las hojas oficiales del repo |
 | `webometrics.py` | T1.4 | Posición mundial y subindicadores (a la espera de que el sitio responda) |
-| `sies.py` | T2.1 | Personal académico y titulados de todas las IES chilenas, 2015-2025 |
+| `sies.py` | T2.1 | Personal académico, titulados y matrícula de todas las IES chilenas |
+| `anid.py` | T2.4 | Fondos de investigación adjudicados por institución y año |
+| `openalex.py` | T3.1 | Producción, colaboración internacional y socios recurrentes |
+| `scimago_ventana.py` | T1.3 | La edición nueva, por la exportación oficial tras Cloudflare |
+| `consolidar.py` | T5.1 | Une todo, señala conflictos y calcula el factor OpenAlex/Scopus |
 | `tests/test_sies.py` | T2.1 | Valida la agregación contra cifras públicas y contra THE |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del
@@ -50,6 +54,10 @@ python tools/recoleccion/scimago.py             # ~4 min
 python tools/recoleccion/qs.py                  # local, sin red
 python tools/recoleccion/webometrics.py
 python tools/recoleccion/sies.py               # ~55 MB la primera vez
+python tools/recoleccion/anid.py
+python tools/recoleccion/openalex.py           # ~25 min; reanudable
+python tools/recoleccion/scimago_ventana.py    # abre una ventana de navegador
+python tools/recoleccion/consolidar.py
 python tools/recoleccion/tests/test_sies.py
 python tools/recoleccion/the.py --solo-procesar # reprocesa sin descargar
 ```
@@ -72,9 +80,15 @@ tras la de 2024 vino la de 2026.
    sigue devolviendo el bloque `var data=` con la serie histórica completa. Es el
    que usa el guion.
 
-Por eso la ventana **2020-2024 no se obtuvo**: ninguna vía abierta la publica
-todavía. La serie 2014-2018 … 2019-2023 sí está completa, incluido el indicador
-`excel`, que la base no tiene.
+La serie 2014-2018 … 2019-2023 está completa, incluido el indicador `excel`, que
+la base no tiene. Para la ventana **2020-2024** hay un cuarto camino, en
+`scimago_ventana.py`: un navegador **visible** pasa el desafío de Cloudflare en
+unos segundos, y sus cookies se copian a una sesión de `requests` para descargar
+la exportación oficial. Con eso entran 42 universidades.
+
+Pero esa exportación **ya no trae los indicadores**: solo posiciones y cuartil.
+Scimago dejó de publicar los valores crudos de la edición nueva. Los mapeos están
+escritos en el guion por si vuelven.
 
 **QS.** Las siete hojas oficiales del repositorio (Latam 2024-2026 y mundial
 2024-2027) se procesan sin salir a la red. Tres trampas de formato, ya resueltas:
@@ -123,19 +137,56 @@ necesitan, no sale de aquí: hay que pedírselo a la institución.
   SIES; la Santa María de 2016, la mitad. Conviene mirarlo antes de usar esas
   cifras como ancla de calibración.
 
+**ANID.** La agencia publica su base histórica de proyectos adjudicados en
+GitHub, lo que evita raspar el sitio. Una trampa: la unidad viene en su propia
+columna y casi todo está en **miles de pesos**. Tomarlo al pie de la letra divide
+por mil el presupuesto de investigación del país.
+
+**OpenAlex.** Se consulta con `mailto` para entrar en su cola cortés. Los
+agregados salen de `group_by`, que resuelve en una petición lo que recorrer los
+trabajos costaría cientos. La recolección es **reanudable**: el crudo de cada
+universidad queda en `raw/` y una segunda ejecución lo reutiliza.
+
+### Lo que produce la consolidación
+
+`consolidar.py` deja cuatro archivos en `KAI/Datos reales/`:
+
+| Archivo | Qué es |
+|---|---|
+| `valores_reales_chile.csv` | 24.558 datos en formato largo, con su fuente |
+| `valores_reales_chile_ancho.csv` | 589 filas universidad-año × 58 variables |
+| `conflictos.csv` | donde dos fuentes discrepan más de un 2 % |
+| `factor_openalex_scopus.csv` | la razón entre ambos universos bibliométricos |
+
+De momento **no hay conflictos**, y conviene entender por qué: cada fuente nombra
+sus variables de forma distinta, así que no compiten. El detector se activará
+cuando dos midan lo mismo con el mismo nombre —por ejemplo, cuando entren los
+estados financieros junto a los montos de ANID—.
+
+El factor OpenAlex/Scopus tiene mediana **1,36** sobre 102 pares. En las
+universidades con producción grande ronda 1,2 y es estable —PUCV 1,18 y 1,20 en
+dos ventanas—; en las pequeñas se dispara, porque dividir entre ocho documentos
+de Scopus amplifica cualquier diferencia. Sirve para traducir cifras de OpenAlex
+al universo de Scopus, que es con el que trabajan THE y QS, pero solo en las
+universidades con volumen.
+
 ## Pendiente
 
-De la fase 1 queda el **perfil** de cada universidad en topuniversities.com
-(estudiantes y académicos con la definición de QS), que exige descubrir su endpoint
-con el navegador, y los dos casos de arriba.
+| Tarea | Estado |
+|---|---|
+| T1.1 THE · T1.3 Scimago · T2.1 SIES · T2.4 ANID · T3.1 OpenAlex · T5.1 Consolidar | hechas |
+| T1.2 QS | puntajes sí; faltan los perfiles de topuniversities.com |
+| T1.4 Webometrics | el sitio no resuelve |
+| T2.2 CNED · T2.3 Estados financieros | sin empezar |
+| Fase 4 (Scopus, SciVal) | requiere la sesión institucional del usuario |
+| T5.2-T5.5 (recálculo, calibración, reporte) | sin empezar |
 
-Las fases 2 a 5 (SIES, CNED, estados financieros, ANID, OpenAlex, Scopus y SciVal,
-consolidación y calibración) están sin empezar. Las de bibliometría con licencia
-exigen decidir antes si hay acceso institucional desde este equipo.
+Dos variables que **ninguna fuente abierta entrega** y que habrá que pedir a las
+instituciones: los estudiantes extranjeros —la base de matrícula del SIES no trae
+nacionalidad— y los ingresos por investigación con la definición de THE.
 
 ### Descargas manuales pendientes
 
 | Qué | Dónde | Dejar en |
 |---|---|---|
-| Ranking Scimago con la ventana 2020-2024 | `scimagoir.com/rankings.php?country=CHL`, botón de exportar (pasa Cloudflare con un navegador visible) | `KAI/Datos reales/scimago/raw/` |
 | Tabla de Webometrics de Chile | `webometrics.info/en/Latin_America/Chile`, guardar la página | `KAI/Datos reales/webometrics/raw/chile.html` |
