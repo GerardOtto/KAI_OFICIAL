@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 
-/** Tokens que consume una consulta típica, medidos sobre consultas reales que
- *  obligan al modelo a llamar a una herramienta y leer su resultado.
+/** Tokens que consume una consulta típica, entrada y salida juntas. El de
+ *  Gemini es el promedio medido en uso real; el de Claude, una estimación
+ *  conservadora, porque su razonamiento se factura como salida.
  *
  *  Sirven para traducir la cuota a algo que un comprador entienda: «tokens» no
- *  significa nada fuera del gremio, «unas 230 consultas al mes» sí. Es una
- *  estimación, y así se rotula. */
-const TOKENS_POR_CONSULTA = { claude: 3000, gemini: 1300 };
+ *  significa nada fuera del gremio, «unas 330 consultas al mes» sí. Es una
+ *  estimación, y así se rotula. Ver docs/planes.md. */
+const TOKENS_POR_CONSULTA = { claude: 20000, gemini: 15000 };
 
 const CandadoIcon = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

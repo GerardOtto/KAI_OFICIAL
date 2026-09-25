@@ -84,8 +84,10 @@ comprobar("los de pago tienen precio",
           all(p["precio_mensual_usd"] > 0 for p in planes[1:]), [p["precio_mensual_usd"] for p in planes])
 
 print("\n=== 2. El margen sobre el costo de los tokens ===")
-# Costo por millón de tokens contabilizados, suponiendo 90% entrada / 10% salida.
-COSTO = {"claude": 0.9 * 5.00 + 0.1 * 25.00, "gemini": 0.9 * 0.25 + 0.1 * 1.50}
+# Costo por millón de tokens contabilizados. Gemini 3.5 Flash-Lite con 90% de
+# entrada y 10% de salida; Claude Opus 5 con 85% / 15%, porque el razonamiento
+# se factura como salida. Ver docs/planes.md.
+COSTO = {"claude": 0.85 * 5.00 + 0.15 * 25.00, "gemini": 0.9 * 0.30 + 0.1 * 2.50}
 for p in planes:
     if p["precio_mensual_usd"] == 0:
         continue
@@ -134,7 +136,7 @@ comprobar("la cuota se lleva por motor separado",
           uso["motores"]["claude"]["tokens_total"] == TOKENS_POR_TURNO
           and uso["motores"]["gemini"]["tokens_total"] == TOKENS_POR_TURNO,
           {k: v["tokens_total"] for k, v in uso["motores"].items()})
-comprobar("el precio del plan viaja en la cuota", uso["precio_mensual_usd"] == 12.0, uso["precio_mensual_usd"])
+comprobar("el precio del plan viaja en la cuota", uso["precio_mensual_usd"] == 29.0, uso["precio_mensual_usd"])
 
 print("\n=== 6. Agotar la cuota de un motor no afecta al otro ===")
 uid_p = usuarios[-1]

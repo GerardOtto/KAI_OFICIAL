@@ -33130,9 +33130,9 @@ COPY public.metrica_universidad (id_metrica, id_universidad, valor_metrica, anio
 
 COPY public.plan (codigo_plan, nombre_plan, mensajes_por_dia, descripcion, precio_mensual_usd, tokens_claude_mes, tokens_gemini_mes, publico, orden) FROM stdin;
 free	Gratuito	15	Para probar la herramienta. Solo el motor rápido.	0.00	0	300000	t	1
-investigador	Investigador	80	Para una persona que consulta a diario y necesita análisis profundo.	12.00	300000	2000000	t	2
-departamento	Departamento	300	Para un equipo o unidad académica que comparte el seguimiento.	45.00	1200000	6000000	t	3
-institucional	Institucional	\N	Para la oficina de análisis institucional, sin tope de consultas diarias.	180.00	5000000	25000000	t	4
+investigador	Investigador	40	Para una persona que consulta a diario y necesita análisis profundo.	29.00	600000	5000000	t	2
+departamento	Departamento	150	Para un equipo o unidad académica que comparte el seguimiento.	99.00	2000000	15000000	t	3
+institucional	Institucional	\N	Para la oficina de análisis institucional, sin tope de consultas diarias.	490.00	10000000	60000000	t	4
 ilimitado	Sin límite	\N	Cortesía interna. Sin topes.	0.00	\N	\N	f	98
 admin	Administrador	\N	Acceso completo a todos los motores y sin topes.	0.00	\N	\N	f	99
 \.
