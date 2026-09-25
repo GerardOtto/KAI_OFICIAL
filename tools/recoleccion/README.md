@@ -153,8 +153,8 @@ universidad queda en `raw/` y una segunda ejecución lo reutiliza.
 
 | Archivo | Qué es |
 |---|---|
-| `valores_reales_chile.csv` | 24.558 datos en formato largo, con su fuente |
-| `valores_reales_chile_ancho.csv` | 589 filas universidad-año × 58 variables |
+| `valores_reales_chile.csv` | 25.620 datos en formato largo, con su fuente |
+| `valores_reales_chile_ancho.csv` | 660 filas universidad-año × 58 variables |
 | `conflictos.csv` | donde dos fuentes discrepan más de un 2 % |
 | `factor_openalex_scopus.csv` | la razón entre ambos universos bibliométricos |
 
@@ -183,7 +183,13 @@ universidades con volumen.
 
 Dos variables que **ninguna fuente abierta entrega** y que habrá que pedir a las
 instituciones: los estudiantes extranjeros —la base de matrícula del SIES no trae
-nacionalidad— y los ingresos por investigación con la definición de THE.
+nacionalidad; los **académicos** extranjeros sí los publica— y los ingresos por
+investigación con la definición de THE.
+
+Lo que apareció **dentro** de los datos —el retraso de tres años de THE, las
+universidades que declaran cifras distintas a cada organismo, las métricas vacías
+de la plataforma, los huecos del catálogo y dos defectos de estos guiones— está en
+[docs/hallazgos-recoleccion.md](../../docs/hallazgos-recoleccion.md).
 
 ### Descargas manuales pendientes
 

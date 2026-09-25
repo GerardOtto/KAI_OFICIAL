@@ -108,8 +108,15 @@ def resumen_de_ventana(id_openalex: str, desde: int, hasta: int) -> dict:
     total = por_tipo["group_by"] and sum(g["count"] for g in por_tipo["group_by"])
     tipos = {g["key"]: g["count"] for g in por_tipo["group_by"]}
 
-    # Colaboración internacional: el mismo filtro con el número de países distintos.
-    internacional = pedir("works", filter=f"{filtro},institutions.country_code:!cl",
+    # Colaboración internacional: trabajos en los que participa más de un país.
+    #
+    # Aquí hay una trampa que costó una recolección entera. Lo natural parece pedir
+    # `institutions.country_code:!cl` —"que haya una institución de fuera"—, pero la
+    # negación de OpenAlex sobre un campo de varios valores excluye el trabajo si
+    # *alguno* de sus valores es `cl`. Junto al filtro de una institución chilena,
+    # eso describe el conjunto vacío, y devuelve 0 sin error ninguno. El campo que
+    # sirve es `countries_distinct_count`.
+    internacional = pedir("works", filter=f"{filtro},countries_distinct_count:>1",
                           per_page=1)["meta"]["count"]
 
     return {"total": total or 0, "tipos": tipos, "internacional": internacional}
@@ -197,9 +204,14 @@ def _filas_de_crudo(universidad: str, crudo: dict) -> list[dict]:
                               definicion="Trabajos con al menos un autor de la institución",
                               url=url, metodo="api"))
         for tipo, cuenta in sorted(resumen.get("tipos", {}).items()):
-            filas.append(nav.dato(FUENTE, universidad, f"publicaciones_openalex_{tipo}", cuenta,
+            # Desde 2025 OpenAlex devuelve la clave del tipo como URI
+            # («https://openalex.org/types/article») en vez del término suelto. El
+            # nombre de la variable se queda con el término, que es lo que la base
+            # va a guardar.
+            termino = str(tipo).rsplit("/", 1)[-1]
+            filas.append(nav.dato(FUENTE, universidad, f"publicaciones_openalex_{termino}", cuenta,
                                   anio_dato=hasta, ventana=ventana, unidad="trabajos",
-                                  definicion=f"Trabajos de tipo «{tipo}»", url=url, metodo="api"))
+                                  definicion=f"Trabajos de tipo «{termino}»", url=url, metodo="api"))
         if resumen.get("total"):
             filas.append(nav.dato(FUENTE, universidad, "pct_colaboracion_internacional",
                                   round(100 * resumen["internacional"] / resumen["total"], 2),

@@ -25,6 +25,7 @@ import csv
 import hashlib
 import json
 import random
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -192,6 +193,14 @@ def _forma(texto: str) -> str:
     return " ".join("".join(ch if ch.isalnum() else " " for ch in plano.lower()).split())
 
 
+# El SIES anota los programas dictados en convenio pegando una nota al nombre de la
+# institución: «UNIVERSIDAD DE SANTIAGO DE CHILE (* CARRERA EN CONVENIO U.
+# IBEROAMERICANA)». Esos estudiantes son de la institución que encabeza, así que la
+# nota se quita antes de comparar; si no, la fila se descarta y la matrícula queda
+# corta sin que nada avise.
+_NOTA_AL_NOMBRE = re.compile(r"\s*\(\s*\*.*?\)\s*$")
+
+
 def resolvedor(fuente: str | None = None):
     """Devuelve una función nombre -> nombre canónico, tolerante a la forma.
 
@@ -208,7 +217,13 @@ def resolvedor(fuente: str | None = None):
 
     def resolver(nombre: str) -> str | None:
         limpio = " ".join(str(nombre or "").split())
-        return exactos.get(limpio) or por_forma.get(_forma(limpio))
+        hallado = exactos.get(limpio) or por_forma.get(_forma(limpio))
+        if hallado:
+            return hallado
+        sin_nota = _NOTA_AL_NOMBRE.sub("", limpio)
+        if sin_nota != limpio:
+            return exactos.get(sin_nota) or por_forma.get(_forma(sin_nota))
+        return None
 
     return resolver
 
