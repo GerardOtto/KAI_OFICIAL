@@ -1,0 +1,18 @@
+ranking,metrica,valor,rango,unidad,ventana,fuente,confianza
+THE,FTE students,18070.0,,estudiantes FTE,WUR 2026,THE key statistics,Alta (dato publicado)
+THE,Student staff ratio,23.2,,estudiantes por académico FTE,WUR 2026,THE key statistics,Alta (dato publicado)
+THE,Academic staff FTE (derivado),778.88,777–781,académicos FTE,WUR 2026,FTE students / SSR,Alta (derivado exacto salvo redondeo)
+THE,International students,2.0,"1,5–2,5 %",% de estudiantes FTE,WUR 2026,THE key statistics,Alta (redondeado a entero)
+THE,International students (conteo),361.4,271–452,estudiantes FTE,WUR 2026,FTE × %,Media
+THE,Publicaciones Scopus 2020–2024 (numerador productividad),5126.24,4972–5280,documentos,2020–2024,OpenAlex escalado + tendencia Scimago,Media
+THE,Research productivity,6.58,6.38–6.78,documentos por académico FTE (5 años),2020–2024,estimación,Media (THE suma personal de investigación al denominador → cota superior)
+THE,Citation impact (FWCI),0.91,"0,90–1,00",veces el promedio mundial,2019–2023,Scimago Normalized Impact,Media (THE mezcla FWCI con y sin ajuste por país)
+THE,Research excellence (top 10 %),616.0,12.2 % de la producción,documentos en el 10 % más citado,2019–2023,Scimago Excellence,Media
+THE,International co-authorship,56.16,,% de documentos con coautor internacional,2019–2023,Scimago,Alta
+THE,Patents (proxy),42.0,,documentos PUCV citados en patentes,2019–2023,Scimago Innovative Knowledge,"Baja (THE cuenta patentes, no documentos)"
+QS Latam,Student mix international,2.0,,% de estudiantes,2025,Perfil QS (ya en la BD),Alta (dato publicado)
+QS Latam,Staff with PhD,64.3,60–66 %,% de académicos (JCE) con doctorado,2024,Prensa PUCV / ranking La Tercera (SIES),Media (QS usa FT + PT/3)
+QS Latam,Faculty student ratio,21.41,19.6–23.2,estudiantes por académico,2025,entre definición QS (FT + PT/3 ≈ 934) y THE (FTE ≈ 779),Baja
+QS Latam,Papers per faculty,5.78,5.3–6.3,documentos por académico (5 años),2018–2022,Scimago output / personal (QS o THE),"Baja (puntaje saturado en 99,1)"
+QS Latam,Citations per paper (OpenAlex acumulado),13.83,cota superior; ventana QS sin autocitas sería menor,citas por documento,2018–2022,OpenAlex (citas acumuladas a 2026),Baja
+Scimago,Scientific Output,5052.0,,documentos,2019–2023,BD (valor crudo),Alta
