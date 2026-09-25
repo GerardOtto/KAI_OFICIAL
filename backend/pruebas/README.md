@@ -39,6 +39,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 |---|---|
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
+| `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados, descargas contadas y asistente por dominio |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |
@@ -91,6 +92,11 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
 | `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
 | `revelado` | Aparición progresiva de la respuesta e indicador de espera |
+
+Desde que ningún módulo es público, las sondas que abren uno crean una cuenta
+desechable contra el backend y dejan su testigo en el navegador; lo hace
+`pruebas/sesion.mjs`. La cuenta queda en el plan gratuito, así que esas sondas
+miden la versión recortada de las vistas, que es la que verá la mayoría.
 
 `motores` y `respuestas_markdown` ejercitan la interfaz del asistente y necesitan
 además un backend con el proveedor sustituido por un doble, con la aplicación

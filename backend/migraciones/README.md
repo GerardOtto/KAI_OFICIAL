@@ -11,6 +11,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `003_planes_por_tokens.sql` | Planes con cuota de tokens por motor, precio mensual y tope diario | aplicada | aplicada (07-09-2026) |
 | `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | pendiente | pendiente |
 | `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | pendiente |
+| `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -22,7 +23,13 @@ volver a ejecutarlas no duplica nada.
 La 005 se verifica a sí misma: termina en un bloque que aborta la transacción si
 el reparto de pesos de THE Latam no queda en 100 % o si algún indicador sigue
 sumando junto al pilar que lo contiene. La batería `pesos` vigila lo mismo desde
-integración continua.
+integración continua. La 006 hace lo propio con la espera del plan gratuito y la
+tabla de descargas; la batería `acceso` cubre el resto de sus efectos.
+
+La 006 **no** declara obligatoria la institución en la base, aunque lo sea al
+registrarse: las cuentas anteriores —y todas las creadas con Google— no la
+tienen, y una restricción `NOT NULL` les impediría entrar a completarla. La
+obligación se aplica en el registro y se reclama en la primera sesión.
 
 ---
 
