@@ -94,10 +94,10 @@ con la cabecera repartida en **tres filas** —grupo, subgrupo y columna— y do
 paralelas: una cuenta personas y la otra, jornadas completas equivalentes. La de
 titulados son 234.000 filas por programa que hay que agregar.
 
-La **matrícula no se pudo procesar**: el SIES la publica como un ZIP que contiene
-un **RAR**, y este equipo no tiene con qué abrirlo —ni 7-Zip, ni WinRAR, ni `unrar`
-en WSL—. El archivo está descargado en `raw/`; basta instalar un extractor y
-añadir su lectura.
+La matrícula viene como un ZIP que contiene un **RAR** —149 MB de microdatos al
+descomprimir—, así que el guion lo extrae con 7-Zip y recorre el CSV en flujo. La
+base **no trae nacionalidad**, de modo que `estudiantes_extranjeros`, que THE y QS
+necesitan, no sale de aquí: hay que pedírselo a la institución.
 
 ### Validación de la agregación
 
@@ -110,6 +110,12 @@ añadir su lectura.
   declaró cada una, y se compara con sus JCE del SIES. En 188 pares
   universidad-año la razón mediana es **1,03**, que es la confirmación de que se
   está agregando lo correcto.
+
+- La razón estudiantes/académico calculada con matrícula y JCE del SIES, contra la
+  que THE publica. Aquí apareció algo que no estaba documentado: **THE trabaja con
+  tres años de retraso**. Emparejando cada edición con el año del SIES que le
+  corresponde, el desvío mediano baja del 13,2 % al **8,4 %** y la correlación sube
+  de 0,40 a 0,56. Ese desfase hay que respetarlo en la calibración de la fase 5.
 
   Cuarenta y nueve pares se alejan más de un 25 %, y eso **no** es un defecto del
   guion: son universidades cuya declaración a THE no cuadra con su reporte al
@@ -133,4 +139,3 @@ exigen decidir antes si hay acceso institucional desde este equipo.
 |---|---|---|
 | Ranking Scimago con la ventana 2020-2024 | `scimagoir.com/rankings.php?country=CHL`, botón de exportar (pasa Cloudflare con un navegador visible) | `KAI/Datos reales/scimago/raw/` |
 | Tabla de Webometrics de Chile | `webometrics.info/en/Latin_America/Chile`, guardar la página | `KAI/Datos reales/webometrics/raw/chile.html` |
-| Matrícula del SIES | ya descargada; hace falta un extractor de RAR en el equipo | `KAI/Datos reales/sies/raw/` |

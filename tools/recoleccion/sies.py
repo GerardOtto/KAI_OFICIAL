@@ -29,6 +29,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import csv
 import re
 import sys
 import unicodedata
@@ -243,6 +244,113 @@ def titulados(ruta: Path, resolver) -> tuple[list[dict], set[str]]:
             for (universidad, anio, variable), valor in sorted(acumulado.items())], sin_alias
 
 
+# --- Matricula ----------------------------------------------------------------
+
+# El ZIP del SIES contiene un RAR, que la biblioteca estandar no abre. Se usa
+# 7-Zip, que es lo que hay instalado en el equipo.
+SIETEZIP = Path(r"C:/Program Files/7-Zip/7z.exe")
+
+# La matricula se clasifica por `NIVEL GLOBAL` y por `CARRERA CLASIFICACION
+# NIVEL 1`. El doctorado interesa aparte porque THE lo usa como numerador.
+MATRICULA = {
+    "estudiantes_total": (None, None, "Matricula total de la institucion en el ano"),
+    "estudiantes_pregrado": ("pregrado", None, "Matricula de programas de pregrado"),
+    "estudiantes_posgrado": ("posgrado", None, "Matricula de magister y doctorado"),
+    "estudiantes_doctorado": (None, "doctorado", "Matricula de programas de doctorado"),
+    "estudiantes_magister": (None, "magister", "Matricula de programas de magister"),
+    "estudiantes_primer_anio": (None, None, "Matricula de primer ano, todos los niveles"),
+}
+
+
+def _extraer_matricula(base: Path) -> Path | None:
+    """Saca el CSV del ZIP-dentro-de-RAR, si no esta ya extraido."""
+    csvs = sorted(base.glob("Matricula_*_WEB_*.csv"))
+    if csvs:
+        return max(csvs, key=lambda x: x.stat().st_size)
+
+    comprimido = base / BASES["matricula"][1]
+    if not comprimido.exists():
+        return None
+    import zipfile
+    with zipfile.ZipFile(comprimido) as z:
+        z.extractall(base)
+    rar = next((x for x in base.glob("Matricula_*.rar")), None)
+    if rar is None:
+        return None
+    if not SIETEZIP.exists():
+        print(f"    [aviso] falta {SIETEZIP}: el archivo viene en RAR y no hay con que abrirlo")
+        return None
+    import subprocess
+    subprocess.run([str(SIETEZIP), "x", "-y", f"-o{base}", str(rar)],
+                   check=False, capture_output=True)
+    csvs = sorted(base.glob("Matricula_*_WEB_*.csv"))
+    return max(csvs, key=lambda x: x.stat().st_size) if csvs else None
+
+
+def matricula(ruta: Path, resolver) -> tuple[list[dict], set[str]]:
+    """Matricula por institucion, ano y nivel.
+
+    Son microdatos por programa: un millon y medio de filas de 149 MB. Se recorre
+    una sola vez, en flujo, acumulando por institucion y ano; cargarlo entero en
+    memoria no aporta nada.
+
+    La base **no trae nacionalidad**, asi que `estudiantes_extranjeros` —que THE y
+    QS necesitan— no sale de aqui. Queda anotado en el README.
+    """
+    acumulado: dict[tuple[str, int, str], float] = {}
+    sin_alias: set[str] = set()
+
+    with ruta.open(encoding="latin-1", newline="") as f:
+        lector = csv.reader(f, delimiter=";")
+        encabezados = [plano(c) for c in next(lector)]
+        c_anio = encabezados.index("ano")
+        c_total = encabezados.index("total matricula")
+        c_primero = encabezados.index("total matricula primer ano")
+        c_inst = encabezados.index("nombre institucion")
+        c_global = encabezados.index("nivel global")
+        c_nivel = encabezados.index("carrera clasificacion nivel 1")
+
+        for fila in lector:
+            # El periodo viene rotulado «MAT_2026», igual que «TIT_2025» y
+            # «PAC_2025» en las otras dos bases: se extrae el año, no se recorta.
+            m = re.search(r"(20\d\d)", str(fila[c_anio] or ""))
+            if not m:
+                continue
+            anio = int(m.group(1))
+            if anio < DESDE:
+                continue
+            universidad = resolver(fila[c_inst])
+            if universidad is None:
+                sin_alias.add(str(fila[c_inst] or "").strip())
+                continue
+
+            total = numero(fila[c_total]) or 0
+            primero = numero(fila[c_primero]) or 0
+            global_ = plano(fila[c_global])
+            nivel = plano(fila[c_nivel])
+
+            def sumar(variable, cuanto):
+                if cuanto:
+                    clave = (universidad, anio, variable)
+                    acumulado[clave] = acumulado.get(clave, 0) + cuanto
+
+            sumar("estudiantes_total", total)
+            sumar("estudiantes_primer_anio", primero)
+            if global_ == "pregrado":
+                sumar("estudiantes_pregrado", total)
+            elif global_ == "posgrado":
+                sumar("estudiantes_posgrado", total)
+            if nivel == "doctorado":
+                sumar("estudiantes_doctorado", total)
+            elif nivel == "magister":
+                sumar("estudiantes_magister", total)
+
+    return [nav.dato(FUENTE, universidad, variable, round(valor), anio_dato=anio,
+                     unidad="estudiantes", definicion=MATRICULA[variable][2],
+                     url=BASES["matricula"][0])
+            for (universidad, anio, variable), valor in sorted(acumulado.items())], sin_alias
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--solo-procesar", action="store_true")
@@ -279,11 +387,18 @@ def main() -> int:
         print(f"    {len(nuevas):,} datos · {len(universidades)} universidades · "
               f"{min(anios)}-{max(anios)}".replace(",", "."))
 
-    # La matrícula queda pendiente: el SIES la publica en un ZIP que contiene un
-    # RAR, y este equipo no tiene con qué abrirlo (ni 7-Zip, ni WinRAR, ni unrar
-    # en WSL). Se documenta en vez de instalarlo por cuenta propia.
-    if (base / BASES["matricula"][1]).exists():
-        print("\nMatrícula: descargada, sin procesar (viene en RAR; ver README).")
+    # El SIES publica la matrícula como un ZIP que contiene un RAR; se extrae con
+    # 7-Zip y se procesa el CSV de 149 MB en una sola pasada.
+    csv_matricula = _extraer_matricula(base)
+    if csv_matricula is not None:
+        print("\nMatrícula:")
+        nuevas, avisos = matricula(csv_matricula, resolver)
+        filas += nuevas
+        sin_alias |= avisos
+        universidades = {f["universidad"] for f in nuevas}
+        anios = {f["anio_dato"] for f in nuevas}
+        print(f"    {len(nuevas):,} datos · {len(universidades)} universidades · "
+              f"{min(anios)}-{max(anios)}".replace(",", "."))
 
     salida = nav.escribir_procesado(FUENTE, filas)
     print(f"\n{len(filas):,} filas -> {salida}".replace(",", "."))

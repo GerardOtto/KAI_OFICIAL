@@ -130,6 +130,72 @@ if comparables:
               len(discrepantes) <= len(comparables) * 0.4,
               f"{len(discrepantes)} de {len(comparables)}")
 
+print("\n=== 4. La razón estudiantes/académico, medida contra la publicada ===")
+# La comprobación que pide el plan: con la matrícula y los JCE del SIES se calcula
+# la misma razón que THE publica. Mide las dos bases a la vez, así que un error en
+# cualquiera de ellas aparece aquí.
+#
+# Se prueba con varios desfases de año porque THE no publica el dato del año de su
+# edición: lo recoge con retraso. Cuál es ese retraso no estaba documentado en
+# ninguna parte, y determinarlo importa para la calibración, porque empareja cada
+# edición con el año del SIES que de verdad le corresponde.
+
+
+def correlacion(pares):
+    xs = [x for x, _ in pares]
+    ys = [y for _, y in pares]
+    if len(pares) < 3 or not statistics.pstdev(xs) or not statistics.pstdev(ys):
+        return None
+    mx, my = statistics.fmean(xs), statistics.fmean(ys)
+    cov = sum((x - mx) * (y - my) for x, y in pares) / len(pares)
+    return cov / (statistics.pstdev(xs) * statistics.pstdev(ys))
+
+
+def comparar(desfase):
+    filas = []
+    for (universidad, anio, variable), estudiantes in sies.items():
+        if variable != "estudiantes_total":
+            continue
+        jce = sies.get((universidad, anio, "academicos_jce"))
+        publicada = the.get((universidad, str(int(anio) + desfase), "ratio_estudiantes_academico"))
+        if not (jce and publicada):
+            continue
+        filas.append((universidad, anio, estudiantes / jce, publicada))
+    if not filas:
+        return [], None, None
+    desvio = statistics.median(abs(p - q) / q for _, _, p, q in filas)
+    return filas, correlacion([(p, q) for _, _, p, q in filas]), desvio
+
+
+resultados = {}
+for desfase in range(0, 6):
+    filas_d, r_d, desvio_d = comparar(desfase)
+    if r_d is None:
+        continue
+    resultados[desfase] = (filas_d, r_d, desvio_d)
+    print(f"    desfase {desfase} año(s): {len(filas_d):3} pares · r = {r_d:+.2f} · "
+          f"desvío mediano {desvio_d:.1%}")
+
+comprobar("hay comparaciones que hacer", bool(resultados))
+
+if resultados:
+    mejor = min(resultados, key=lambda d: resultados[d][2])
+    filas_m, r_m, desvio_m = resultados[mejor]
+    print(f"\n    Mejor ajuste con {mejor} años de desfase: r = {r_m:+.2f}, "
+          f"desvío mediano {desvio_m:.1%}")
+    comprobar("la razón del SIES reproduce la publicada dentro del 15 %",
+              desvio_m < 0.15, f"{desvio_m:.1%} con {mejor} años de desfase")
+    comprobar("el mejor ajuste no es con el mismo año, sino con retraso",
+              mejor >= 1, f"el mejor fue {mejor}")
+
+    fuera = sorted(((abs(p - q) / q, u, a, p, q) for u, a, p, q in filas_m), reverse=True)
+    discrepantes = [x for x in fuera if x[0] > 0.25]
+    print(f"    {len(discrepantes)} de {len(filas_m)} pares se alejan más de 25 %:")
+    for d, u, a, propia, publicada in discrepantes[:6]:
+        print(f"      {u[:40]:42} {a}  SIES {propia:5.1f}  THE {publicada:5.1f}  ({d:+.0%})")
+    # Que los haya no es un fallo: son universidades cuya declaración a THE no
+    # cuadra con su reporte al Estado, y eso es un hallazgo, no un defecto.
+
 print("\n" + "=" * 62)
 print(f"FALLOS: {len(fallos)}" + (f" -> {fallos}" if fallos else "  (todo correcto)"))
 sys.exit(1 if fallos else 0)
