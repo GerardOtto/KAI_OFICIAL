@@ -34,6 +34,8 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `construir_nombres.py` | — | Reconstruye la tabla de alias desde la base o el volcado |
 | `the.py` | T1.1 | Puntajes y estadísticas de THE, mundial 2016-2026 y Latinoamérica |
 | `scimago.py` | T1.3 | Series de indicadores de las 57 instituciones chilenas, seis ventanas |
+| `qs.py` | T1.2 | Puntajes por indicador de siete ediciones, de las hojas oficiales del repo |
+| `webometrics.py` | T1.4 | Posición mundial y subindicadores (a la espera de que el sitio responda) |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del
 formato largo, mapa de nombres y, para las fuentes que lo necesiten, un navegador
@@ -43,6 +45,8 @@ con registro de red (`crear_driver`, `respuestas_json`, `cookies_a_session`).
 python tools/recoleccion/construir_nombres.py
 python tools/recoleccion/the.py                 # ~15 min la primera vez
 python tools/recoleccion/scimago.py             # ~4 min
+python tools/recoleccion/qs.py                  # local, sin red
+python tools/recoleccion/webometrics.py
 python tools/recoleccion/the.py --solo-procesar # reprocesa sin descargar
 ```
 
@@ -68,8 +72,31 @@ Por eso la ventana **2020-2024 no se obtuvo**: ninguna vía abierta la publica
 todavía. La serie 2014-2018 … 2019-2023 sí está completa, incluido el indicador
 `excel`, que la base no tiene.
 
+**QS.** Las siete hojas oficiales del repositorio (Latam 2024-2026 y mundial
+2024-2027) se procesan sin salir a la red. Tres trampas de formato, ya resueltas:
+la fila de claves cambia de la 3 a la 4 entre ediciones; la columna del nombre se
+rotula `institution` o `name`; y la del país tiene cinco rótulos distintos, dos de
+ellos engañosos —`rank in country` trae la posición nacional y `location code`, la
+sigla—. Por eso la columna del país se identifica **por su contenido**: se busca
+en cuál aparece «Chile».
+
+**Webometrics.** El dominio `webometrics.info` existe pero **no publica dirección
+IP**: no resuelve. No es un bloqueo ni un 403; el sitio no responde. El guion queda
+escrito y procesa un HTML guardado a mano en `raw/chile.html`.
+
 ## Pendiente
 
-Las fases 2 a 5 del plan (SIES, CNED, estados financieros, ANID, OpenAlex, Scopus
-y SciVal, consolidación y calibración) están sin empezar. Las de bibliometría con
-licencia exigen decidir antes si hay acceso institucional desde este equipo.
+De la fase 1 queda el **perfil** de cada universidad en topuniversities.com
+(estudiantes y académicos con la definición de QS), que exige descubrir su endpoint
+con el navegador, y los dos casos de arriba.
+
+Las fases 2 a 5 (SIES, CNED, estados financieros, ANID, OpenAlex, Scopus y SciVal,
+consolidación y calibración) están sin empezar. Las de bibliometría con licencia
+exigen decidir antes si hay acceso institucional desde este equipo.
+
+### Descargas manuales pendientes
+
+| Qué | Dónde | Dejar en |
+|---|---|---|
+| Ranking Scimago con la ventana 2020-2024 | `scimagoir.com/rankings.php?country=CHL`, botón de exportar (pasa Cloudflare con un navegador visible) | `KAI/Datos reales/scimago/raw/` |
+| Tabla de Webometrics de Chile | `webometrics.info/en/Latin_America/Chile`, guardar la página | `KAI/Datos reales/webometrics/raw/chile.html` |
