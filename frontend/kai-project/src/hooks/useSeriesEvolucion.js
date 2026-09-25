@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { cabeceraAuth } from "../auth/AuthContext";
 
 // Vista "Evolución": una métrica a lo largo de los años, una serie por institución.
 // Reusa /trends, pero acotando el payload a las instituciones seleccionadas y
@@ -22,7 +23,7 @@ export function useSeriesEvolucion(rankingId, metricaId, universidadIds) {
 
     let cancelado = false;
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL}/trends?${query}`)
+    fetch(`${import.meta.env.VITE_API_URL}/trends?${query}`, { headers: cabeceraAuth() })
       .then(r => r.json())
       .then(res => {
         if (cancelado) return;

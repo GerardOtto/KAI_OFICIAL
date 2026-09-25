@@ -1,0 +1,94 @@
+{
+  "data": [
+    {
+      "year": 2017,
+      "Rank": "401-500",
+      "Name": "Federico Santa María Technical University",
+      "No. of FTE students": "18,424",
+      "No. of students per staff": "28.3",
+      "International students": "2%",
+      "Female:Male ratio": "22 : 78"
+    },
+    {
+      "year": 2017,
+      "Rank": "401-500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "No. of FTE students": "26,188",
+      "No. of students per staff": "15.6",
+      "International students": "7%",
+      "Female:Male ratio": null
+    },
+    {
+      "year": 2017,
+      "Rank": "501-600",
+      "Name": "University of Chile",
+      "No. of FTE students": "38,079",
+      "No. of students per staff": "17.4",
+      "International students": "4%",
+      "Female:Male ratio": "47 : 53"
+    },
+    {
+      "year": 2017,
+      "Rank": "601-800",
+      "Name": "Austral University of Chile",
+      "No. of FTE students": "14,061",
+      "No. of students per staff": "17.1",
+      "International students": "2%",
+      "Female:Male ratio": "49 : 51"
+    },
+    {
+      "year": 2017,
+      "Rank": "601-800",
+      "Name": "University of Concepción",
+      "No. of FTE students": "26,253",
+      "No. of students per staff": "17.6",
+      "International students": "1%",
+      "Female:Male ratio": "50 : 50"
+    },
+    {
+      "year": 2017,
+      "Rank": "601-800",
+      "Name": "Diego Portales University",
+      "No. of FTE students": "15,868",
+      "No. of students per staff": "14.2",
+      "International students": "2%",
+      "Female:Male ratio": "48 : 52"
+    },
+    {
+      "year": 2017,
+      "Rank": "601-800",
+      "Name": "University of La Frontera",
+      "No. of FTE students": "9,731",
+      "No. of students per staff": "24.9",
+      "International students": "1%",
+      "Female:Male ratio": "44 : 56"
+    },
+    {
+      "year": 2017,
+      "Rank": "801+",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "No. of FTE students": "15,241",
+      "No. of students per staff": "25.0",
+      "International students": "1%",
+      "Female:Male ratio": "44 : 56"
+    },
+    {
+      "year": 2017,
+      "Rank": "801+",
+      "Name": "University of Santiago, Chile (USACH)",
+      "No. of FTE students": "22,720",
+      "No. of students per staff": "20.7",
+      "International students": "1%",
+      "Female:Male ratio": "40 : 60"
+    },
+    {
+      "year": 2017,
+      "Rank": "801+",
+      "Name": "University of Talca",
+      "No. of FTE students": "10,436",
+      "No. of students per staff": "25.1",
+      "International students": "1%",
+      "Female:Male ratio": "50 : 50"
+    }
+  ]
+}

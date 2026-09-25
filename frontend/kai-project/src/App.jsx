@@ -11,14 +11,17 @@ import Tendencias from "./pages/Tendencias";
 import Simulacion from "./pages/Simulacion";
 import Metricas from "./pages/Metricas";
 import Asistente from "./pages/Asistente";
-import Cientificos from "./pages/Cientificos";
-import InvestigadoresPUCV from "./pages/InvestigadoresPUCV";
+import InstitucionPendiente from "./components/InstitucionPendiente";
+import { useAuth } from "./auth/AuthContext";
 
 
 
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === "/";
+  // La institución es obligatoria y el acceso con Google no la pregunta: se
+  // reclama sobre cualquier vista salvo la portada, que es pública.
+  const { institucionPendiente } = useAuth();
 
   useEffect(() => {
     if (!isLanding) {
@@ -57,15 +60,19 @@ function AppContent() {
     <>
 
       {!isLanding && <Header />}
+      {institucionPendiente && !isLanding && <InstitucionPendiente />}
+      {/* Todos los módulos exigen sesión: la portada es lo único abierto. Las
+          rutas antiguas del módulo de investigadores se redirigen en vez de
+          devolver un 404, porque hay enlaces repartidos que aún apuntan a ellas. */}
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/ranking" element={<Ranking />} />
-        <Route path="/tendencias" element={<Tendencias />} />
+        <Route path="/ranking" element={<RutaProtegida><Ranking /></RutaProtegida>} />
+        <Route path="/tendencias" element={<RutaProtegida><Tendencias /></RutaProtegida>} />
         <Route path="/simulacion" element={<Navigate to="/simulacion/comparada" replace />} />
-        <Route path="/simulacion/:modo" element={<Simulacion />} />
-        <Route path="/metricas" element={<Metricas />} />
-        <Route path="/cientificos" element={<Cientificos />} />
-        <Route path="/investigadores-pucv" element={<InvestigadoresPUCV />} />
+        <Route path="/simulacion/:modo" element={<RutaProtegida><Simulacion /></RutaProtegida>} />
+        <Route path="/metricas" element={<RutaProtegida><Metricas /></RutaProtegida>} />
+        <Route path="/cientificos" element={<Navigate to="/" replace />} />
+        <Route path="/investigadores-pucv" element={<Navigate to="/" replace />} />
         <Route
           path="/asistente"
           element={

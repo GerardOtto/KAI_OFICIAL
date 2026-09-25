@@ -1,6 +1,7 @@
 // Sonda CDP del Glosario: exclusión de QS por Disciplina, cifras de Shanghai
 // GRAS ya proporcionadas, y el globo flotante de las celdas.
 import fs from "fs";
+import { crearSesion } from "./sesion.mjs";
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
 // Las capturas van junto a la sonda, no a una carpeta temporal de una
 // maquina concreta. Se crea si no existe.
@@ -9,6 +10,10 @@ fs.mkdirSync(SALIDA, { recursive: true });
 
 // Calculado aparte en SQL sobre la misma base.
 const ESPERADO_GRAS = { Articulos: 53.2, Reputacion: 15.0, Academicos: 13.3, Investigacion: 12.1, Internacionalizacion: 6.4 };
+// Suma de los pesos que ponderan en Scimago Latam, también medida en SQL. No
+// llega a 100 porque su metodología cargada no reparte el total; la matriz debe
+// reproducir el dato, no cuadrarlo.
+const ESPERADO_SCIMAGO = 94;
 
 const fallos = [];
 function comprobar(nombre, cond, detalle = "") {
@@ -37,6 +42,13 @@ ws.addEventListener("message", (e) => {
   const m = JSON.parse(e.data);
   if (m.method === "Console.messageAdded" && m.params.message.level === "error") errores.push(m.params.message.text);
 });
+
+// Ningún módulo se abre sin cuenta: se crea una desechable y se deja su testigo
+// en el navegador antes de medir nada (ver `sesion.mjs`).
+const { token: TESTIGO } = await crearSesion();
+await cdp("Page.navigate", { url: APP });
+await esperar(1200);
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)});`);
 
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 950, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: `${APP}/metricas` });
@@ -87,22 +99,28 @@ for (const { dim, texto } of gras) {
 comprobar(`las dimensiones de GRAS suman 100 % (dan ${suma.toFixed(1)})`,
   Math.abs(suma - 100) <= 0.5, suma.toFixed(2));
 
+// La sonda entra con el plan gratuito, que no abre THE ni QS. La propiedad que
+// se comprueba aquí —un ranking de una sola disciplina conserva sus pesos y no
+// lleva marca de promedio— se verifica sobre Scimago Latam, que ese plan sí
+// incluye. La aritmética de todos los rankings, THE y QS entre ellos, sigue
+// cubierta por la batería `pesos` del backend, que la calcula en SQL.
 console.log("\n=== 3. Un ranking de una sola disciplina no lleva la marca ===");
-const qs = await ev(`
+const scimago = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
-  const col = cab.findIndex(t => /^QS LATAM$/i.test(t));
+  const col = cab.findIndex(t => /^SCIMAGO LATAM$/i.test(t));
   const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
   return filas.map(f => ({ dim: f.children[0].innerText.trim(),
                            texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | ') })).filter(x => x.texto);
 `);
-comprobar("QS Latam no muestra la marca de promedio en ninguna celda",
-  qs.every(c => !/prom/i.test(c.texto)), JSON.stringify(qs.filter(c => /prom/i.test(c.texto))));
-const sumaQs = qs.reduce((s, c) => {
+comprobar("Scimago Latam no muestra la marca de promedio en ninguna celda",
+  scimago.every(c => !/prom/i.test(c.texto)),
+  JSON.stringify(scimago.filter(c => /prom/i.test(c.texto))));
+const sumaScimago = scimago.reduce((s, c) => {
   const m = c.texto.match(/([\d.,]+)\s*%/);
   return s + (m ? parseFloat(m[1].replace(/\./g, "").replace(",", ".")) : 0);
 }, 0);
-comprobar(`QS Latam conserva sus pesos originales (suman ${sumaQs.toFixed(0)} %)`,
-  Math.abs(sumaQs - 100) <= 1, sumaQs.toFixed(1));
+comprobar(`Scimago Latam conserva sus pesos originales (suman ${sumaScimago.toFixed(0)} %)`,
+  Math.abs(sumaScimago - ESPERADO_SCIMAGO) <= 0.5, sumaScimago.toFixed(1));
 
 console.log("\n=== 4. El globo flotante ===");
 const antes = await ev(`return document.querySelectorAll('[role=tooltip]').length;`);
@@ -197,9 +215,11 @@ await esperar(400);
 comprobar("al salir de la celda desaparece",
   (await ev(`return document.querySelectorAll('[role=tooltip]').length;`)) === 0);
 
-console.log("\n=== 7. THE Latam: un solo nivel de la jerarquía compone el peso ===");
-// THE Latam publica su metodología en dos niveles —cinco pilares y los diecisiete
-// indicadores que agrupan— y la base guarda los dos. Sumarlos daba 200 %.
+console.log("\n=== 7. THE Latam: reservado, pero presente ===");
+// Con el plan gratuito esta columna no muestra cifras. Sigue en la matriz a
+// propósito: que el ranking se vea es justamente lo que se pretende. Que sus
+// pesos no se dupliquen entre los dos niveles de la jerarquía —lo que antes se
+// comprobaba aquí— lo verifica en SQL la batería `pesos` del backend.
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 950, deviceScaleFactor: 1, mobile: false });
 await esperar(700);
 const the = await ev(`
@@ -210,38 +230,25 @@ const the = await ev(`
                  texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | ') }))
     .filter(x => x.texto);
 `);
-console.log("    " + JSON.stringify(the));
-const sumaThe = the.reduce((s, c) => {
-  const m = c.texto.match(/([\d.,]+)\s*%/);
-  return s + (m ? parseFloat(m[1].replace(/\./g, "").replace(",", ".")) : 0);
-}, 0);
-comprobar(`las dimensiones de THE Latam suman 100 % (dan ${sumaThe.toFixed(1)})`,
-  Math.abs(sumaThe - 100) <= 0.5, sumaThe.toFixed(2));
-comprobar("las dimensiones que se miden dentro de otro pilar llevan la marca «ref»",
-  the.some(c => /\bref\b/i.test(c.texto)), JSON.stringify(the));
-comprobar("ninguna celda marcada como referencia muestra además un porcentaje",
-  the.filter(c => /\bref\b/i.test(c.texto)).every(c => !/%/.test(c.texto)),
-  JSON.stringify(the.filter(c => /\bref\b/i.test(c.texto))));
+console.log("    " + JSON.stringify(the.slice(0, 3)));
+comprobar("la columna existe y tiene una celda por dimensión", the.length > 5, the.length);
+comprobar("ninguna celda revela una cifra",
+  the.every(c => !/[\d]/.test(c.texto.replace(/plan de pago/i, ""))), JSON.stringify(the.slice(0, 3)));
+comprobar("y todas dicen a qué plan pertenecen",
+  the.every(c => /plan de pago/i.test(c.texto)), JSON.stringify(the.slice(0, 3)));
 
-// En el desglose los indicadores siguen presentes, marcados y sin sumar.
+// Una celda tapada tampoco abre el globo con el desglose.
 const celdaThe = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
   const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
-  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
-    .find(f => /%/.test(f.children[col]?.innerText || ''));
+  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')][0];
   const r = fila.children[col].getBoundingClientRect();
-  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
-           dim: fila.children[0].innerText.trim() };
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
 `);
 await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: celdaThe.x, y: celdaThe.y });
 await esperar(500);
-const globoThe = await ev(`
-  const g = document.querySelector('[role=tooltip]');
-  return g ? g.innerText.replace(/\\n+/g, ' | ') : null;
-`);
-console.log(`    desglose de ${celdaThe.dim}: ${globoThe}`);
-comprobar("el desglose conserva los indicadores de referencia",
-  globoThe != null && /ref/i.test(globoThe), globoThe);
+const globoThe = await ev(`return document.querySelector('[role=tooltip]')?.innerText ?? null;`);
+comprobar("una celda reservada no abre el desglose", globoThe === null, globoThe);
 await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
 
 console.log("\n=== 8. Sin errores de JavaScript ===");

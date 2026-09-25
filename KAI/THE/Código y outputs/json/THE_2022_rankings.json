@@ -1,0 +1,312 @@
+{
+  "data": [
+    {
+      "year": 2022,
+      "Rank": "401–500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "Overall": "40.9–44.0",
+      "Teaching": "24.8",
+      "Research Environment": "30.3",
+      "Research Quality": "66.4",
+      "Industry": "73.0",
+      "International Outlook": "58.2"
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Diego Portales University",
+      "Overall": "38.1–40.8",
+      "Teaching": "15.6",
+      "Research Environment": "11.0",
+      "Research Quality": "86.2",
+      "Industry": "34.8",
+      "International Outlook": "51.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Universidad Autónoma de Chile",
+      "Overall": "38.1–40.8",
+      "Teaching": "13.4",
+      "Research Environment": "9.8",
+      "Research Quality": "96.7",
+      "Industry": "34.8",
+      "International Outlook": "51.7"
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Universidad del Desarrollo",
+      "Overall": "38.1–40.8",
+      "Teaching": "14.9",
+      "Research Environment": "10.1",
+      "Research Quality": "89.4",
+      "Industry": "38.0",
+      "International Outlook": "50.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "801–1000",
+      "Name": "University of Chile",
+      "Overall": "27.2–31.9",
+      "Teaching": "23.8",
+      "Research Environment": "18.1",
+      "Research Quality": "36.7",
+      "Industry": "40.3",
+      "International Outlook": "50.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "Overall": "22.4–27.1",
+      "Teaching": "17.4",
+      "Research Environment": "25.2",
+      "Research Quality": "20.4",
+      "Industry": "43.9",
+      "International Outlook": "49.3"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of Concepción",
+      "Overall": "22.4–27.1",
+      "Teaching": "16.7",
+      "Research Environment": "13.3",
+      "Research Quality": "28.3",
+      "Industry": "56.1",
+      "International Outlook": "50.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of La Frontera",
+      "Overall": "22.4–27.1",
+      "Teaching": "15.3",
+      "Research Environment": "19.9",
+      "Research Quality": "30.6",
+      "Industry": "34.8",
+      "International Outlook": "49.6"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of the Andes, Chile",
+      "Overall": "22.4–27.1",
+      "Teaching": "17.8",
+      "Research Environment": "12.9",
+      "Research Quality": "32.3",
+      "Industry": "36.2",
+      "International Outlook": "48.1"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Adolfo Ibáñez University",
+      "Overall": "10.6–22.3",
+      "Teaching": "15.5",
+      "Research Environment": "15.1",
+      "Research Quality": "25.1",
+      "Industry": "36.6",
+      "International Outlook": "59.6"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Austral University of Chile",
+      "Overall": "10.6–22.3",
+      "Teaching": "16.3",
+      "Research Environment": "13.8",
+      "Research Quality": "24.9",
+      "Industry": "45.8",
+      "International Outlook": "51.7"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Catholic University of the North",
+      "Overall": "10.6–22.3",
+      "Teaching": "15.1",
+      "Research Environment": "12.4",
+      "Research Quality": "25.4",
+      "Industry": "34.9",
+      "International Outlook": "54.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Federico Santa María Technical University",
+      "Overall": "10.6–22.3",
+      "Teaching": "14.3",
+      "Research Environment": "12.0",
+      "Research Quality": "28.7",
+      "Industry": "41.3",
+      "International Outlook": "56.1"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "San Sebastián University",
+      "Overall": "10.6–22.3",
+      "Teaching": "17.5",
+      "Research Environment": "8.0",
+      "Research Quality": "8.8",
+      "Industry": "34.8",
+      "International Outlook": "43.6"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "Overall": "10.6–22.3",
+      "Teaching": "14.9",
+      "Research Environment": "8.9",
+      "Research Quality": "33.1",
+      "Industry": "35.0",
+      "International Outlook": "48.1"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Bío-Bío",
+      "Overall": "10.6–22.3",
+      "Teaching": "14.2",
+      "Research Environment": "9.8",
+      "Research Quality": "9.3",
+      "Industry": "34.8",
+      "International Outlook": "47.8"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Santiago, Chile (USACH)",
+      "Overall": "10.6–22.3",
+      "Teaching": "16.2",
+      "Research Environment": "15.7",
+      "Research Quality": "12.7",
+      "Industry": "37.2",
+      "International Outlook": "47.0"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Talca",
+      "Overall": "10.6–22.3",
+      "Teaching": "16.4",
+      "Research Environment": "11.8",
+      "Research Quality": "25.5",
+      "Industry": "36.0",
+      "International Outlook": "52.9"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Tarapacá",
+      "Overall": "10.6–22.3",
+      "Teaching": "14.5",
+      "Research Environment": "17.0",
+      "Research Quality": "17.8",
+      "Industry": "34.9",
+      "International Outlook": "51.4"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Valparaíso",
+      "Overall": "10.6–22.3",
+      "Teaching": "15.5",
+      "Research Environment": "10.9",
+      "Research Quality": "19.3",
+      "Industry": "35.0",
+      "International Outlook": "49.2"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Arturo Prat University",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Bernardo O’Higgins University",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Finis Terrae University",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Temuco Catholic University",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Universidad Católica de la Santísima Concepción",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Universidad Mayor",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "University of La Serena",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "University of Los Lagos",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    }
+  ]
+}

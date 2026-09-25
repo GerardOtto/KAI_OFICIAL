@@ -4,9 +4,22 @@ El consumo se registra por mensaje, no como un contador agregado en la fila del
 usuario. Eso permite recalcular el gasto de cualquier período, auditar de dónde
 salió cada cifra y borrar una conversación sin dejar el contador descuadrado.
 """
+import os
+from datetime import datetime, timedelta
+
 from sqlalchemy import text
 
 LIMITE_TITULO = 60
+
+# Cuántos mensajes se le reenvían al modelo en cada turno, y cuántos de ellos van
+# enteros. La API es sin estado: todo esto viaja en cada vuelta del ciclo de
+# herramientas, así que una respuesta larga de hace cinco turnos se paga otra vez,
+# multiplicada por el número de vueltas. Los turnos recientes van completos
+# —dan el hilo de la conversación— y los anteriores, recortados: de una respuesta
+# vieja basta el planteamiento para saber de qué se habló, no su tabla entera.
+VENTANA_MENSAJES = int(os.getenv("KAI_VENTANA_MENSAJES", "10"))
+MENSAJES_INTACTOS = int(os.getenv("KAI_MENSAJES_INTACTOS", "4"))
+TOPE_MENSAJE_ANTIGUO = 900
 
 
 def titulo_desde_mensaje(texto: str) -> str:
@@ -127,19 +140,34 @@ def descartar_turno_fallido(db, id_conversacion: int, id_mensaje_usuario: int,
         """), {"c": id_conversacion})
 
 
-def historial_para_modelo(db, id_conversacion: int, max_mensajes: int = 20) -> list[dict]:
+def _recortado(contenido: str) -> str:
+    """Un mensaje antiguo, reducido a lo que hace falta para seguir el hilo."""
+    if len(contenido) <= TOPE_MENSAJE_ANTIGUO:
+        return contenido
+    corte = contenido[:TOPE_MENSAJE_ANTIGUO].rsplit("\n", 1)[0]
+    return corte + "\n[…respuesta anterior recortada para ahorrar contexto…]"
+
+
+def historial_para_modelo(db, id_conversacion: int,
+                          max_mensajes: int = VENTANA_MENSAJES) -> list[dict]:
     """Últimos mensajes en el formato que espera la API del modelo.
 
-    Se acota la ventana porque la API es sin estado y reenvía todo el historial
-    en cada llamada: sin tope, una conversación larga encarece cada turno.
+    Se acota de dos formas, porque la API es sin estado y esto se reenvía entero
+    en cada vuelta: una ventana de mensajes y, dentro de ella, el recorte de los
+    más antiguos. Los `MENSAJES_INTACTOS` últimos van tal cual, que son los que
+    el modelo necesita palabra por palabra para responder a un «y en 2023?».
     """
     filas = db.execute(text("""
         SELECT rol, contenido FROM (
             SELECT rol, contenido, id_mensaje FROM mensaje
             WHERE id_conversacion = :c ORDER BY id_mensaje DESC LIMIT :n
         ) ultimos ORDER BY id_mensaje
-    """), {"c": id_conversacion, "n": max_mensajes})
-    return [{"role": f.rol, "content": f.contenido} for f in filas]
+    """), {"c": id_conversacion, "n": max_mensajes}).fetchall()
+
+    corte = max(0, len(filas) - MENSAJES_INTACTOS)
+    return [{"role": f.rol,
+             "content": _recortado(f.contenido) if i < corte else f.contenido}
+            for i, f in enumerate(filas)]
 
 
 # --- Consumo y cuota -------------------------------------------------------
@@ -206,6 +234,39 @@ def mensajes_de_hoy(db, id_usuario: int) -> int:
     """), {"u": id_usuario}).scalar())
 
 
+def espera_entre_consultas(db, id_usuario: int, dias: int | None) -> dict:
+    """Cuánto falta para la siguiente consulta, en los planes con espera.
+
+    El plan gratuito no limita por volumen diario sino por frecuencia: una
+    consulta cada tantos días. Se mide desde la última pregunta efectivamente
+    registrada, no desde medianoche, porque lo que se quiere acotar es el ritmo
+    de uso y no el reparto por jornada.
+
+    Los turnos fallidos se descartan del historial, de modo que un fallo del
+    proveedor no consume la espera del usuario.
+    """
+    if not dias:
+        return {"dias_entre_mensajes": None, "proxima_consulta": None, "horas_restantes": None}
+
+    fila = db.execute(text("""
+        SELECT max(m.fecha_creacion) AS ultima
+          FROM mensaje m
+          JOIN conversacion c ON c.id_conversacion = m.id_conversacion
+         WHERE c.id_usuario = :u AND m.rol = 'user'
+    """), {"u": id_usuario}).first()
+
+    if fila is None or fila.ultima is None:
+        return {"dias_entre_mensajes": dias, "proxima_consulta": None, "horas_restantes": 0}
+
+    proxima = fila.ultima + timedelta(days=dias)
+    restante = (proxima - datetime.now()).total_seconds() / 3600
+    return {
+        "dias_entre_mensajes": dias,
+        "proxima_consulta": proxima.isoformat(timespec="minutes"),
+        "horas_restantes": max(0, round(restante, 1)),
+    }
+
+
 # Cada motor tiene su propia cuota mensual, en la columna que le corresponde del
 # plan. Convenio de valores: None = sin límite, 0 = motor no incluido en el plan.
 COLUMNA_DE_CUOTA = {"claude": "tokens_claude_mes", "gemini": "tokens_gemini_mes"}
@@ -232,10 +293,12 @@ def estado_de_cuota(db, usuario: dict) -> dict:
     if sin_plan:
         usuario = {**usuario, "nombre_plan": "Sin plan", "mensajes_por_dia": 0,
                    "tokens_claude_mes": 0, "tokens_gemini_mes": 0,
-                   "precio_mensual_usd": 0}
+                   "precio_mensual_usd": 0, "dias_entre_mensajes": None}
 
     tope_diario = usuario.get("mensajes_por_dia")
     mensajes_restantes = None if tope_diario is None else max(0, tope_diario - hoy)
+    espera = espera_entre_consultas(db, usuario["id_usuario"], usuario.get("dias_entre_mensajes"))
+    en_espera = bool(espera["horas_restantes"])
 
     motores = {}
     for motor, columna in COLUMNA_DE_CUOTA.items():
@@ -248,7 +311,8 @@ def estado_de_cuota(db, usuario: dict) -> dict:
             "incluido": incluido,
             "tokens_mensuales": tope,
             "tokens_restantes": restantes,
-            "disponible": incluido and restantes != 0 and mensajes_restantes != 0,
+            "disponible": (incluido and restantes != 0 and mensajes_restantes != 0
+                           and not en_espera),
         }
 
     total = sum(m["tokens_total"] for m in motores.values())
@@ -260,6 +324,7 @@ def estado_de_cuota(db, usuario: dict) -> dict:
         "mensajes_hoy": hoy,
         "mensajes_por_dia": tope_diario,
         "mensajes_restantes": mensajes_restantes,
+        "espera": espera,
         "tokens_total": total,
         "motores": motores,
         # `excedido` significa que no queda ningún motor con el que consultar; es
@@ -286,6 +351,17 @@ def motivo_de_bloqueo(cuota: dict, motor: str) -> tuple[int, str] | None:
     if not estado["incluido"]:
         return 403, (f"Tu plan «{cuota.get('nombre_plan') or cuota.get('plan')}» no incluye este motor. "
                      "Puedes seguir consultando con el motor gratuito o cambiar de plan.")
+
+    # La espera entre consultas se comprueba antes que el tope diario: en un plan
+    # con ambas cosas es la que primero se alcanza, y decir «vuelve mañana»
+    # cuando faltan tres días sería engañoso.
+    espera = cuota.get("espera") or {}
+    if espera.get("horas_restantes"):
+        horas = espera["horas_restantes"]
+        cuanto = f"{round(horas / 24, 1)} días" if horas >= 24 else f"{round(horas)} horas"
+        return 429, (f"Tu plan permite una consulta cada {espera['dias_entre_mensajes']} días. "
+                     f"La próxima estará disponible en {cuanto}. "
+                     "Los planes de pago no tienen esta espera.")
 
     if cuota.get("mensajes_restantes") == 0:
         return 429, (f"Alcanzaste el límite diario de {cuota['mensajes_por_dia']} consultas de tu plan. "

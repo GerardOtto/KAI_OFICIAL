@@ -1,5 +1,7 @@
 // Encabezado: sin desborde horizontal en ningún ancho, y navegación disponible
 // siempre —el nav ancho por encima de `lg`, el menú compacto por debajo—.
+import { crearSesion } from "./sesion.mjs";
+
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
 const ANCHOS = [360, 420, 700, 768, 800, 850, 900, 950, 1000, 1023, 1024, 1100, 1280, 1600];
 
@@ -30,6 +32,13 @@ ws.addEventListener("message", e => {
   const m = JSON.parse(e.data);
   if (m.method === "Console.messageAdded" && m.params.message.level === "error") errores.push(m.params.message.text);
 });
+
+// Ningún módulo se abre sin cuenta: se crea una desechable y se deja su testigo
+// en el navegador antes de medir nada (ver `sesion.mjs`).
+const { token: TESTIGO } = await crearSesion();
+await cdp("Page.navigate", { url: APP });
+await esperar(1200);
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)});`);
 
 console.log("=== 1. Sin desborde horizontal y con navegación en todos los anchos ===");
 for (const ancho of ANCHOS) {
@@ -86,7 +95,12 @@ const opciones = await ev(`
     .filter(t => t && !/^men\\u00fa/i.test(t) && !/iniciar sesi/i.test(t));
 `);
 console.log("    opciones:", JSON.stringify(opciones));
-comprobar("el menú abre con los cinco destinos", opciones.length === 5, String(opciones.length));
+// Con sesión iniciada —que ahora es la única forma de ver un módulo— el
+// encabezado añade el botón de la cuenta a los cinco destinos.
+const DESTINOS = ["Asistente", "Tendencias", "Simulación", "Glosario", "Resumen"];
+comprobar("el menú abre con los cinco destinos",
+  DESTINOS.every(d => opciones.some(o => o.toLowerCase().includes(d.toLowerCase()))),
+  JSON.stringify(opciones));
 // Los modos de Simulación se eligen dentro del módulo, no desde la navegación.
 comprobar("ofrece Simulación como una sola entrada",
   opciones.filter(o => /Simulaci/i.test(o)).length === 1,

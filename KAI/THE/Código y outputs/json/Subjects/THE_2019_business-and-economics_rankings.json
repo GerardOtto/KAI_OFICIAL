@@ -1,0 +1,180 @@
+{
+  "data": [
+    {
+      "year": 2019,
+      "Rank": "401–500",
+      "Name": "Universidad del Desarrollo",
+      "Overall": "37.1–41.6",
+      "Teaching": "12.5",
+      "Research Environment": "8.2",
+      "Research Quality": "94.3",
+      "Industry": "35.5",
+      "International Outlook": "45.6"
+    },
+    {
+      "year": 2019,
+      "Rank": "401–500",
+      "Name": "Diego Portales University",
+      "Overall": "37.1–41.6",
+      "Teaching": "13.2",
+      "Research Environment": "10.3",
+      "Research Quality": "90.1",
+      "Industry": "34.0",
+      "International Outlook": "51.2"
+    },
+    {
+      "year": 2019,
+      "Rank": "601–800",
+      "Name": "University of Chile",
+      "Overall": "26.0–33.4",
+      "Teaching": "24.3",
+      "Research Environment": "18.0",
+      "Research Quality": "34.6",
+      "Industry": "34.0",
+      "International Outlook": "50.5"
+    },
+    {
+      "year": 2019,
+      "Rank": "601–800",
+      "Name": "Federico Santa María Technical University",
+      "Overall": "26.0–33.4",
+      "Teaching": "12.1",
+      "Research Environment": "10.2",
+      "Research Quality": "50.4",
+      "Industry": "44.3",
+      "International Outlook": "54.4"
+    },
+    {
+      "year": 2019,
+      "Rank": "601–800",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "Overall": "26.0–33.4",
+      "Teaching": "25.5",
+      "Research Environment": "24.0",
+      "Research Quality": "44.0",
+      "Industry": "39.0",
+      "International Outlook": "56.9"
+    },
+    {
+      "year": 2019,
+      "Rank": "801–1000",
+      "Name": "Austral University of Chile",
+      "Overall": "19.0–25.9",
+      "Teaching": "14.4",
+      "Research Environment": "11.4",
+      "Research Quality": "23.0",
+      "Industry": "46.7",
+      "International Outlook": "50.0"
+    },
+    {
+      "year": 2019,
+      "Rank": "801–1000",
+      "Name": "University of La Frontera",
+      "Overall": "19.0–25.9",
+      "Teaching": "15.1",
+      "Research Environment": "16.7",
+      "Research Quality": "32.9",
+      "Industry": "34.0",
+      "International Outlook": "45.9"
+    },
+    {
+      "year": 2019,
+      "Rank": "801–1000",
+      "Name": "University of Talca",
+      "Overall": "19.0–25.9",
+      "Teaching": "13.0",
+      "Research Environment": "10.8",
+      "Research Quality": "25.2",
+      "Industry": "34.0",
+      "International Outlook": "50.5"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "Overall": "9.8–18.9",
+      "Teaching": "11.8",
+      "Research Environment": "7.4",
+      "Research Quality": "27.8",
+      "Industry": "34.2",
+      "International Outlook": "48.5"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "University of Bío-Bío",
+      "Overall": "9.8–18.9",
+      "Teaching": "12.8",
+      "Research Environment": "7.9",
+      "Research Quality": "5.9",
+      "Industry": "36.5",
+      "International Outlook": "43.8"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "Catholic University of the North",
+      "Overall": "9.8–18.9",
+      "Teaching": "13.5",
+      "Research Environment": "11.0",
+      "Research Quality": "16.6",
+      "Industry": "34.5",
+      "International Outlook": "52.1"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "University of Concepción",
+      "Overall": "9.8–18.9",
+      "Teaching": "14.8",
+      "Research Environment": "13.3",
+      "Research Quality": "18.2",
+      "Industry": "55.1",
+      "International Outlook": "48.5"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "Overall": "9.8–18.9",
+      "Teaching": "15.3",
+      "Research Environment": "14.3",
+      "Research Quality": "13.8",
+      "Industry": "46.9",
+      "International Outlook": "48.7"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "University of Santiago, Chile (USACH)",
+      "Overall": "9.8–18.9",
+      "Teaching": "15.1",
+      "Research Environment": "11.4",
+      "Research Quality": "12.1",
+      "Industry": "34.1",
+      "International Outlook": "46.2"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "University of Tarapacá",
+      "Overall": "9.8–18.9",
+      "Teaching": "11.4",
+      "Research Environment": "11.6",
+      "Research Quality": "11.4",
+      "Industry": "34.0",
+      "International Outlook": "48.4"
+    },
+    {
+      "year": 2019,
+      "Rank": "1001+",
+      "Name": "University of Valparaíso",
+      "Overall": "9.8–18.9",
+      "Teaching": "13.5",
+      "Research Environment": "9.2",
+      "Research Quality": "17.1",
+      "Industry": "34.3",
+      "International Outlook": "47.0"
+    }
+  ]
+}

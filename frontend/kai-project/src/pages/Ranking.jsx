@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useRankings } from "../hooks/useRankings";
+import { useRankingsPermitidos } from "../hooks/useRankingsPermitidos";
 import { useAnios } from "../hooks/useAnios";
 import { useRankingResumen } from "../hooks/useRankingResumen";
 import { useRankingHistorico } from "../hooks/useRankingHistorico";
@@ -36,10 +36,13 @@ function exportarCSV(data, rankingNombre, anio) {
 }
 
 export default function Ranking() {
-  const rankings = useRankings();
   const [rankingId, setRankingId] = useState(null);
   const [anio, setAnio] = useState(null);
   const [densidad, setDensidad] = useState("comoda"); // "comoda" | "compacta"
+
+  // Después del estado: el hook necesita la selección actual para corregirla si
+  // el plan no incluye ese ranking.
+  const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
 
   const anios = useAnios(rankingId);
   const { data, loading } = useRankingResumen(rankingId, anio);
@@ -119,14 +122,26 @@ export default function Ranking() {
           {rankings.map(r => (
             <button
               key={r.id_ranking}
-              onClick={() => handleRankingChange(r.id_ranking)}
+              disabled={r.restringido}
+              title={r.restringido
+                ? `${r.nombre_ranking} está incluido en los planes de pago.` : undefined}
+              onClick={() => !r.restringido && handleRankingChange(r.id_ranking)}
               className={`py-[9px] px-4 text-[11.5px] font-semibold border transition-colors ${
-                rankingId === r.id_ranking
+                r.restringido
+                  ? "bg-[#161616] text-[#5f5f5f] border-white/[.07] cursor-not-allowed"
+                  : rankingId === r.id_ranking
                   ? "bg-white text-[#111] border-white"
                   : "bg-[#1c1c1c] text-[#9a9a9a] border-white/[.12] hover:text-white"
               }`}
             >
               {r.nombre_ranking}
+              {/* El nombre se muestra igualmente: el plan gratuito debe saber qué
+                  rankings existen y cuáles se abren al contratar. */}
+              {r.restringido && (
+                <span className="ml-2 font-mono text-[9px] uppercase tracking-widest">
+                  plan de pago
+                </span>
+              )}
             </button>
           ))}
         </div>

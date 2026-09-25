@@ -1,0 +1,42 @@
+ranking,title,overall_score,academic_reputation_score,employer_reputation_score,faculty_student_ratio_score,staff_phd_score,citations_per_paper_score,papers_per_faculty_score,international_research_network_score,web_impact_score,student_mix_domestic,student_mix_international
+1,Pontificia Universidad Católica de Chile (UC),100.0,100.0,100.0,65.2,98.3,76.7,96.8,99.8,95.7,95%,5%
+2,Universidad de Chile,92.5,100.0,100.0,22.3,69.2,75.7,99.4,99.7,100.0,95%,5%
+3,Universidad de Concepción,87.1,89.2,88.7,37.0,60.4,89.8,88.9,98.7,82.5,98%,2%
+4,Universidad de Santiago de Chile (USACH),81.4,96.9,96.9,24.0,29.0,57.7,80.6,96.7,63.7,98%,2%
+5,Universidad Adolfo Ibáñez,77.1,80.0,99.0,19.5,81.3,28.4,96.4,86.8,43.6,95%,5%
+6,Pontificia Universidad Católica de Valparaíso,76.4,89.0,81.4,14.8,60.7,45.4,99.1,92.7,50.3,98%,2%
+7,Universidad Austral de Chile,67.2,65.5,59.5,9.1,85.0,49.8,99.3,93.9,59.4,99%,1%
+8,Universidad Diego Portales (UDP),64.6,64.9,79.2,24.2,14.4,87.3,46.0,88.9,34.8,96%,4%
+9,Universidad de los Andes - Chile,63.4,72.6,90.2,29.2,28.1,36.0,58.2,64.3,25.8,98%,2%
+10,Universidad Técnica Federico Santa María (USM),62.5,51.1,83.4,10.0,46.3,67.7,80.2,94.1,22.5,99%,1%
+11,Universidad de Talca,62.0,54.0,48.9,19.1,53.9,80.8,94.9,94.1,59.3,99%,1%
+12,Universidad de La Frontera (UFRO),60.5,54.1,34.0,14.9,81.6,85.6,99.1,93.1,32.3,99%,1%
+13,Universidad Andrés Bello,58.9,63.2,62.0,25.6,14.4,63.4,36.1,98.2,46.4,98%,2%
+14,Universidad del Desarrollo (UDD),51.6,44.4,60.2,30.2,11.8,91.7,28.6,65.1,43.4,98%,2%
+15,Universidad de Valparaíso (UV),50.8,56.9,37.5,25.6,33.0,37.1,61.2,86.8,43.7,98%,2%
+16,Universidad del Bío-Bío,49.5,46.3,23.3,10.8,72.2,50.3,92.0,84.8,39.6,99%,1%
+17,Universidad Autónoma de Chile,43.3,34.5,22.0,13.5,23.9,93.5,48.9,90.2,36.9,99%,1%
+18,Universidad Católica del Norte,43.0,27.1,23.0,24.7,32.8,63.9,87.1,93.5,47.0,95%,5%
+19,Universidad de Tarapaca,40.4,21.5,9.1,9.7,40.2,92.3,99.8,95.4,29.9,100%,0%
+20,Universidad Alberto Hurtado,38.1,44.6,36.5,9.6,59.3,7.9,91.8,20.3,27.4,98%,2%
+21,Universidad de La Serena,36.3,27.6,16.7,9.9,31.1,83.5,74.9,58.3,21.1,99%,1%
+22,Universidad de Antofagasta,36.2,22.6,12.3,24.8,22.7,92.1,56.1,75.9,20.8,98%,2%
+23,Universidad Católica de la Santísima Concepción (UCSC),,24.0,17.5,22.2,31.3,43.1,73.5,86.0,24.8,100%,0%
+24,Universidad de Magallanes,,13.3,10.1,55.0,8.6,99.0,49.9,65.3,19.4,,
+25,Universidad Bernardo O'Higgins,,24.8,38.1,26.8,29.9,12.3,63.2,59.2,13.9,98%,2%
+26,Universidad Católica de Temuco,,25.9,11.2,5.8,63.7,10.5,99.8,71.8,26.3,100%,0%
+27,Universidad Mayor,,15.2,23.1,11.0,16.2,91.2,33.5,77.3,27.3,99%,1%
+28,Universidad San Sebastian - Chile,,16.0,26.2,52.2,4.9,38.4,21.8,91.5,36.4,100%,0%
+29,Universidad Católica del Maule,,15.5,11.6,27.6,25.0,21.0,65.2,88.6,27.3,100%,0%
+30,Universidad Central de Chile ,,25.2,21.0,11.1,13.9,68.8,17.3,43.2,20.4,98%,2%
+31,Universidad Tecnológica Metropolitana (UTEM),,12.1,20.8,12.7,35.6,64.5,41.1,40.4,22.5,100%,0%
+32,Universidad de Los Lagos,,13.3,8.8,9.4,39.2,25.7,79.2,59.4,30.1,100%,0%
+33,Universidad Arturo Prat ,,7.9,8.5,16.6,17.0,38.0,34.5,67.1,17.6,93%,7%
+34,Universidad Santo Tomás - Chile,,15.6,18.2,17.0,5.9,44.6,16.0,66.4,8.3,99%,1%
+35,Universidad de Atacama,,7.9,9.1,5.2,16.3,65.9,81.5,65.5,18.2,,
+36,Universidad de Las Américas,,26.2,25.5,21.1,10.4,15.8,9.7,46.9,17.9,98%,2%
+37,Universidad Finis Terrae,,17.4,13.4,22.4,10.3,10.6,24.0,33.7,1.0,98%,2%
+38,Universidad de Playa Ancha,,14.0,,22.1,21.3,12.9,49.1,39.4,21.4,100%,0%
+39,Universidad Católica Silva Henríquez,,13.5,15.1,18.5,8.8,4.9,17.8,8.8,13.3,,
+40,Universidad UNIACC,,4.0,5.8,23.6,2.1,,1.2,,7.4,,
+41,Universidad del Viña del Mar,,8.3,5.5,33.3,3.7,4.0,9.3,18.0,10.4,100%,0%

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useRankings } from "../hooks/useRankings";
+import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
 import { useAnios } from "../hooks/useAnios";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useMetricas } from "../hooks/useMetricas";
@@ -20,7 +20,8 @@ export default function Simulacion() {
   const navigate = useNavigate();
   const modo = MODOS.some(m => m.modo === modoParam) ? modoParam : "comparada";
 
-  const [rankingId, setRankingId] = useState(1);
+  // Igual que en Tendencias: la elección inicial la fija el catálogo.
+  const [rankingId, setRankingId] = useState(null);
   const [anio, setAnio] = useState(null);
   const [institucionUnitaria, setInstitucionUnitaria] = useState(null);
   const [institucionesComparada, setInstitucionesComparada] = useState([]);
@@ -28,7 +29,7 @@ export default function Simulacion() {
   const [showPicker, setShowPicker] = useState(false);
   const [searchUni, setSearchUni] = useState("");
 
-  const rankings = useRankings();
+  const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
   const anios = useAnios(rankingId);
   const { universidades } = useUniversidades();
   const metricasRanking = useMetricas(rankingId);
@@ -106,7 +107,9 @@ export default function Simulacion() {
               className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
             >
               {rankings.map(r => (
-                <option key={r.id_ranking} value={r.id_ranking}>{r.nombre_ranking}</option>
+                <option key={r.id_ranking} value={r.id_ranking} disabled={r.restringido}>
+                  {r.nombre_ranking}{r.restringido ? ETIQUETA_RESERVADO : ""}
+                </option>
               ))}
             </select>
           </div>

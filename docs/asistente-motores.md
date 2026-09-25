@@ -24,7 +24,7 @@ la profundidad del razonamiento y el precio.
 
 ## 1. Qué comparten y qué no
 
-Los dos motores ejecutan **exactamente las mismas diez herramientas** sobre la
+Los dos motores ejecutan **exactamente las mismas once herramientas** sobre la
 misma base de datos, con la misma instrucción de sistema, y los dos pueden
 además **buscar en internet**. Las herramientas están definidas una sola vez, en
 `herramientas.py`, como funciones normales de Python; de ahí se derivan los dos
@@ -80,17 +80,18 @@ diseño, y la herramienta de SQL libre rechaza la consulta entera si las mencion
 —escritas como sea, entre comillas o dentro de una subconsulta—. Si se le
 pregunta por datos de usuarios, responde que quedan fuera de su alcance.
 
-### Las diez herramientas
+### Las once herramientas
 
 | Herramienta | Para qué |
 |---|---|
 | `listar_rankings` | Catálogo con nivel, categoría, editor, métricas, universidades y años |
 | `detalle_ranking` | Descripción y metodología completas, disciplinas y años con datos |
-| `buscar_metricas` | Métricas de un ranking con tipo, peso y **en qué años rige ese peso** |
+| `buscar_metricas` | Métricas de un ranking con tipo, peso y **en qué años hay valores** |
 | `buscar_universidades` | Búsqueda por nombre o país; devuelve el id y su cobertura |
 | `consultar_valores` | Corte transversal: qué sacó cada universidad en cada indicador de un año |
 | `consultar_tendencia` | Serie histórica de una métrica |
 | `consultar_ranking_resumen` | Score ponderado por universidad, con disciplina opcional |
+| `comparar_universidades` | **Comparación completa en una llamada**: métricas, años y score ponderado |
 | `buscar_cientificos` | Censo bibliométrico: h-index, citas, artículos, ranking global |
 | `perfil_cientifico` | Ficha completa de un científico con sus indicadores y tópicos |
 | `consulta_sql` | Salida de emergencia: SQL de solo lectura sobre las tablas académicas |
@@ -98,6 +99,25 @@ pregunta por datos de usuarios, responde que quedan fuera de su alcance.
 Las búsquedas por texto ignoran mayúsculas **y tildes**: la base guarda
 «Pontificia Universidad Catolica de Valparaiso» sin acentos, pero tanto el
 usuario como el modelo escriben «Católica».
+
+`comparar_universidades` existe por una razón de costo, no de comodidad: el
+patrón más frecuente —«quién está mejor», «cómo evolucionó»— obligaba a encadenar
+tres herramientas o más, y cada eslabón es una vuelta entera del ciclo. Ver § 9.
+
+### Ninguna consulta vacía es un callejón sin salida
+
+Cuando una herramienta no encuentra nada, devolver «no hay datos» sale caro: el
+modelo prueba otra combinación, y cada intento cuesta una vuelta. Así que el
+resultado vacío trae la salida:
+
+- Una búsqueda de métricas sin coincidencias devuelve **las métricas que sí
+  tienen valores**, con su identificador, sus años y de qué se componen.
+- Si lo que se pedía existe en la metodología pero sus valores están cargados en
+  el pilar que lo agrupa —THE Latam publica «Citation impact», pero los datos
+  están en «Research Quality»—, se nombra el pilar y `consultar_tendencia`
+  **devuelve directamente su serie**, avisando de que la cifra es la del pilar.
+- Un resultado recortado por el tope de filas no dice «hay más», sino que empuja
+  a filtrar, que es lo que de verdad ahorra.
 
 ### `consulta_sql`: por qué existe y cómo está contenida
 
@@ -242,6 +262,9 @@ archivo `.env`.
 | `GEMINI_ESPERAS_503` | No | Segundos entre reintentos. Por defecto `1,3,6`, es decir cuatro intentos |
 | `GEMINI_ESPERA_CUOTA_WEB` | No | Segundos que se suspende la búsqueda tras un 429. Por defecto 1800 |
 | `GEMINI_MAX_CICLOS` | No | Vueltas del ciclo de herramientas por turno. Por defecto 15 |
+| `KAI_TOPE_FILAS` | No | Filas máximas de un resultado de herramienta. Por defecto 80 |
+| `KAI_VENTANA_MENSAJES` | No | Mensajes del historial que se reenvían. Por defecto 10 |
+| `KAI_MENSAJES_INTACTOS` | No | Cuántos de ellos van sin recortar. Por defecto 4 |
 
 `GOOGLE_API_KEY` funciona como alternativa a `GEMINI_API_KEY`, por compatibilidad
 con el nombre que usa el SDK.
@@ -312,9 +335,9 @@ modelo a llamar a una herramienta y leer su resultado— el motor Gemini consumi
 Dos avisos sobre esa cifra, ahora que el asistente hace más cosas:
 
 - Es **anterior** a la ampliación de herramientas y al panorama de datos que se
-  añade al prompt. La entrada por turno ha subido: hay diez herramientas
-  declaradas en vez de cinco, y una de ellas (`consulta_sql`) lleva el esquema
-  completo en su descripción. Habrá que volver a medirla.
+  añade al prompt. La entrada por turno subió —hay once herramientas declaradas
+  en vez de cinco, y una de ellas (`consulta_sql`) lleva el esquema completo en
+  su descripción— y después se volvió a medir y a recortar: ver § 9.
 - **No incluye las búsquedas en internet**, que se cobran por uso y no por token.
   Son el componente que más puede desviar el costo real de lo que sugieren los
   tokens; `uso.busquedas` en la respuesta de `/chat` permite seguirlo.
@@ -448,7 +471,63 @@ La verificación está en la sonda `revelado` (25 comprobaciones).
 
 ---
 
-## 9. Estado
+## 9. El consumo de entrada
+
+De un día real medido: **506.079 tokens de entrada frente a 16.065 de salida**,
+31 a 1. No es una anomalía, es la forma del problema. La API es sin estado, así
+que en **cada vuelta** del ciclo de herramientas se reenvía todo: la instrucción
+de sistema, la declaración de las herramientas, el historial y los resultados ya
+entregados. El costo de un turno crece casi al cuadrado del número de vueltas.
+
+Reconstruidos los 33 turnos de ese día, el reparto era: **56 % el bloque fijo**
+—sistema más herramientas—, 15 % el historial y el resto, resultados.
+
+### Lo que se hizo
+
+| Medida | Dónde |
+|---|---|
+| Podar la instrucción de sistema y las descripciones de las herramientas | `herramientas.py` |
+| Publicar en el contexto los identificadores de rankings y universidades habituales, para que no cueste una vuelta averiguarlos | `contexto_de_datos()` |
+| Pedir explícitamente que agrupe las consultas independientes en una misma vuelta | instrucción de sistema |
+| `comparar_universidades`: el patrón dominante en una sola llamada | `herramientas.py` |
+| Que ninguna consulta vacía sea un callejón sin salida (§ 2) | `herramientas.py` |
+| Bajar el tope de filas de 300 a 80, con un aviso que empuja a filtrar | `TOPE_FILAS` |
+| Ventana de historial de 20 a 10 mensajes, y recorte de los más antiguos | `conversaciones.py` |
+| Registrar en el log las vueltas y las llamadas de cada turno | `assistant_gemini.py` |
+
+Medido contra la API real, con las mismas tres preguntas antes y después:
+
+| Pregunta | Antes | Después |
+|---|---:|---:|
+| Qué rankings hay cargados | 6.974 | 7.572 |
+| Qué universidad es mejor en THE Latam, PUCV o USM | 44.372 | 7.464 |
+| Comparar el índice de citas de la PUCV, 2019-2024 | 69.883 | 11.983 |
+| **Total** | **121.229** | **27.019 (−78 %)** |
+
+La primera sube un poco: el bloque fijo creció al añadir la herramienta de
+comparación y los identificadores. Es el precio de las otras dos.
+
+### Lo que no se puede hacer
+
+**Caché de contexto.** El bloque fijo es idéntico byte a byte en todas las
+vueltas, que es el caso de libro para una caché. No está disponible: crearla
+devuelve `429 TotalCachedContentStorageTokensPerModelFreeTier limit=0`. Requiere
+facturación activa. Conviene volver a ello si el proyecto pasa a plan de pago,
+porque ahí está la mitad del gasto.
+
+**Emitir en flujo no ahorra nada.** El streaming adelantaría la primera palabra,
+pero el consumo es el mismo.
+
+### El límite por minuto
+
+El nivel gratuito admite **15 peticiones por minuto** por modelo (comprobado: el
+429 lo dice con ese número). Cada vuelta es una petición, así que con
+`GEMINI_MAX_CICLOS` en 15 un solo turno pesado puede agotar el minuto entero. Es
+un motivo más para que los turnos den pocas vueltas, no solo el costo.
+
+---
+
+## 10. Estado
 
 Verificado con pruebas automatizadas contra la base de datos real: las diez
 herramientas, la contención de `consulta_sql` (28 intentos de evasión, incluidos

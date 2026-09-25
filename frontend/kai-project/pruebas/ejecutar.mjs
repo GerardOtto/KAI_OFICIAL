@@ -48,7 +48,9 @@ const REQUIEREN_ASISTENTE = new Set(["motores", "respuestas_markdown"]);
 const hayBackendDePrueba = Boolean(process.env.KAI_API_URL);
 
 const disponibles = readdirSync(AQUI)
-  .filter(f => f.endsWith(".mjs") && f !== "ejecutar.mjs")
+  // `sesion.mjs` es un auxiliar compartido —crea la cuenta de prueba—, no una
+  // sonda: sin excluirlo el ejecutor lo anunciaría como omitido en cada vuelta.
+  .filter(f => f.endsWith(".mjs") && !["ejecutar.mjs", "sesion.mjs"].includes(f))
   .map(f => f.replace(/\.mjs$/, ""));
 
 const pedidas = process.argv.slice(2);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { cabeceraAuth } from "../auth/AuthContext";
 
 // Vista "Comparación anual": N instituciones x M métricas en un solo año.
 // El backend devuelve también el techo observado de cada métrica para poder
@@ -24,7 +25,7 @@ export function useTendenciasComparacion(rankingId, anio, metricaIds, universida
 
     let cancelado = false;
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_URL}/tendencias-comparacion?${query}`)
+    fetch(`${import.meta.env.VITE_API_URL}/tendencias-comparacion?${query}`, { headers: cabeceraAuth() })
       .then(r => r.json())
       .then(res => {
         if (cancelado) return;

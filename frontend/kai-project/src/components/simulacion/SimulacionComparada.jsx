@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import jsPDF from "jspdf";
 import { useSimulacion } from "../../hooks/useSimulacion";
 
@@ -79,7 +80,10 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     link.click();
   };
 
-  const handleExportPDF = () => {
+  const descarga = useDescarga("simulacion");
+
+  const handleExportPDF = async () => {
+    if (!(await descarga.permitir("pdf"))) return;
     if (!filas.length) return;
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
@@ -176,6 +180,8 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
           </button>
           <button
             onClick={handleExportPDF}
+            disabled={descarga.agotado("pdf")}
+            title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
             className="font-body font-medium text-[11px] py-2 px-3 border border-white/[.14] text-[#8a8a8a] hover:text-white transition-colors"
           >
             PDF

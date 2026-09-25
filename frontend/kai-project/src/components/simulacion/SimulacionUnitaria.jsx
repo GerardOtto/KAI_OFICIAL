@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import jsPDF from "jspdf";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useRankingResumen } from "../../hooks/useRankingResumen";
@@ -107,7 +108,10 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
     link.click();
   };
 
-  const handleExportPDF = () => {
+  const descarga = useDescarga("simulacion");
+
+  const handleExportPDF = async () => {
+    if (!(await descarga.permitir("pdf"))) return;
     const pdf = new jsPDF({ unit: "mm", format: "a4" });
     const margin = 14;
     let y = margin;
@@ -306,6 +310,8 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
           </button>
           <button
             onClick={handleExportPDF}
+            disabled={descarga.agotado("pdf")}
+            title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
             className="flex-1 py-2.5 border border-white/[.18] text-[#cfcfcf] text-[11px] font-medium hover:border-white/40 transition-colors"
           >
             Exportar PDF

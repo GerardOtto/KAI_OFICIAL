@@ -5,6 +5,7 @@ import { useMetricasMatriz } from "../hooks/useMetricasMatriz";
 import { useValoresMatriz } from "../hooks/useValoresMatriz";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useRankings } from "../hooks/useRankings";
+import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import HeatCell from "../components/data/HeatCell";
 
 const DownloadIcon = () => (
@@ -40,6 +41,7 @@ export default function Metricas() {
   const tipos = useTiposMetrica();
   const { universidades } = useUniversidades();
   const todosLosRankings = useRankings();
+  const descarga = useDescarga("metricas");
 
   const rankings = useMemo(
     () => todosLosRankings.filter(r => !RANKINGS_OCULTOS.has(r.nombre_ranking)),
@@ -227,7 +229,8 @@ export default function Metricas() {
   const metricasVisibles = (tipo) =>
     (matriz[tipo] || []).filter(m => idsVisibles.has(m.id_ranking));
 
-  const handleCSV = () => {
+  const handleCSV = async () => {
+    if (!(await descarga.permitir("xlsx"))) return;
     const filas = [
       ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", "Compone el total", "Parte de",
        ...(contextoCargado ? ["Valor"] : [])],
@@ -248,7 +251,8 @@ export default function Metricas() {
     link.click();
   };
 
-  const handlePDF = () => {
+  const handlePDF = async () => {
+    if (!(await descarga.permitir("pdf"))) return;
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     const margin = 12;
     const pageW = pdf.internal.pageSize.getWidth();
@@ -338,14 +342,18 @@ export default function Metricas() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleCSV}
-              className="flex items-center gap-2 px-4 py-2.5 border border-outline/40 text-[10px] uppercase tracking-widest text-white hover:bg-white hover:text-black transition-all"
+              disabled={descarga.agotado("xlsx")}
+              title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+              className="flex items-center gap-2 px-4 py-2.5 border border-outline/40 text-[10px] uppercase tracking-widest text-white hover:bg-white hover:text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white"
             >
               <DownloadIcon />
               Descargar CSV
             </button>
             <button
               onClick={handlePDF}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white text-black text-[10px] uppercase tracking-widest hover:bg-white/80 transition-all"
+              disabled={descarga.agotado("pdf")}
+              title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-black text-[10px] uppercase tracking-widest hover:bg-white/80 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <DownloadIcon />
               Descargar PDF
@@ -430,7 +438,9 @@ export default function Metricas() {
               <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, 1fr)` }}>
                 <div />
                 {rankings.map(r => (
-                  <div key={r.id_ranking} className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft text-center py-2">
+                  <div key={r.id_ranking}
+                       className={`font-mono text-[10px] uppercase tracking-widest text-center py-2 ${
+                         r.restringido ? "text-[#5f5f5f]" : "text-outlineSoft"}`}>
                     {r.nombre_ranking}
                   </div>
                 ))}
@@ -451,6 +461,7 @@ export default function Metricas() {
                           datos={c}
                           dimension={tipo}
                           ranking={r.nombre_ranking}
+                          restringido={r.restringido}
                           valorFormateado={c ? formatNumero(c.valor) : null}
                         />
                       );

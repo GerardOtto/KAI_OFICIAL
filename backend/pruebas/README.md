@@ -37,7 +37,8 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 
 | Batería | Qué verifica |
 |---|---|
-| `herramientas` | Las diez herramientas de consulta y la contención de `consulta_sql` |
+| `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
+| `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |

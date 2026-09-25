@@ -1,0 +1,256 @@
+{
+  "data": [
+    {
+      "year": 2022,
+      "Rank": "401–500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "No. of FTE students": "29,756",
+      "No. of students per staff": "15.3",
+      "International students": "7%",
+      "Female:Male ratio": null
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Diego Portales University",
+      "No. of FTE students": "17,649",
+      "No. of students per staff": "15.5",
+      "International students": "2%",
+      "Female:Male ratio": "50 : 50"
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Universidad Autónoma de Chile",
+      "No. of FTE students": "27,027",
+      "No. of students per staff": "23.7",
+      "International students": "1%",
+      "Female:Male ratio": "62 : 38"
+    },
+    {
+      "year": 2022,
+      "Rank": "501–600",
+      "Name": "Universidad del Desarrollo",
+      "No. of FTE students": "15,787",
+      "No. of students per staff": "19.3",
+      "International students": "4%",
+      "Female:Male ratio": "56 : 44"
+    },
+    {
+      "year": 2022,
+      "Rank": "801–1000",
+      "Name": "University of Chile",
+      "No. of FTE students": "37,264",
+      "No. of students per staff": "15.4",
+      "International students": "5%",
+      "Female:Male ratio": "49 : 51"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "No. of FTE students": "17,411",
+      "No. of students per staff": "25.4",
+      "International students": "1%",
+      "Female:Male ratio": "42 : 58"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of Concepción",
+      "No. of FTE students": "28,260",
+      "No. of students per staff": "17.2",
+      "International students": "2%",
+      "Female:Male ratio": "52 : 48"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of La Frontera",
+      "No. of FTE students": "11,018",
+      "No. of students per staff": "26.2",
+      "International students": "1%",
+      "Female:Male ratio": "46 : 54"
+    },
+    {
+      "year": 2022,
+      "Rank": "1001–1200",
+      "Name": "University of the Andes, Chile",
+      "No. of FTE students": "9,254",
+      "No. of students per staff": "18.9",
+      "International students": "2%",
+      "Female:Male ratio": "58 : 42"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Adolfo Ibáñez University",
+      "No. of FTE students": "10,375",
+      "No. of students per staff": "25.4",
+      "International students": "5%",
+      "Female:Male ratio": "38 : 62"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Austral University of Chile",
+      "No. of FTE students": "16,886",
+      "No. of students per staff": "17.8",
+      "International students": "2%",
+      "Female:Male ratio": "52 : 48"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Catholic University of the North",
+      "No. of FTE students": "11,359",
+      "No. of students per staff": "17.3",
+      "International students": "2%",
+      "Female:Male ratio": "46 : 54"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Federico Santa María Technical University",
+      "No. of FTE students": "19,291",
+      "No. of students per staff": "25.7",
+      "International students": "4%",
+      "Female:Male ratio": "25 : 75"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "San Sebastián University",
+      "No. of FTE students": "19,698",
+      "No. of students per staff": "10.3",
+      "International students": "0%",
+      "Female:Male ratio": "62 : 38"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "No. of FTE students": "42,408",
+      "No. of students per staff": "18.3",
+      "International students": "2%",
+      "Female:Male ratio": "54 : 46"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Bío-Bío",
+      "No. of FTE students": "12,933",
+      "No. of students per staff": "25.7",
+      "International students": "1%",
+      "Female:Male ratio": "43 : 57"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Santiago, Chile (USACH)",
+      "No. of FTE students": "25,051",
+      "No. of students per staff": "25.2",
+      "International students": "3%",
+      "Female:Male ratio": "42 : 58"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Talca",
+      "No. of FTE students": "11,367",
+      "No. of students per staff": "15.4",
+      "International students": "1%",
+      "Female:Male ratio": "51 : 49"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Tarapacá",
+      "No. of FTE students": "9,460",
+      "No. of students per staff": "31.7",
+      "International students": "3%",
+      "Female:Male ratio": "53 : 47"
+    },
+    {
+      "year": 2022,
+      "Rank": "1201+",
+      "Name": "University of Valparaíso",
+      "No. of FTE students": "17,089",
+      "No. of students per staff": "19.0",
+      "International students": "3%",
+      "Female:Male ratio": "57 : 43"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Arturo Prat University",
+      "No. of FTE students": "12,963",
+      "No. of students per staff": "22.1",
+      "International students": "9%",
+      "Female:Male ratio": "55 : 45"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Bernardo O’Higgins University",
+      "No. of FTE students": "6,984",
+      "No. of students per staff": "18.1",
+      "International students": "2%",
+      "Female:Male ratio": "66 : 34"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Finis Terrae University",
+      "No. of FTE students": "9,683",
+      "No. of students per staff": "8.2",
+      "International students": "2%",
+      "Female:Male ratio": "58 : 42"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Temuco Catholic University",
+      "No. of FTE students": "10,329",
+      "No. of students per staff": "13.2",
+      "International students": "1%",
+      "Female:Male ratio": "60 : 40"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Universidad Católica de la Santísima Concepción",
+      "No. of FTE students": "9,760",
+      "No. of students per staff": "24.5",
+      "International students": "0%",
+      "Female:Male ratio": "56 : 44"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "Universidad Mayor",
+      "No. of FTE students": "20,649",
+      "No. of students per staff": "9.7",
+      "International students": "2%",
+      "Female:Male ratio": "57 : 43"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "University of La Serena",
+      "No. of FTE students": "7,778",
+      "No. of students per staff": "21.6",
+      "International students": "1%",
+      "Female:Male ratio": "51 : 49"
+    },
+    {
+      "year": 2022,
+      "Rank": "Reporter",
+      "Name": "University of Los Lagos",
+      "No. of FTE students": "5,249",
+      "No. of students per staff": "16.9",
+      "International students": "0%",
+      "Female:Male ratio": "58 : 42"
+    }
+  ]
+}

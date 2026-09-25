@@ -96,14 +96,15 @@ g.cliente = lambda: falso
 g.configurado = lambda: True
 
 cliente = TestClient(app)
-correo = f"prueba-agentes-{uuid.uuid4().hex[:8]}@ejemplo.test"
+correo = f"prueba-agentes-{uuid.uuid4().hex[:8]}@pucv.cl"
+INSTITUCION = "Pontificia Universidad Catolica de Valparaiso"
 CLAVE = "Prueba12345!"
 id_usuario = None
 
 try:
     print("=== 1. Registro y sesión reales ===")
-    r = cliente.post("/auth/registro", json={"nombre": "Prueba Agentes",
-                                             "correo": correo, "clave": CLAVE})
+    r = cliente.post("/auth/registro", json={"nombre": "Prueba Agentes", "correo": correo,
+                                             "clave": CLAVE, "institucion": INSTITUCION})
     comprobar("registro", r.status_code in (200, 201), f"{r.status_code} {r.text[:200]}")
     r = cliente.post("/auth/login", json={"correo": correo, "clave": CLAVE})
     comprobar("login", r.status_code == 200, f"{r.status_code} {r.text[:200]}")

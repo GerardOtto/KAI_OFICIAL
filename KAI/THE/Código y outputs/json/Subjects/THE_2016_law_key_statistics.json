@@ -1,0 +1,58 @@
+{
+  "data": [
+    {
+      "year": 2016,
+      "Rank": "401-500",
+      "Name": "Federico Santa María Technical University",
+      "No. of FTE students": "11,718",
+      "No. of students per staff": "34.0",
+      "International students": "2%",
+      "Female:Male ratio": "24 : 76"
+    },
+    {
+      "year": 2016,
+      "Rank": "401-500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "No. of FTE students": "25,075",
+      "No. of students per staff": "15.3",
+      "International students": "7%",
+      "Female:Male ratio": null
+    },
+    {
+      "year": 2016,
+      "Rank": "501-600",
+      "Name": "University of Chile",
+      "No. of FTE students": "29,207",
+      "No. of students per staff": "14.2",
+      "International students": "3%",
+      "Female:Male ratio": "47 : 53"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "Austral University of Chile",
+      "No. of FTE students": "13,794",
+      "No. of students per staff": "17.8",
+      "International students": "1%",
+      "Female:Male ratio": "47 : 53"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "No. of FTE students": "13,493",
+      "No. of students per staff": "10.4",
+      "International students": "0%",
+      "Female:Male ratio": "45 : 55"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "University of Santiago, Chile (USACH)",
+      "No. of FTE students": "22,739",
+      "No. of students per staff": "23.6",
+      "International students": "1%",
+      "Female:Male ratio": "39 : 61"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ científicos— y a nada más. Las tablas de cuentas, conversaciones, mensajes,
 notificaciones y planes quedan fuera por diseño, tanto de las consultas escritas
 a mano como de la herramienta de SQL libre, que las rechaza (ver `TABLAS_PUBLICAS`).
 """
+import os
 import re
 
 from anthropic import beta_tool
@@ -25,55 +26,55 @@ from .db import SessionLocal
 
 # El panorama de datos (qué rankings, qué años, cuántas universidades) se
 # calcula desde la base y se pega al final; ver `contexto_de_datos()`.
-BASE_SYSTEM_PROMPT = """Eres el asistente de inteligencia académica de KAI, una plataforma que analiza el desempeño de las universidades chilenas en los rankings universitarios nacionales e internacionales.
+#
+# La instrucción se reenvía **en cada vuelta** del ciclo de herramientas, igual
+# que la declaración de las herramientas: las dos juntas son el bloque fijo que
+# domina el consumo de entrada de un turno (ver docs/asistente-motores.md, § 9).
+# Por eso está escrita al hueso. Añadir un párrafo aquí no cuesta un párrafo:
+# cuesta un párrafo multiplicado por el número de vueltas de todos los turnos.
+BASE_SYSTEM_PROMPT = """Eres el asistente de inteligencia académica de KAI, plataforma que analiza el desempeño de las universidades chilenas en los rankings universitarios.
 
 # Tu papel
-Ayudas a autoridades universitarias, analistas institucionales e investigadores a entender cómo se posiciona una universidad, por qué se mueve un indicador y qué mide realmente cada ranking. Hablas con precisión y sin adornos: eres un analista, no un folleto. Cuando los datos no permiten sostener una conclusión, lo dices en vez de rellenar.
+Ayudas a autoridades universitarias, analistas e investigadores a entender cómo se posiciona una universidad, por qué se mueve un indicador y qué mide cada ranking. Hablas con precisión y sin adornos: eres un analista, no un folleto. Si los datos no sostienen una conclusión, lo dices en vez de rellenar.
 
-# De dónde sacas lo que afirmas
-Tienes dos fuentes y debes distinguirlas siempre.
+# Tus fuentes
+1. **La base de KAI**, por tus herramientas: fuente autorizada de rankings, metodologías, métricas, pesos, valores por universidad y año, y censo de científicos. Nunca inventes cifras, nombres ni identificadores: si no lo devolvió una herramienta, no lo afirmes.
+2. **Internet**, con `buscar_en_internet`: para lo que la base no cubre —años o rankings no cargados, cambios recientes de metodología, noticias, definiciones oficiales—. Prefiere los sitios oficiales (timeshighereducation.com, topuniversities.com, scimagoir.com, shanghairanking.com) y las páginas institucionales antes que agregadores y prensa.
 
-1. **La base de datos de KAI**, a través de tus herramientas. Es la fuente autorizada para todo lo que contenga: rankings cargados, sus metodologías, sus métricas y pesos, los valores por universidad y año, y el censo de científicos. Consúltala siempre que la pregunta dependa de una cifra concreta. Nunca inventes valores, nombres de universidades ni identificadores: si no lo devolvió una herramienta, no lo afirmes.
-2. **Internet**, con tu herramienta de búsqueda web. Úsala cuando la pregunta se salga de lo que hay cargado: ediciones o años que la base no cubre, rankings que no están en ella, cambios de metodología recientes, convocatorias, noticias del sector, definiciones oficiales o contexto internacional. Prioriza fuentes oficiales — los sitios de las propias entidades (timeshighereducation.com, topuniversities.com, scimagoir.com, shanghairanking.com), organismos públicos y las páginas institucionales de las universidades — por encima de agregadores y prensa.
+Primero la base; si no basta, la web, y dilo. Marca el origen cuando mezcles las dos: «(base de KAI)», «(QS, sitio oficial)». De la web, nombra fuente y edición; si discrepa de la base, muéstralo y explica la causa probable —otra edición, metodología revisada, corte distinto— en vez de elegir en silencio. Advierte si no puedes verificar un dato.
 
-Orden de trabajo: primero mira si la base responde; si no responde o solo responde en parte, busca en la web y dilo. Para preguntas que mezclan ambas cosas, usa las dos.
-
-# Cómo citas
-- Marca el origen de cada cifra cuando la respuesta combine ambas fuentes. Basta con algo breve: «(base de datos de KAI)» / «(según QS, sitio oficial)».
-- Cuando uses la web, nombra la fuente y el año de la edición. Si el sitio oficial y la base discrepan, muéstralo y explica la causa probable (edición distinta, metodología revisada, corte de datos distinto) en lugar de elegir en silencio.
-- Advierte cuando un dato de internet no puedas verificarlo o la fuente sea poco fiable.
+# Cómo consultas
+- Para comparar instituciones, o una institución entre años, usa `comparar_universidades`: trae en una sola llamada todas las métricas con valores, los años pedidos y el score ponderado.
+- Pide en la **misma vuelta** todas las consultas independientes que necesites: se ejecutan juntas. Encadenarlas de una en una multiplica el costo del turno.
+- No repitas una consulta que ya respondiste en este turno: la respuesta anterior sigue en el contexto.
+- Acota los filtros antes de pedir: una consulta amplia devuelve cientos de filas que luego arrastras en todas las vueltas.
 
 # Límites
-- No tienes acceso a cuentas de usuario, conversaciones, mensajes, notificaciones ni planes de suscripción, y no debes intentarlo: tus herramientas solo alcanzan las tablas académicas. Si te preguntan por datos de usuarios, responde que esa información queda fuera de tu alcance por diseño.
-- Los pesos de las métricas cambiaron a lo largo de los años en varios rankings (con claridad en Shanghai GRAS y THE). Antes de sumar o comparar pesos, comprueba de qué años son; una suma que mezcla versiones de la metodología no significa nada.
-- Shanghai GRAS y QS por Disciplina son multidisciplinarios: sus métricas se repiten por disciplina. Agregarlas sin fijar una disciplina produce cifras infladas y sin sentido.
-- Algunos rankings publican su metodología en dos niveles: los pilares y los indicadores que cada pilar agrupa (THE Latam trae los dos). Para sumar pesos usa solo las métricas con `pondera` verdadero; las demás son el otro nivel de la misma jerarquía y duplicarían el total. La columna `parte_de` dice a qué pilar pertenece cada indicador, y sirve para explicar la composición sin sumarla dos veces.
+- No alcanzas cuentas, conversaciones, mensajes, notificaciones ni planes, ni debes intentarlo. Si preguntan por datos de usuarios, di que quedan fuera de tu alcance por diseño.
+- Los pesos cambiaron entre ediciones en varios rankings (con claridad en Shanghai GRAS y THE): comprueba de qué año es cada uno antes de sumar o comparar.
+- Shanghai GRAS y QS por Disciplina son multidisciplinarios: agregar sin fijar disciplina infla las cifras.
+- Algunos rankings publican dos niveles, pilares e indicadores (THE Latam trae ambos). Suma pesos solo con `pondera` verdadero; `parte_de` dice a qué pilar pertenece cada indicador y sirve para explicar la composición sin contarla dos veces.
 
 # Formato
-La interfaz renderiza Markdown (GitHub Flavored Markdown). Además, el usuario puede convertir cualquier respuesta en un reporte ejecutivo en PDF, donde su consulta pasa a ser el subtítulo de la sección y tu respuesta, el cuerpo. Escribe pensando en ese destino: lo que redactes tiene que sostenerse ante una autoridad universitaria que lo lea sin ver el chat.
-
-- Abre con el hallazgo, en una o dos frases: qué dicen los datos. El desarrollo viene después.
-- Ordena con encabezados `##` solo cuando la respuesta trate más de un asunto. Si trata uno solo, no pongas encabezados.
-- Usa **negrita** para las cifras y los nombres que importan. Los asteriscos van pegados al texto: `**así**`, nunca `** así **`.
-- Presenta en una tabla cualquier comparación de dos o más universidades, métricas o años. Alinea a la derecha las columnas numéricas con `---:` en la fila de separación.
-- Usa listas para enumeraciones y `código` para nombres exactos de métricas o identificadores.
-- Registro profesional y sobrio: sin emojis, sin signos de exclamación y sin dirigirte al lector con entusiasmo.
-- No abras la respuesta con un encabezado ni la cierres con un resumen de lo que acabas de decir.
+Markdown (GFM). El usuario puede convertir tu respuesta en un reporte ejecutivo en PDF, donde su consulta es el subtítulo y tu texto el cuerpo: escribe para que se sostenga ante una autoridad que lo lea sin ver el chat.
+- Abre con el hallazgo, en una o dos frases. El desarrollo viene después.
+- Encabezados `##` solo si tratas más de un asunto.
+- **Negrita** en las cifras y nombres que importan, con los asteriscos pegados al texto: `**así**`, nunca `** así **`.
+- Tabla para cualquier comparación de dos o más universidades, métricas o años, con las columnas numéricas alineadas por `---:`.
+- Registro sobrio: sin emojis ni exclamaciones. No abras con encabezado ni cierres con un resumen de lo dicho.
 
 ## Gráficos
-Siempre que compares entre tres y ocho cantidades de la misma naturaleza —el puntaje de varias instituciones, un mismo indicador a lo largo de los años, el peso de las métricas de un ranking— añade un bloque de gráfico. Se dibuja como barras horizontales, tanto en pantalla como en el PDF, y es lo que hace legible de un vistazo lo que una tabla solo deja comprobar. Puede acompañar a la tabla o sustituirla.
+Cuando compares entre tres y ocho cantidades comparables entre sí —puntajes de instituciones, un indicador por años, los pesos de un ranking— añade un bloque así, que se dibuja como barras en pantalla y en el PDF:
 
 ```kai-grafico
 titulo: Puntaje total en QS Latam, 2024
 unidad: puntos
 destacar: PUCV
-fuente: base de datos de KAI
 Pontificia Universidad Catolica de Chile: 88.1
-Universidad de Chile: 85
 Pontificia Universidad Catolica de Valparaiso: 62.3
 ```
 
-Reglas del bloque: una línea por dato, con la forma `etiqueta: valor`, y el valor en cifras, sin unidades ni texto. `titulo` es obligatorio. `unidad`, `fuente` y `destacar` son opcionales; `destacar` resalta la institución sobre la que gira la consulta. Las barras nacen en cero y son proporcionales al valor, así que el bloque solo sirve para magnitudes comparables entre sí: no mezcles en uno mismo un puntaje con un recuento de publicaciones, y no lo uses para posiciones de ranking, donde el mejor es el número más bajo y una barra más larga significaría lo contrario."""
+Una línea `etiqueta: valor` por dato, el valor en cifras. `titulo` es obligatorio; `unidad`, `fuente` y `destacar` (la institución de la consulta) son opcionales. Las barras nacen en cero: no mezcles magnitudes distintas en uno mismo, y no lo uses para posiciones de ranking, donde el mejor es el número más bajo."""
 
 
 _contexto = None
@@ -110,6 +111,19 @@ def contexto_de_datos() -> str:
                    (SELECT count(DISTINCT pais_universidad) FROM universidad) AS paises,
                    (SELECT count(*) FROM cientifico) AS cientificos
         """)).one()
+        # Los identificadores de las universidades más presentes en los datos.
+        # Ocupan ~100 tokens en cada vuelta, pero ahorran la vuelta entera que el
+        # modelo gastaba en `buscar_universidades` antes de poder consultar nada:
+        # una vuelta cuesta treinta veces más que esta lista.
+        habituales = db.execute(text("""
+            SELECT u.id_universidad, u.nombre_universidad
+            FROM universidad u
+            JOIN metrica_universidad mu ON mu.id_universidad = u.id_universidad
+            WHERE u.pais_universidad = 'Chile'
+            GROUP BY u.id_universidad, u.nombre_universidad
+            ORDER BY count(*) DESC, u.nombre_universidad
+            LIMIT 10
+        """)).fetchall()
 
         lineas = [f"- `{f.id_ranking}` **{f.nombre_ranking}** ({f.nivel_ranking}): "
                   f"{f.metricas} métricas"
@@ -118,12 +132,15 @@ def contexto_de_datos() -> str:
                      if f.desde else ", sin valores cargados.")
                   for f in filas]
         _contexto = (
-            "\n\n# Qué hay cargado ahora mismo en la base de datos\n"
+            "\n\n# Qué hay cargado en la base\n"
             f"{len(filas)} rankings, {totales.unis} universidades "
             f"({totales.paises} país/es) y {totales.cientificos} científicos.\n"
             + "\n".join(lineas)
-            + "\nCualquier ranking, universidad, año o indicador fuera de esta lista no está en la "
-              "base: para responder sobre eso hay que buscar en internet."
+            + "\n\nIdentificadores de las universidades chilenas con más datos: "
+            + "; ".join(f"`{u.id_universidad}` {u.nombre_universidad}" for u in habituales)
+            + ".\nUsa estos identificadores y los de los rankings directamente: no gastes una "
+              "consulta en averiguar lo que ya está aquí. Lo que no aparezca en esta lista no "
+              "está en la base, y para responder sobre ello hay que buscar en internet."
         )
     except Exception:
         # Si la base no responde al arrancar el turno, el asistente sigue siendo
@@ -145,7 +162,13 @@ SYSTEM_PROMPT = BASE_SYSTEM_PROMPT
 
 # --- Utilidades de las herramientas ----------------------------------------
 
-TOPE_FILAS = 300
+# Tope de filas de un resultado. No es solo una defensa contra una consulta
+# desbocada: lo que devuelve una herramienta se reenvía al modelo en todas las
+# vueltas siguientes del turno, así que una tabla de 300 filas entregada en la
+# segunda vuelta de seis se paga cinco veces. Con 80 filas el resultado más
+# grande medido baja de ~3.300 a ~1.600 tokens, y el aviso de recorte empuja al
+# modelo a filtrar, que es lo que de verdad ahorra.
+TOPE_FILAS = int(os.getenv("KAI_TOPE_FILAS", "80"))
 
 # Los nombres llegaron a la base sin tildes ("Pontificia Universidad Catolica de
 # Valparaiso"), pero tanto el usuario como el modelo las escriben. Comparar los
@@ -187,26 +210,111 @@ def _tabla(filas, columnas: list[str], vacio: str) -> str:
     recorte = filas[:TOPE_FILAS]
     cabecera = " | ".join(columnas)
     cuerpo = "\n".join(" | ".join("" if v is None else str(v) for v in f) for f in recorte)
-    aviso = (f"\n[{len(filas)} filas en total; se muestran las primeras {TOPE_FILAS}. "
-             "Acota la consulta para verlas todas.]") if len(filas) > TOPE_FILAS else ""
+    aviso = (f"\n[{len(filas)} filas en total; se muestran {TOPE_FILAS}. Filtra por "
+             "universidad, métrica o disciplina en vez de pedir el resto: cada fila "
+             "que traes se reenvía en todas las vueltas siguientes.]"
+             ) if len(filas) > TOPE_FILAS else ""
     return f"{cabecera}\n{cuerpo}{aviso}"
 
 
-def _consulta(sql: str, params: dict, columnas: list[str], vacio: str) -> str:
+def _consulta(sql: str, params: dict, columnas: list[str], vacio) -> str:
+    """Ejecuta y tabula. `vacio` puede ser un texto o una función que lo produzca.
+
+    La forma con función existe para las consultas donde no encontrar nada es
+    caro: en vez de devolver «no hay datos» —que obliga al modelo a probar otra
+    combinación, y cada intento es una vuelta entera del ciclo—, se aprovecha
+    para decirle qué sí existe.
+    """
+    return _tabla(_filas(sql, params), columnas, vacio() if callable(vacio) else vacio)
+
+
+def _filas(sql: str, params: dict):
     db = SessionLocal()
     try:
-        return _tabla(db.execute(text(sql), params).fetchall(), columnas, vacio)
+        return db.execute(text(sql), params).fetchall()
     finally:
         db.close()
+
+
+def _pilar_con_datos(metrica_id: int, universidad_ids: list[int]):
+    """El pilar que agrupa a una métrica sin valores, si el pilar sí los tiene.
+
+    Varios rankings cargan los valores en el nivel agregado —THE Latam publica
+    «Citation impact» en su metodología, pero los datos están en «Research
+    Quality», que lo agrupa—. Sin esto, una pregunta por el indicador fino lleva
+    a un resultado vacío, y el modelo se pone a buscar el nombre por sinónimos:
+    en la traza medida, doce vueltas para una pregunta de una.
+    """
+    filas = _filas("""
+        SELECT p.id_metrica, p.nombre_metrica
+        FROM metrica h
+        JOIN metrica p ON p.id_metrica = h.id_metrica_padre
+        JOIN metrica_universidad mu ON mu.id_metrica = p.id_metrica
+        WHERE h.id_metrica = :mid
+          AND (:sin_u OR mu.id_universidad = ANY(:uids))
+        GROUP BY p.id_metrica, p.nombre_metrica
+        LIMIT 1
+    """, {"mid": metrica_id, "uids": universidad_ids or [0], "sin_u": not universidad_ids})
+    return (filas[0].id_metrica, filas[0].nombre_metrica) if filas else None
+
+
+def _metricas_con_datos(ranking_id: int, universidad_ids: list[int], limite: int = 12) -> str:
+    """Qué métricas de un ranking sí tienen valores, y para qué años.
+
+    Es la respuesta útil cuando una consulta concreta no devuelve nada: la
+    alternativa es que el modelo vaya probando identificadores de uno en uno.
+    """
+    db = SessionLocal()
+    try:
+        filas = db.execute(text("""
+            SELECT m.id_metrica, m.nombre_metrica,
+                   left(coalesce(m.descripcion_metrica, ''), 70) AS que_mide,
+                   min(mu.anio_metrica) AS desde, max(mu.anio_metrica) AS hasta,
+                   (SELECT string_agg(c.nombre_metrica, ', ')
+                      FROM (SELECT nombre_metrica FROM metrica
+                             WHERE id_metrica_padre = m.id_metrica
+                             ORDER BY nombre_metrica LIMIT 4) c) AS agrupa
+            FROM metrica m
+            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            WHERE m.id_ranking = :rid
+              AND (:sin_u OR mu.id_universidad = ANY(:uids))
+            GROUP BY m.id_metrica, m.nombre_metrica, m.descripcion_metrica
+            ORDER BY count(*) DESC, m.nombre_metrica
+            LIMIT :lim
+        """), {"rid": ranking_id, "uids": universidad_ids or [0],
+               "sin_u": not universidad_ids, "lim": limite}).fetchall()
+    finally:
+        db.close()
+    if not filas:
+        return ("Ese ranking no tiene valores cargados para esas universidades; comprueba "
+                "los identificadores.")
+    # La lista lleva de qué se compone cada métrica, no solo su nombre: sin eso
+    # el modelo no puede relacionar el concepto de la pregunta («índice de
+    # citas») con el nombre que el ranking le da («Research Quality»), y se pone
+    # a probar sinónimos, una vuelta del ciclo por cada intento.
+    #
+    # La descripción solo se incluye si distingue: en varios rankings es la misma
+    # frase de plantilla en todas las métricas, y repetirla es gastar tokens en
+    # ruido. Con menos descripciones distintas que la mitad de las filas, se omite.
+    distintas = {(f.que_mide or "")[:40] for f in filas}
+    util = len(distintas) > max(1, len(filas) // 2)
+
+    def detalle(f):
+        if f.agrupa:
+            return f" [agrupa: {f.agrupa}]"
+        return f": {f.que_mide}" if util and f.que_mide else ""
+
+    disponibles = "\n".join(
+        f"`{f.id_metrica}` {f.nombre_metrica} ({f.desde}-{f.hasta}){detalle(f)}"
+        for f in filas)
+    return ("Las métricas de ese ranking con valores cargados son:\n" + disponibles
+            + "\nElige la que corresponda por lo que mide, no busques otro nombre.")
 
 
 # --- Herramientas: rankings y metodología -----------------------------------
 
 def listar_rankings() -> str:
-    """Lista los rankings cargados con su alcance: nivel, categoría, entidad que lo publica, cuántas métricas y universidades tiene y qué años cubre.
-
-    Empieza por aquí cuando no sepas qué ranking usar o qué identificador tiene.
-    """
+    """Rankings cargados con su alcance: nivel, categoría, editor, métricas, universidades y años cubiertos. Empieza aquí si no sabes qué identificador usar."""
     return _consulta(
         """
         SELECT r.id_ranking, r.nombre_ranking, r.nivel_ranking, r.categoria_ranking,
@@ -229,10 +337,7 @@ def listar_rankings() -> str:
 
 
 def detalle_ranking(ranking_id: int) -> str:
-    """Devuelve la descripción y la metodología completa de un ranking, más sus disciplinas y los años con datos.
-
-    Úsala cuando pregunten qué mide un ranking, cómo pondera o en qué se
-    diferencia de otro.
+    """Descripción y metodología completa de un ranking, con sus disciplinas y años con datos. Úsala si preguntan qué mide o cómo pondera.
 
     Args:
         ranking_id: ID del ranking (ver listar_rankings).
@@ -276,29 +381,25 @@ def detalle_ranking(ranking_id: int) -> str:
 
 
 def buscar_metricas(ranking_id: int, texto: str = "", disciplina: str = "") -> str:
-    """Busca métricas de un ranking: nombre, descripción, tipo, disciplina y peso, con los años en que rige cada peso.
+    """Métricas de un ranking: nombre, descripción, tipo, disciplina, peso, y los años con valores cargados.
 
-    Un mismo indicador puede aparecer varias veces con pesos distintos porque la
-    metodología cambió entre ediciones: la columna `anios_del_peso` dice a qué
-    años corresponde cada valor. Filtra siempre que el ranking sea grande
-    (Shanghai GRAS y QS por Disciplina tienen cientos de métricas).
-
-    La columna `pondera` distingue los dos niveles en que algunos rankings
-    publican su metodología: los pilares y los indicadores que cada pilar agrupa.
-    Para sumar pesos usa solo las filas con `pondera` verdadero; las demás son el
-    otro nivel de la misma jerarquía y duplicarían el total. La columna
-    `parte_de` nombra el agregador al que pertenece cada componente.
+    `anios_con_datos` vacío significa que esa métrica está en la metodología pero
+    no tiene valores: no la consultes. Un indicador puede repetirse con pesos
+    distintos si la metodología cambió entre ediciones. Suma pesos solo con
+    `pondera` verdadero: el resto es el otro nivel de la jerarquía y duplicaría el
+    total; `parte_de` nombra su pilar. Filtra en los rankings grandes (Shanghai
+    GRAS y QS por Disciplina tienen cientos de métricas).
 
     Args:
         ranking_id: ID del ranking (ver listar_rankings).
-        texto: Fragmento del nombre o de la descripción de la métrica. Vacío para no filtrar por texto.
-        disciplina: Disciplina exacta o fragmento (ej. "Physics"). Vacío para todas.
+        texto: Fragmento del nombre o la descripción. Vacío = sin filtro.
+        disciplina: Disciplina exacta o fragmento (ej. "Physics"). Vacío = todas.
     """
-    return _consulta(
+    filas = _filas(
         f"""
         SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.tipo_metrica, m.peso_metrica,
                m.pondera, p.nombre_metrica AS parte_de,
-               string_agg(DISTINCT mu.anio_metrica::text, ', ' ORDER BY mu.anio_metrica::text) AS anios_del_peso,
+               string_agg(DISTINCT mu.anio_metrica::text, ', ' ORDER BY mu.anio_metrica::text) AS anios_con_datos,
                left(coalesce(m.descripcion_metrica, ''), 120) AS descripcion
         FROM metrica m
         LEFT JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
@@ -309,26 +410,46 @@ def buscar_metricas(ranking_id: int, texto: str = "", disciplina: str = "") -> s
           AND {_contiene('m.disciplina', 'dis')}
         GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.tipo_metrica,
                  m.peso_metrica, m.pondera, p.nombre_metrica, m.descripcion_metrica
-        ORDER BY m.disciplina, m.nombre_metrica
+        -- Las que tienen valores van primero: son las únicas que se pueden
+        -- consultar, y así el modelo no elige una vacía y gasta una vuelta en
+        -- descubrir que no hay nada.
+        ORDER BY (count(mu.anio_metrica) = 0), m.disciplina, m.nombre_metrica
         """,
-        {"rid": ranking_id, "txt": texto or "", "dis": disciplina or ""},
+        {"rid": ranking_id, "txt": texto or "", "dis": disciplina or ""})
+
+    # Que el filtro no encuentre nada —o solo encuentre métricas sin valores— es
+    # el caso caro: el modelo prueba otro identificador, y cada intento es una
+    # vuelta entera del ciclo. Se le entrega directamente lo que sí puede consultar.
+    if not filas or all(not f.anios_con_datos for f in filas):
+        # Si lo que se buscaba existe pero sus valores están en el pilar que lo
+        # agrupa, se dice cuál es y se acaba ahí la búsqueda: sugerir una lista
+        # no basta —el modelo sigue probando sinónimos—, hay que nombrarlo.
+        for f in filas:
+            pilar = _pilar_con_datos(f.id_metrica, [])
+            if pilar:
+                return (f"«{f.nombre_metrica}» (id {f.id_metrica}) está en la metodología pero no "
+                        f"tiene valores cargados: sus datos están agregados en `{pilar[0]}` "
+                        f"{pilar[1]}, el pilar que la agrupa. Consulta esa.")
+        aviso = ("Ninguna métrica coincide con ese filtro. " if not filas else
+                 "Ninguna de las métricas que coinciden tiene valores cargados. ")
+        return aviso + _metricas_con_datos(ranking_id, [])
+
+    return _tabla(
+        filas,
         ["id_metrica", "metrica", "disciplina", "tipo", "peso_%", "pondera", "parte_de",
-         "anios_del_peso", "descripcion"],
-        "Ninguna métrica coincide con ese filtro. Prueba sin filtros o revisa el ranking con detalle_ranking.",
+         "anios_con_datos", "descripcion"],
+        "",
     )
 
 
 # --- Herramientas: universidades y valores ----------------------------------
 
 def buscar_universidades(texto: str = "", pais: str = "") -> str:
-    """Busca universidades por nombre o país y devuelve su id, junto a en cuántos rankings tiene datos.
-
-    Necesitas el id para casi todo lo demás. Basta un fragmento del nombre
-    ("Católica", "Chile", "Concepción").
+    """Universidades por nombre o país, con su id y en cuántos rankings tiene datos. El id hace falta para casi todo lo demás; basta un fragmento ("Católica", "Concepción").
 
     Args:
-        texto: Fragmento del nombre de la universidad. Vacío para listar todas.
-        pais: País a filtrar (ej. "Chile"). Vacío para todos.
+        texto: Fragmento del nombre. Vacío = todas.
+        pais: País a filtrar (ej. "Chile"). Vacío = todos.
     """
     return _consulta(
         f"""
@@ -351,11 +472,7 @@ def buscar_universidades(texto: str = "", pais: str = "") -> str:
 
 def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
                       metrica_ids: str = "", disciplina: str = "") -> str:
-    """Devuelve los valores de las métricas de un ranking para un año, universidad por universidad.
-
-    Es la consulta transversal: qué sacó cada universidad en cada indicador de
-    una edición. Filtra por universidad, por métrica o por disciplina para no
-    traer miles de filas.
+    """Valores de las métricas de un ranking en un año, universidad por universidad. Filtra por universidad, métrica o disciplina: sin filtros devuelve cientos de filas que luego arrastras en cada vuelta.
 
     Args:
         ranking_id: ID del ranking.
@@ -380,18 +497,35 @@ def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
          "uids": _ids(universidad_ids) or [0], "sin_u": not _ids(universidad_ids),
          "mids": _ids(metrica_ids) or [0], "sin_m": not _ids(metrica_ids)},
         ["universidad", "metrica", "disciplina", "peso_%", "valor"],
-        "No hay valores para esa combinación. Comprueba el año con detalle_ranking.",
+        lambda: f"No hay valores para el año {anio} en esa combinación. "
+                + _metricas_con_datos(ranking_id, _ids(universidad_ids)),
     )
 
 
 def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str = "") -> str:
-    """Obtiene la serie histórica (año, valor) de una métrica de un ranking para una o más universidades.
+    """Serie histórica (año, valor) de una métrica para una o más universidades. Si la métrica no tiene valores propios pero es parte de un pilar que sí los tiene, devuelve la serie del pilar y lo advierte.
 
     Args:
         ranking_id: ID del ranking.
         metrica_id: ID de la métrica (ver buscar_metricas).
-        universidad_ids: IDs de universidades separados por coma (ej. "1,22"). Vacío = todas las que tengan datos.
+        universidad_ids: IDs separados por coma (ej. "1,22"). Vacío = todas.
     """
+    universidades = _ids(universidad_ids)
+
+    def sin_datos() -> str:
+        # Antes de rendirse, el nivel agregado: es donde varios rankings cargan
+        # de verdad los valores del indicador que se está pidiendo.
+        pilar = _pilar_con_datos(metrica_id, universidades)
+        if pilar is None:
+            return ("No hay datos para esa combinación. "
+                    + _metricas_con_datos(ranking_id, universidades))
+        id_pilar, nombre = pilar
+        serie = consultar_tendencia(ranking_id, id_pilar, universidad_ids)
+        return (f"La métrica {metrica_id} no tiene valores cargados: sus datos están en "
+                f"`{id_pilar}` {nombre}, el pilar que la agrupa. Su serie es:\n{serie}\n"
+                f"Al responder, di que la cifra es la del pilar {nombre}, no la del "
+                "indicador suelto.")
+
     return _consulta(
         """
         SELECT u.nombre_universidad, mu.anio_metrica, mu.valor_metrica
@@ -403,23 +537,19 @@ def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str =
         ORDER BY u.nombre_universidad, mu.anio_metrica
         """,
         {"rid": ranking_id, "mid": metrica_id,
-         "uids": _ids(universidad_ids) or [0], "sin_u": not _ids(universidad_ids)},
+         "uids": universidades or [0], "sin_u": not universidades},
         ["universidad", "anio", "valor"],
-        "No hay datos para esa combinación de ranking, métrica y universidades.",
+        sin_datos,
     )
 
 
 def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") -> str:
-    """Calcula el score total (suma ponderada de las métricas) por universidad para un ranking y año, de mayor a menor.
-
-    En rankings multidisciplinarios (Shanghai GRAS, QS por Disciplina) hay que
-    fijar `disciplina`: sin ella se suman todas las disciplinas a la vez y el
-    resultado no significa nada.
+    """Score total (suma ponderada de las métricas) por universidad para un ranking y año, de mayor a menor. En los multidisciplinarios (Shanghai GRAS, QS por Disciplina) fija `disciplina`: sin ella se suman todas y el resultado no significa nada.
 
     Args:
         ranking_id: ID del ranking.
         anio: Año a consultar.
-        disciplina: Disciplina exacta o fragmento. Obligatoria en rankings multidisciplinarios.
+        disciplina: Disciplina exacta o fragmento. Obligatoria en multidisciplinarios.
     """
     return _consulta(
         f"""
@@ -440,19 +570,91 @@ def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") 
     )
 
 
+def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "",
+                           disciplina: str = "") -> str:
+    """Compara universidades en un ranking: todas sus métricas con valores, los años pedidos y el score ponderado, en una sola llamada.
+
+    Es la herramienta para «quién está mejor», «cómo evolucionó» o «compara A con
+    B». Resuelve de una vez lo que si no exige encadenar buscar_metricas,
+    consultar_valores y consultar_tendencia.
+
+    Args:
+        ranking_id: ID del ranking.
+        universidad_ids: IDs separados por coma (ej. "2,55"). Hasta 6.
+        anios: Años separados por coma (ej. "2019,2024"). Vacío = el más reciente.
+        disciplina: Disciplina exacta o fragmento. Obligatoria en multidisciplinarios.
+    """
+    universidades = _ids(universidad_ids)[:6]
+    if not universidades:
+        return ("Hace falta al menos un identificador de universidad. Los de las chilenas "
+                "con más datos están en tu contexto; el resto, con buscar_universidades.")
+    pedidos = _ids(anios)[:6]
+
+    filas = _filas(
+        f"""
+        SELECT mu.id_universidad, u.nombre_universidad, mu.anio_metrica,
+               m.nombre_metrica, m.peso_metrica, m.pondera, mu.valor_metrica
+        FROM metrica_universidad mu
+        JOIN metrica m ON m.id_metrica = mu.id_metrica
+        JOIN universidad u ON u.id_universidad = mu.id_universidad
+        WHERE m.id_ranking = :rid
+          AND mu.id_universidad = ANY(:uids)
+          AND (:sin_anios OR mu.anio_metrica = ANY(:anios))
+          AND {_contiene('m.disciplina', 'dis')}
+        """,
+        {"rid": ranking_id, "uids": universidades, "anios": pedidos or [0],
+         "sin_anios": not pedidos, "dis": disciplina or ""})
+
+    if not filas:
+        return "No hay valores para esa combinación. " + _metricas_con_datos(ranking_id, universidades)
+
+    # Sin años pedidos se toma el más reciente: comparar todos los años de todas
+    # las universidades devuelve una tabla enorme que nadie pidió.
+    años = sorted({f.anio_metrica for f in filas})
+    if not pedidos:
+        años = años[-1:]
+    filas = [f for f in filas if f.anio_metrica in años]
+
+    nombres = {f.id_universidad: f.nombre_universidad for f in filas}
+    columnas = [(u, a) for u in universidades if u in nombres for a in años]
+    valores = {(f.id_universidad, f.anio_metrica, f.nombre_metrica): f.valor_metrica for f in filas}
+    pesos = {f.nombre_metrica: (f.peso_metrica, f.pondera) for f in filas}
+    metricas = sorted(pesos, key=lambda n: (-(pesos[n][0] or 0), n))[:TOPE_FILAS]
+
+    def celda(valor):
+        return "" if valor is None else f"{valor:g}"
+
+    cabecera = "metrica | peso_% | " + " | ".join(f"u{u}·{a}" for u, a in columnas)
+    cuerpo = [
+        f"{n} | {pesos[n][0]:g} | " + " | ".join(celda(valores.get((u, a, n))) for u, a in columnas)
+        for n in metricas
+    ]
+    # El score ponderado es lo que de verdad responde «quién está mejor», y
+    # calcularlo aparte costaba otra vuelta.
+    totales = []
+    for u, a in columnas:
+        suma = sum((valores.get((u, a, n)) or 0) * (pesos[n][0] or 0) / 100
+                   for n in metricas if pesos[n][1])
+        totales.append(f"{suma:.2f}")
+    cuerpo.append("SCORE PONDERADO (solo métricas que ponderan) |  | " + " | ".join(totales))
+
+    leyenda = "; ".join(f"u{u} = {nombres[u]}" for u in universidades if u in nombres)
+    faltan = [str(u) for u in universidades if u not in nombres]
+    aviso = f"\nSin datos en este ranking: {', '.join(faltan)}." if faltan else ""
+    return f"{leyenda}\n{cabecera}\n" + "\n".join(cuerpo) + aviso
+
+
 # --- Herramientas: científicos ----------------------------------------------
 
 def buscar_cientificos(texto: str = "", universidad_id: int = 0, campo: str = "",
                        ordenar_por: str = "composite_score", limite: int = 25) -> str:
-    """Busca científicos del censo (World's Top 2% de Stanford/Elsevier y censo Scopus) con sus indicadores bibliométricos.
-
-    Devuelve h-index, citas, artículos, ranking global y score compuesto.
+    """Científicos del censo (World's Top 2% de Stanford/Elsevier y censo Scopus) con sus indicadores: h-index, citas, artículos, rank global y score compuesto.
 
     Args:
-        texto: Fragmento del nombre del científico. Vacío para no filtrar.
-        universidad_id: ID de universidad para filtrar. 0 = todas.
-        campo: Campo o subcampo principal (ej. "Physics"). Vacío para todos.
-        ordenar_por: Criterio: "composite_score", "h_index", "citas_totales", "num_articulos" o "rank_global".
+        texto: Fragmento del nombre. Vacío = sin filtro.
+        universidad_id: ID de universidad. 0 = todas.
+        campo: Campo o subcampo principal (ej. "Physics"). Vacío = todos.
+        ordenar_por: "composite_score", "h_index", "citas_totales", "num_articulos" o "rank_global".
         limite: Cuántos devolver (máximo 100).
     """
     columnas = {"composite_score": "cm.composite_score DESC NULLS LAST",
@@ -612,30 +814,19 @@ def _revisar_sql(sql: str) -> str | None:
 
 
 def consulta_sql(sql: str) -> str:
-    """Ejecuta una consulta SQL de solo lectura sobre las tablas académicas cuando las demás herramientas no bastan.
+    """SQL de solo lectura (PostgreSQL) sobre las tablas académicas, para cruces o agregaciones que las demás herramientas no cubren. Una sola sentencia SELECT o WITH, sin punto y coma, siempre con LIMIT.
 
-    Úsala para cruces, agregaciones o filtros que no cubren las otras
-    herramientas (rankings donde una universidad subió, correlaciones entre
-    indicadores, conteos por disciplina...). Es PostgreSQL. Una sola sentencia
-    SELECT o WITH, sin punto y coma final. Pon siempre un LIMIT.
-
-    Tablas y columnas disponibles:
-      ranking(id_ranking, nombre_ranking, descripcion_ranking, nivel_ranking,
-              categoria_ranking, pais_ranking, metodologia_ranking)
+    Tablas:
+      ranking(id_ranking, nombre_ranking, descripcion_ranking, nivel_ranking, categoria_ranking, pais_ranking, metodologia_ranking)
       universidad(id_universidad, nombre_universidad, pais_universidad)
-      metrica(id_metrica, id_ranking, nombre_metrica, descripcion_metrica,
-              tipo_metrica, peso_metrica, disciplina)
+      metrica(id_metrica, id_ranking, nombre_metrica, descripcion_metrica, tipo_metrica, peso_metrica, disciplina, pondera, id_metrica_padre)
       metrica_universidad(id_metrica, id_universidad, valor_metrica, anio_metrica)
-      cientifico(id_cientifico, nombre_cientifico, id_universidad, institucion_original,
-                 campo_principal, subcampo_principal, anio_primera_publicacion,
-                 anio_ultima_publicacion, pais_cientifico, orcid)
-      cientifico_metrica(id_cientifico, anio_datos, fuente, rank_global, rank_global_ns,
-                         h_index, hm_index, citas_totales, num_articulos, composite_score,
-                         self_citation_pct)
+      cientifico(id_cientifico, nombre_cientifico, id_universidad, institucion_original, campo_principal, subcampo_principal, anio_primera_publicacion, anio_ultima_publicacion, pais_cientifico, orcid)
+      cientifico_metrica(id_cientifico, anio_datos, fuente, rank_global, rank_global_ns, h_index, hm_index, citas_totales, num_articulos, composite_score, self_citation_pct)
       cientifico_topico(id_cientifico, topico, fuente, anio_datos, autor_documentos, topico_fwci)
 
-    No existen para ti las tablas de usuarios, conversaciones, mensajes,
-    notificaciones ni planes: la consulta se rechaza si las nombras.
+    Las tablas de usuarios, conversaciones, mensajes, notificaciones y planes no
+    existen para ti: nombrarlas rechaza la consulta.
 
     Args:
         sql: La sentencia SELECT o WITH a ejecutar.
@@ -670,6 +861,7 @@ FUNCIONES = [
     consultar_valores,
     consultar_tendencia,
     consultar_ranking_resumen,
+    comparar_universidades,
     buscar_cientificos,
     perfil_cientifico,
     consulta_sql,

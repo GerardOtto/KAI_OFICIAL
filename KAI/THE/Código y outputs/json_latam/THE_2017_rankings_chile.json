@@ -1,0 +1,203 @@
+{
+  "data": [
+    {
+      "year": 2017,
+      "Rank": "3",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "Overall": "85.7",
+      "Teaching": "74.7",
+      "Research Environment": "94.0",
+      "Research Quality": "95.0",
+      "Industry": "44.7",
+      "International Outlook": "89.5"
+    },
+    {
+      "year": 2017,
+      "Rank": "4",
+      "Name": "University of Chile",
+      "Overall": "81.1",
+      "Teaching": "73.5",
+      "Research Environment": "86.3",
+      "Research Quality": "92.5",
+      "Industry": "34.9",
+      "International Outlook": "78.8"
+    },
+    {
+      "year": 2017,
+      "Rank": "13",
+      "Name": "University of Concepción",
+      "Overall": "63.9",
+      "Teaching": "48.4",
+      "Research Environment": "71.1",
+      "Research Quality": "76.1",
+      "Industry": "86.9",
+      "International Outlook": "66.4"
+    },
+    {
+      "year": 2017,
+      "rank_prefix": "=",
+      "Rank": "20",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "Overall": "59.1",
+      "Teaching": "54.3",
+      "Research Environment": "61.2",
+      "Research Quality": "60.1",
+      "Industry": "74.1",
+      "International Outlook": "64.5"
+    },
+    {
+      "year": 2017,
+      "Rank": "22",
+      "Name": "Federico Santa María Technical University",
+      "Overall": "58.6",
+      "Teaching": "34.0",
+      "Research Environment": "56.5",
+      "Research Quality": "99.7",
+      "Industry": "54.7",
+      "International Outlook": "77.3"
+    },
+    {
+      "year": 2017,
+      "Rank": "23",
+      "Name": "Austral University of Chile",
+      "Overall": "58.3",
+      "Teaching": "48.1",
+      "Research Environment": "56.3",
+      "Research Quality": "74.7",
+      "Industry": "61.3",
+      "International Outlook": "71.7"
+    },
+    {
+      "year": 2017,
+      "Rank": "26–30",
+      "Name": "University of Santiago, Chile (USACH)",
+      "Overall": "53.1–54.9",
+      "Teaching": "51.8",
+      "Research Environment": "61.7",
+      "Research Quality": "47.8",
+      "Industry": "36.3",
+      "International Outlook": "47.2"
+    },
+    {
+      "year": 2017,
+      "Rank": "31–35",
+      "Name": "Adolfo Ibáñez University",
+      "Overall": "49.6–51.6",
+      "Teaching": "45.0",
+      "Research Environment": "41.0",
+      "Research Quality": "69.4",
+      "Industry": "34.8",
+      "International Outlook": "89.2"
+    },
+    {
+      "year": 2017,
+      "Rank": "31–35",
+      "Name": "University of Valparaíso",
+      "Overall": "49.6–51.6",
+      "Teaching": "40.7",
+      "Research Environment": "47.7",
+      "Research Quality": "72.5",
+      "Industry": "35.7",
+      "International Outlook": "63.8"
+    },
+    {
+      "year": 2017,
+      "Rank": "31–35",
+      "Name": "University of La Frontera",
+      "Overall": "49.6–51.6",
+      "Teaching": "40.3",
+      "Research Environment": "43.7",
+      "Research Quality": "79.2",
+      "Industry": "35.9",
+      "International Outlook": "50.6"
+    },
+    {
+      "year": 2017,
+      "Rank": "31–35",
+      "Name": "University of Talca",
+      "Overall": "49.6–51.6",
+      "Teaching": "39.7",
+      "Research Environment": "53.6",
+      "Research Quality": "56.8",
+      "Industry": "20.9",
+      "International Outlook": "68.9"
+    },
+    {
+      "year": 2017,
+      "Rank": "36–40",
+      "Name": "Diego Portales University",
+      "Overall": "46.7–49.5",
+      "Teaching": "24.7",
+      "Research Environment": "43.1",
+      "Research Quality": "98.0",
+      "Industry": "35.0",
+      "International Outlook": "72.8"
+    },
+    {
+      "year": 2017,
+      "Rank": "36–40",
+      "Name": "Universidad del Desarrollo",
+      "Overall": "46.7–49.5",
+      "Teaching": "34.8",
+      "Research Environment": "33.6",
+      "Research Quality": "89.2",
+      "Industry": "38.2",
+      "International Outlook": "56.1"
+    },
+    {
+      "year": 2017,
+      "Rank": "41–45",
+      "Name": "University of the Andes, Chile",
+      "Overall": "44.7–46.5",
+      "Teaching": "34.9",
+      "Research Environment": "54.6",
+      "Research Quality": "45.3",
+      "Industry": "35.1",
+      "International Outlook": "65.4"
+    },
+    {
+      "year": 2017,
+      "Rank": "41–45",
+      "Name": "Catholic University of the North",
+      "Overall": "44.7–46.5",
+      "Teaching": "29.3",
+      "Research Environment": "44.2",
+      "Research Quality": "65.4",
+      "Industry": "38.3",
+      "International Outlook": "74.1"
+    },
+    {
+      "year": 2017,
+      "Rank": "46–50",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "Overall": "43.1–44.0",
+      "Teaching": "31.0",
+      "Research Environment": "32.7",
+      "Research Quality": "78.8",
+      "Industry": "35.1",
+      "International Outlook": "56.7"
+    },
+    {
+      "year": 2017,
+      "Rank": "61–70",
+      "Name": "Universidad Autónoma de Chile",
+      "Overall": "30.9–38.3",
+      "Teaching": "36.3",
+      "Research Environment": "22.7",
+      "Research Quality": "39.7",
+      "Industry": "34.8",
+      "International Outlook": "65.4"
+    },
+    {
+      "year": 2017,
+      "Rank": "71+",
+      "Name": "Temuco Catholic University",
+      "Overall": "18.1–26.8",
+      "Teaching": "21.6",
+      "Research Environment": "24.3",
+      "Research Quality": "8.2",
+      "Industry": "39.3",
+      "International Outlook": "51.0"
+    }
+  ]
+}

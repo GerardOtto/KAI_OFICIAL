@@ -145,12 +145,12 @@ except Exception as e:
     comprobar("perfil_cientifico", False, f"{type(e).__name__}: {e}")
 
 print("\n=== 5. Esquemas de herramienta válidos para ambos motores ===")
-comprobar("hay 10 herramientas", len(h.TOOLS) == 10, str(len(h.TOOLS)))
+comprobar("hay 11 herramientas", len(h.TOOLS) == 11, str(len(h.TOOLS)))
 for t in h.TOOLS:
     comprobar(f"esquema de {t.name}", bool(t.description) and isinstance(t.input_schema, dict))
 
 from app import assistant_gemini as g
-comprobar("Gemini traduce las 10 declaraciones", len(g.DECLARACIONES) == len(h.TOOLS),
+comprobar("Gemini traduce las 11 declaraciones", len(g.DECLARACIONES) == len(h.TOOLS),
           str(len(g.DECLARACIONES)))
 
 print("\n=== 6. El contexto de datos se calcula desde la base ===")

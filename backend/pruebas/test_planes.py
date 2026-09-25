@@ -47,10 +47,12 @@ cliente = TestClient(main.app)
 
 def crear_usuario(plan):
     db = main.SessionLocal()
-    correo = f"plan_{plan}_{os.getpid()}_{len(usuarios)}@ejemplo.test"
+    correo = f"plan_{plan}_{os.getpid()}_{len(usuarios)}@pucv.cl"
     uid = db.execute(text("""
-        INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario, plan_usuario)
-        VALUES ('Prueba planes', :c, 'x', :p) RETURNING id_usuario
+        INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
+                             institucion_usuario, plan_usuario)
+        VALUES ('Prueba planes', :c, 'x', 'Pontificia Universidad Catolica de Valparaiso', :p)
+        RETURNING id_usuario
     """), {"c": correo, "p": plan}).scalar()
     db.commit()
     db.close()
@@ -157,15 +159,47 @@ comprobar("Gemini sigue funcionando", chat(pago, "Otra", motor="gemini").status_
 uso = cliente.get("/uso", headers=pago).json()
 comprobar("no queda marcado como excedido del todo", uso["excedido"] is False, uso["excedido"])
 
-print("\n=== 7. Límite diario de consultas ===")
-_, diario = crear_usuario("free")
+print("\n=== 7. Frecuencia y límite diario de consultas ===")
+# El plan gratuito ya no limita por volumen diario sino por frecuencia: una
+# consulta cada tantos días. Son dos límites distintos, y la espera se comprueba
+# antes que el tope porque es la que primero se alcanza.
+_, gratis = crear_usuario("free")
 db = main.SessionLocal()
-tope = db.execute(text("SELECT mensajes_por_dia FROM plan WHERE codigo_plan='free'")).scalar()
+espera_dias = db.execute(text("SELECT dias_entre_mensajes FROM plan WHERE codigo_plan='free'")).scalar()
 db.close()
-for i in range(tope):
+comprobar("el plan gratuito declara una espera entre consultas", espera_dias == 3, espera_dias)
+
+comprobar("la primera consulta pasa", chat(gratis, "primera", motor="gemini").status_code == 200)
+segunda = chat(gratis, "segunda seguida", motor="gemini")
+comprobar("la siguiente responde 429", segunda.status_code == 429, segunda.status_code)
+detalle = segunda.json()["detail"]
+comprobar("el mensaje habla de la espera y no del día",
+          f"cada {espera_dias} días" in detalle and "límite diario" not in detalle, detalle)
+comprobar("y dice cuándo se podrá volver a consultar", "disponible en" in detalle, detalle)
+uso_gratis = cliente.get("/uso", headers=gratis).json()
+comprobar("la espera viaja en el estado de cuota",
+          uso_gratis["espera"]["horas_restantes"] > 0, uso_gratis.get("espera"))
+comprobar("y deja el motor como no disponible",
+          uso_gratis["motores"]["gemini"]["disponible"] is False, uso_gratis["motores"]["gemini"])
+
+# El tope diario sigue vigente en los planes que lo tienen sin espera. Se
+# comprueba con un plan propio, porque ninguno del catálogo combina las dos.
+TOPE_DIARIO = 2
+codigo_diario = f"prueba-diario-{os.getpid()}"
+db = main.SessionLocal()
+db.execute(text("""
+    INSERT INTO plan (codigo_plan, nombre_plan, precio_mensual_usd, tokens_claude_mes,
+                      tokens_gemini_mes, mensajes_por_dia, dias_entre_mensajes, publico, orden)
+    VALUES (:c, 'Prueba diario', 1, 0, 1000000, :t, NULL, FALSE, 97)
+    ON CONFLICT (codigo_plan) DO UPDATE SET mensajes_por_dia = :t, dias_entre_mensajes = NULL
+"""), {"c": codigo_diario, "t": TOPE_DIARIO})
+db.commit()
+db.close()
+_, diario = crear_usuario(codigo_diario)
+for i in range(TOPE_DIARIO):
     chat(diario, f"consulta {i}", motor="gemini")
 r = chat(diario, "una más", motor="gemini")
-comprobar(f"tras {tope} consultas del día responde 429", r.status_code == 429, r.status_code)
+comprobar(f"tras {TOPE_DIARIO} consultas del día responde 429", r.status_code == 429, r.status_code)
 comprobar("el mensaje habla del límite diario", "límite diario" in r.json()["detail"], r.json()["detail"])
 comprobar("y ahora sí queda excedido",
           cliente.get("/uso", headers=diario).json()["excedido"] is True)
@@ -198,6 +232,9 @@ comprobar("y /chat la rechaza", chat(sin_plan, "Hola", motor="gemini").status_co
 # --- Limpieza ---------------------------------------------------------------
 db = main.SessionLocal()
 db.execute(text("DELETE FROM usuario WHERE id_usuario = ANY(:ids)"), {"ids": usuarios})
+# El plan de prueba se borra después de sus usuarios: la clave ajena lo impide
+# al revés, y dejarlo suelto ensuciaría el catálogo de la próxima ejecución.
+db.execute(text("DELETE FROM plan WHERE codigo_plan = :c"), {"c": codigo_diario})
 db.commit()
 quedan = db.execute(text("SELECT count(*) FROM usuario WHERE id_usuario = ANY(:ids)"), {"ids": usuarios}).scalar()
 huerfanas = db.execute(text("""

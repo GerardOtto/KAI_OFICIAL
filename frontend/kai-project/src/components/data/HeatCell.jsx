@@ -118,7 +118,7 @@ function Globo({ rect, dimension, ranking, datos }) {
   );
 }
 
-export default function HeatCell({ datos, dimension, ranking, valorFormateado }) {
+export default function HeatCell({ datos, dimension, ranking, valorFormateado, restringido }) {
   const [rect, setRect] = useState(null);
   const refCelda = useRef(null);
 
@@ -127,10 +127,15 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado })
   }, []);
   const salir = useCallback(() => setRect(null), []);
 
-  const tieneMetrica = datos != null;
+  // La celda de un ranking reservado no se oculta: se tapa. El plan gratuito
+  // debe ver que la columna existe y qué contiene el plan de pago, que es
+  // justamente lo que no vería si la quitáramos de la matriz.
+  const tieneMetrica = datos != null && !restringido;
   // Tres estados: reparte peso (intensidad azul), se mide dentro de otro pilar
   // (gris tenue, distinguible de la celda vacía) y no se mide.
-  const style = !tieneMetrica
+  const style = restringido
+    ? { backgroundColor: "rgba(255,255,255,.03)", borderColor: "rgba(255,255,255,.07)" }
+    : !tieneMetrica
     ? { backgroundColor: "rgba(255,255,255,.02)", borderColor: "rgba(255,255,255,.05)" }
     : datos.soloReferencia
       ? { backgroundColor: "rgba(255,255,255,.045)", borderColor: "rgba(255,255,255,.09)" }
@@ -154,7 +159,12 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado })
       >
         <span className="font-mono text-[9.5px] flex items-center gap-1"
               style={{ color: tieneMetrica ? "rgba(255,255,255,.6)" : "#5a5a5a" }}>
-          {!tieneMetrica ? "no mide" : datos.soloReferencia ? (
+          {restringido ? (
+            <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"
+                  title={`${ranking} está incluido en los planes de pago.`}>
+              plan de pago
+            </span>
+          ) : !tieneMetrica ? "no mide" : datos.soloReferencia ? (
             // 0 % se leería como «el ranking no la valora», cuando lo que ocurre
             // es que su peso está contado dentro de otro pilar.
             <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"
@@ -173,8 +183,9 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado })
             </span>
           )}
         </span>
-        <span className="font-mono font-semibold text-[15px]" style={{ color: valor != null ? "#fff" : "#6f6f6f" }}>
-          {valor != null ? (valorFormateado ?? numero(valor)) : "—"}
+        <span className="font-mono font-semibold text-[15px]"
+              style={{ color: !restringido && valor != null ? "#fff" : "#6f6f6f" }}>
+          {restringido ? "—" : valor != null ? (valorFormateado ?? numero(valor)) : "—"}
         </span>
       </div>
 

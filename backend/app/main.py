@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-from . import auth, conversaciones as conv, motores
+from . import acceso, auth, conversaciones as conv, motores
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -89,7 +89,35 @@ class RegistroRequest(BaseModel):
     nombre: str
     correo: str
     clave: str
-    institucion: str | None = None
+    institucion: str
+
+
+class InstitucionRequest(BaseModel):
+    institucion: str
+
+
+def _validar_institucion(db, nombre: str | None) -> str:
+    """Comprueba que la institución exista en el catálogo y la devuelve normalizada.
+
+    Se valida contra `universidad` y no se admite texto libre: la institución
+    pasa a gobernar la afiliación del usuario, y un campo libre la haría
+    inservible para agrupar o para conceder acceso. La comparación ignora
+    mayúsculas y espacios sobrantes, pero se guarda el nombre tal como está en la
+    base, para que dos cuentas de la misma institución coincidan exactamente.
+    """
+    limpio = " ".join((nombre or "").split())
+    if not limpio:
+        raise HTTPException(status_code=400, detail="Hay que indicar la institución.")
+
+    fila = db.execute(text("""
+        SELECT nombre_universidad FROM universidad
+         WHERE lower(nombre_universidad) = lower(:n) LIMIT 1
+    """), {"n": limpio}).first()
+    if fila is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Esa institución no está en el catálogo. Elige una de la lista.")
+    return fila.nombre_universidad
 
 
 class LoginRequest(BaseModel):
@@ -101,10 +129,16 @@ class GoogleRequest(BaseModel):
     credential: str  # ID token emitido por Google Identity Services
 
 
-def _sesion(usuario: dict) -> dict:
-    """Respuesta común de los tres caminos de autenticación."""
+def _sesion(db, usuario: dict) -> dict:
+    """Respuesta común de los tres caminos de autenticación.
+
+    Incluye las capacidades del plan para que la interfaz sepa qué mostrar desde
+    el primer dibujo, sin una petición más y sin un instante en que ofrezca lo
+    que el plan no permite.
+    """
     token, expira_en = auth.crear_token(usuario["id_usuario"], usuario["correo_usuario"])
-    return {"token": token, "expira_en": expira_en, "usuario": _perfil(usuario)}
+    return {"token": token, "expira_en": expira_en, "usuario": _perfil(usuario),
+            "capacidades": acceso.capacidades(db, usuario)}
 
 
 def _perfil(usuario: dict) -> dict:
@@ -147,16 +181,18 @@ def registro(req: RegistroRequest):
                 raise HTTPException(status_code=409, detail=MENSAJE_SOLO_GOOGLE)
             raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo.")
 
+        institucion = _validar_institucion(db, req.institucion)
+
         id_usuario = db.execute(text("""
             INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
                                  institucion_usuario, plan_usuario)
             VALUES (:n, :c, :k, :i, :p) RETURNING id_usuario
         """), {"n": req.nombre.strip(), "c": correo,
                "k": auth.hashear_clave(req.clave),
-               "i": (req.institucion or "").strip() or None,
+               "i": institucion,
                "p": auth.PLAN_POR_DEFECTO}).scalar()
         db.commit()
-        return _sesion(auth.buscar_usuario_por_id(db, id_usuario))
+        return _sesion(db, auth.buscar_usuario_por_id(db, id_usuario))
     finally:
         db.close()
 
@@ -184,7 +220,7 @@ def login(req: LoginRequest):
         db.execute(text("UPDATE usuario SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id_usuario = :i"),
                    {"i": fila.id_usuario})
         db.commit()
-        return _sesion(auth.buscar_usuario_por_id(db, fila.id_usuario))
+        return _sesion(db, auth.buscar_usuario_por_id(db, fila.id_usuario))
     finally:
         db.close()
 
@@ -232,7 +268,7 @@ def login_google(req: GoogleRequest):
             """), {"g": datos["sub"], "a": datos["avatar"], "i": id_usuario})
 
         db.commit()
-        return _sesion(auth.buscar_usuario_por_id(db, id_usuario))
+        return _sesion(db, auth.buscar_usuario_por_id(db, id_usuario))
     finally:
         db.close()
 
@@ -241,7 +277,118 @@ def login_google(req: GoogleRequest):
 def yo(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
-        return {"usuario": _perfil(usuario), "cuota": conv.estado_de_cuota(db, usuario)}
+        return {"usuario": _perfil(usuario), "cuota": conv.estado_de_cuota(db, usuario),
+                "capacidades": acceso.capacidades(db, usuario)}
+    finally:
+        db.close()
+
+
+@app.patch("/auth/institucion")
+def fijar_institucion(req: InstitucionRequest, usuario: dict = Depends(auth.usuario_actual)):
+    """Completa la institución de una cuenta que se creó sin ella.
+
+    Existe por el acceso con Google: ese camino no pregunta nada al usuario, de
+    modo que la institución —obligatoria desde ahora— se reclama después, en la
+    primera sesión. También sirve para corregirla.
+    """
+    db = SessionLocal()
+    try:
+        institucion = _validar_institucion(db, req.institucion)
+        db.execute(text("UPDATE usuario SET institucion_usuario = :i WHERE id_usuario = :u"),
+                   {"i": institucion, "u": usuario["id_usuario"]})
+        db.commit()
+        actualizado = auth.buscar_usuario_por_id(db, usuario["id_usuario"])
+        return {"usuario": _perfil(actualizado), "capacidades": acceso.capacidades(db, actualizado)}
+    finally:
+        db.close()
+
+
+@app.get("/instituciones")
+def listar_instituciones():
+    """Catálogo de instituciones para el registro. Público, porque se necesita
+    antes de tener cuenta.
+
+    Son todas las universidades del sistema, tengan datos cargados o no: una
+    persona pertenece a su institución con independencia de cuántas mediciones
+    tengamos de ella, y una lista recortada obligaría a quien no aparece a elegir
+    una institución falsa.
+    """
+    db = SessionLocal()
+    try:
+        filas = db.execute(text("""
+            SELECT id_universidad, nombre_universidad, pais_universidad
+              FROM universidad ORDER BY nombre_universidad
+        """))
+        return [dict(f._mapping) for f in filas]
+    finally:
+        db.close()
+
+
+def ranking_permitido(ranking_id: int | None = None,
+                      usuario: dict = Depends(auth.usuario_actual)) -> dict:
+    """Exige sesión y, si la petición nombra un ranking, que el plan lo incluya.
+
+    El plan gratuito ve los nombres de THE y QS —el catálogo los devuelve
+    marcados— pero no sus datos. La comprobación vive aquí, en el servidor, y no
+    solo en la interfaz que los deshabilita: un selector bloqueado se salta
+    escribiendo la dirección a mano.
+    """
+    if ranking_id is None:
+        return usuario
+    db = SessionLocal()
+    try:
+        if not acceso.puede_ver_ranking(db, usuario, ranking_id):
+            raise HTTPException(status_code=403, detail=acceso.motivo_ranking(db, ranking_id))
+    finally:
+        db.close()
+    return usuario
+
+
+# ---------------------------------------------------------------------------
+# Descargas de informes
+# ---------------------------------------------------------------------------
+
+class DescargaRequest(BaseModel):
+    modulo: str
+    formato: str
+
+
+@app.get("/descargas")
+def descargas(usuario: dict = Depends(auth.usuario_actual)):
+    """Informes ya descargados, por módulo y formato."""
+    db = SessionLocal()
+    try:
+        return {"limite": None if not acceso.es_gratuito(usuario) or acceso.es_admin(usuario)
+                          else acceso.DESCARGAS_GRATUITAS,
+                "usadas": acceso.descargas_usadas(db, usuario["id_usuario"])}
+    finally:
+        db.close()
+
+
+@app.post("/descargas")
+def registrar_descarga(req: DescargaRequest, usuario: dict = Depends(auth.usuario_actual)):
+    """Pide permiso para generar un informe y lo contabiliza.
+
+    El informe se compone en el navegador, así que el servidor no puede contarlo
+    al entregarlo: la interfaz pide permiso antes de generarlo y solo continúa si
+    esta respuesta lo concede. Contar aquí —y no en el cliente— es lo que hace
+    que el límite sobreviva a un borrado del almacenamiento del navegador o a un
+    cambio de equipo.
+    """
+    db = SessionLocal()
+    try:
+        # El mismo cerrojo por usuario que la cuota del asistente: comprobar y
+        # registrar son dos pasos, y dos pulsaciones simultáneas del botón
+        # pasarían ambas la comprobación.
+        conv.bloquear_cuota(db, usuario["id_usuario"])
+        permitido, motivo = acceso.puede_descargar(db, usuario, req.modulo, req.formato)
+        if not permitido:
+            codigo = 400 if "no genera informes" in motivo or "no admitido" in motivo else 403
+            raise HTTPException(status_code=codigo, detail=motivo)
+
+        acceso.registrar_descarga(db, usuario["id_usuario"], req.modulo, req.formato)
+        db.commit()
+        return {"permitido": True, "usadas": acceso.descargas_usadas(db, usuario["id_usuario"])}
     finally:
         db.close()
 
@@ -341,6 +488,7 @@ def listar_motores(usuario: dict | None = Depends(auth.usuario_opcional)):
     mostrarlo bloqueado en vez de dejar que la consulta falle al enviarse.
     """
     catalogo = motores.catalogo_publico()
+    permitido, motivo = acceso.puede_usar_asistente(usuario) if usuario is not None else (True, None)
 
     if usuario is not None:
         db = SessionLocal()
@@ -351,13 +499,16 @@ def listar_motores(usuario: dict | None = Depends(auth.usuario_opcional)):
         for m in catalogo:
             estado = cuota["motores"].get(m["id"], {})
             m["incluido_en_plan"] = estado.get("incluido", False)
-            m["disponible_ahora"] = m["disponible"] and estado.get("disponible", False)
+            # La afiliación pesa sobre los dos motores por igual: sin ella no hay
+            # asistente, aunque el plan incluya el motor y quede cuota.
+            m["disponible_ahora"] = permitido and m["disponible"] and estado.get("disponible", False)
     else:
         for m in catalogo:
             m["incluido_en_plan"] = None
             m["disponible_ahora"] = m["disponible"]
 
-    return {"motores": catalogo, "por_defecto": motores.POR_DEFECTO}
+    return {"motores": catalogo, "por_defecto": motores.POR_DEFECTO,
+            "permitido": permitido, "motivo": motivo}
 
 
 class ChatRequest(BaseModel):
@@ -381,6 +532,13 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     texto = (req.mensaje or "").strip()
     if not texto:
         raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío.")
+
+    # El asistente está reservado, por ahora, a las cuentas de la institución que
+    # financia el proyecto. Se comprueba aquí y no solo en el catálogo de motores
+    # porque es el único punto por el que se gasta cuota del proveedor.
+    permitido, motivo = acceso.puede_usar_asistente(usuario)
+    if not permitido:
+        raise HTTPException(status_code=403, detail=motivo)
 
     db = SessionLocal()
     try:
@@ -471,7 +629,7 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
         db.close()
 
 @app.get("/universidad")
-def get_subrankings():
+def get_subrankings(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("SELECT * FROM universidad"))
@@ -481,7 +639,8 @@ def get_subrankings():
         db.close()
 
 @app.get("/trends")
-def get_trends(ranking_id: int, metrica_id: int, universidades: str = None):
+def get_trends(ranking_id: int, metrica_id: int, universidades: str = None,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
 
@@ -528,7 +687,8 @@ def get_trends(ranking_id: int, metrica_id: int, universidades: str = None):
         db.close()
 
 @app.get("/metricas")
-def get_metricas(ranking_id: int):
+def get_metricas(ranking_id: int,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
         query = text("""
@@ -544,7 +704,7 @@ def get_metricas(ranking_id: int):
         db.close()
 
 @app.get("/universidades")
-def get_universidades():
+def get_universidades(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -559,16 +719,23 @@ def get_universidades():
         db.close()
 
 @app.get("/rankings")
-def get_rankings():
+def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("SELECT id_ranking, nombre_ranking FROM ranking ORDER BY id_ranking"))
-        return [dict(row._mapping) for row in result]
+        # Los rankings reservados se devuelven igualmente, marcados: el plan
+        # gratuito ve que existen y qué se pierde, en lugar de encontrarse una
+        # lista corta que no explica nada.
+        restringidos = (acceso.ids_restringidos(db)
+                        if acceso.es_gratuito(usuario) and not acceso.es_admin(usuario) else set())
+        return [{**dict(row._mapping), "restringido": row.id_ranking in restringidos}
+                for row in result]
     finally:
         db.close()
 
 @app.get("/simulacion")
-def get_simulacion(ranking_id: int, anio: int, universidades: str = None):
+def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
         params = {"ranking_id": ranking_id, "anio": anio}
@@ -603,7 +770,8 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None):
         db.close()
 
 @app.get("/anios")
-def get_anios(ranking_id: int):
+def get_anios(ranking_id: int,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -618,7 +786,8 @@ def get_anios(ranking_id: int):
         db.close()
 
 @app.get("/ranking-resumen")
-def get_ranking_resumen(ranking_id: int, anio: int):
+def get_ranking_resumen(ranking_id: int, anio: int,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -646,7 +815,7 @@ def get_ranking_resumen(ranking_id: int, anio: int):
         db.close()
 
 @app.get("/tipos-metrica")
-def get_tipos_metrica():
+def get_tipos_metrica(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -660,7 +829,8 @@ def get_tipos_metrica():
         db.close()
 
 @app.get("/metricas-por-tipo")
-def get_metricas_por_tipo(tipo: str):
+def get_metricas_por_tipo(tipo: str,
+    usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -685,12 +855,26 @@ def get_metricas_por_tipo(tipo: str):
             WHERE m.tipo_metrica = :tipo
             ORDER BY r.nombre_ranking, m.nombre_metrica
         """), {"tipo": tipo})
-        return [dict(row._mapping) for row in result]
+
+        # En el glosario la restricción no puede quitar la columna: el plan
+        # gratuito debe ver que THE y QS están ahí. Se conserva el nombre del
+        # ranking y se vacía lo que tiene valor —el peso y la descripción—, de
+        # modo que la celda se dibuje bloqueada y no simplemente ausente.
+        restringidos = (acceso.ids_restringidos(db)
+                        if acceso.es_gratuito(usuario) and not acceso.es_admin(usuario) else set())
+        return [
+            {**dict(row._mapping), "restringido": True,
+             "peso_metrica": None, "descripcion_metrica": None}
+            if row.id_ranking in restringidos else
+            {**dict(row._mapping), "restringido": False}
+            for row in result
+        ]
     finally:
         db.close()
 
 @app.get("/valores-metrica-universidad")
-def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int):
+def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int,
+    usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -718,7 +902,7 @@ FUENTE_TOP2 = "Stanford/Elsevier - World's Top 2% Scientists"
 FUENTE_SCOPUS_PUCV = "Scopus - Censo institucional PUCV"
 
 @app.get("/cientificos-fuentes")
-def get_cientificos_fuentes():
+def get_cientificos_fuentes(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -732,13 +916,12 @@ def get_cientificos_fuentes():
         db.close()
 
 @app.get("/cientificos")
-def get_cientificos(
-    fuente: str = FUENTE_TOP2,
+def get_cientificos(fuente: str = FUENTE_TOP2,
     campo: str = None,
     universidad_id: int = None,
     q: str = None,
     topico: str = None,
-):
+    usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         params = {"fuente": fuente}
@@ -813,11 +996,10 @@ def get_cientificos(
         db.close()
 
 @app.get("/cientificos-sugerencias")
-def get_cientificos_sugerencias(
-    fuente: str = FUENTE_TOP2,
+def get_cientificos_sugerencias(fuente: str = FUENTE_TOP2,
     q: str = None,
     limite: int = 6,
-):
+    usuario: dict = Depends(auth.usuario_actual)):
     """Autocompletado del buscador de investigadores. Devuelve dos grupos:
     nombres de investigador y áreas de investigación, ambos ordenados poniendo
     primero las coincidencias por prefijo. Consulta ligera a propósito: no
@@ -871,7 +1053,8 @@ def get_cientificos_sugerencias(
 
 
 @app.get("/cientificos/{id_cientifico}/topicos")
-def get_cientifico_topicos(id_cientifico: int, fuente: str = None):
+def get_cientifico_topicos(id_cientifico: int, fuente: str = None,
+    usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         params = {"id_cientifico": id_cientifico}
@@ -891,7 +1074,7 @@ def get_cientifico_topicos(id_cientifico: int, fuente: str = None):
         db.close()
 
 @app.get("/cientificos-campos")
-def get_cientificos_campos():
+def get_cientificos_campos(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
         result = db.execute(text("""
@@ -905,7 +1088,8 @@ def get_cientificos_campos():
         db.close()
 
 @app.get("/metricas-con-datos")
-def get_metricas_con_datos(ranking_id: int):
+def get_metricas_con_datos(ranking_id: int,
+    usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
         result = db.execute(text("""

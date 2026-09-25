@@ -1,0 +1,42 @@
+rank,nid,title,city,overall_score,rank_display,academic_reputation_score,academic_reputation_rank,employer_reputation_score,employer_reputation_rank,faculty_student_ratio_score,faculty_student_ratio_rank,staff_phd_score,staff_phd_rank,citations_per_paper_score,citations_per_paper_rank,papers_per_faculty_score,papers_per_faculty_rank,international_research_network_score,international_research_network_rank,web_impact_score,web_impact_rank,scholarship,student_mix_domestic,student_mix_international
+1,294549,Pontificia Universidad Católica de Chile (UC),Santiago,100,1,100,3,100,1,65.2,79,98.3,16,76.7,60,96.8,22,99.8,4,95.7,13,Yes,95%,5%
+7,294535,Universidad de Chile,Santiago,92.5,=6,100,5,100,6,22.3,201+,69.2,82,75.7,62,99.4,11,99.7,7,100,4,No,95%,5%
+11,296834,Universidad de Concepción,Concepción,87.1,11,89.2,23,88.7,29,37,171,60.4,101,89.8,30,88.9,34,98.7,13,82.5,32,No,98%,2%
+17,297429,Universidad de Santiago de Chile (USACH),Santiago,81.4,17,96.9,15,96.9,14,24,201+,29,191,57.7,107,80.6,48,96.7,24,63.7,53,No,98%,2%
+22,294642,Universidad Adolfo Ibáñez,Santiago,77.1,22,80,33,99,11,19.5,201+,81.3,70,28.4,201+,96.4,23,86.8,65,43.6,106,No,95%,5%
+24,297096,Pontificia Universidad Católica de Valparaíso,Valparaíso,76.4,24,89,24,81.4,40,14.8,201+,60.7,99,45.4,158,99.1,15,92.7,49,50.3,82,No,98%,2%
+37,296838,Universidad Austral de Chile,Valdivia,67.2,37,65.5,54,59.5,70,9.1,201+,85,62,49.8,142,99.3,12,93.9,41,59.4,58,No,99%,1%
+43,294498,Universidad Diego Portales (UDP),Santiago,64.6,43,64.9,57,79.2,42,24.2,201+,14.4,201+,87.3,35,46,110,88.9,60,34.8,145,No,96%,4%
+46,293446,Universidad de los Andes - Chile,Santiago,63.4,=45,72.6,43,90.2,26,29.2,201+,28.1,197,36,193,58.2,84,64.3,119,25.8,201+,No,98%,2%
+47,295086,Universidad Técnica Federico Santa María (USM),Valparaíso,62.5,47,51.1,86,83.4,38,10,201+,46.3,132,67.7,73,80.2,49,94.1,38,22.5,201+,No,99%,1%
+49,296836,Universidad de Talca,Talca,62,=48,54,77,48.9,90,19.1,201+,53.9,116,80.8,52,94.9,24,94.1,37,59.3,59,No,99%,1%
+53,296837,Universidad de La Frontera (UFRO),Temuco,60.5,53,54.1,76,34,129,14.9,201+,81.6,69,85.6,39,99.1,14,93.1,47,32.3,=159,No,99%,1%
+61,293386,Universidad Andrés Bello,Santiago,58.9,61,63.2,60,62,64,25.6,201+,14.4,201+,63.4,87,36.1,131,98.2,17,46.4,96,No,98%,2%
+81,295087,Universidad del Desarrollo (UDD),Santiago,51.6,=81,44.4,101,60.2,67,30.2,201+,11.8,201+,91.7,27,28.6,166,65.1,117,43.4,107,No,98%,2%
+86,293464,Universidad de Valparaíso (UV),Valparaíso,50.8,=85,56.9,69,37.5,115,25.6,201+,33,173,37.1,187,61.2,79,86.8,66,43.7,104,No,98%,2%
+90,296835,Universidad del Bío-Bío,Concepción,49.5,90,46.3,93,23.3,151+,10.8,201+,72.2,78,50.3,141,92,30,84.8,70,39.6,121,No,99%,1%
+116,295884,Universidad Autónoma de Chile,Providencia,43.3,=115,34.5,133,22,151+,13.5,201+,23.9,201+,93.5,21,48.9,103,90.2,56,36.9,129,No,99%,1%
+119,293422,Universidad Católica del Norte,Antofagasta,43,=118,27.1,151+,23,151+,24.7,201+,32.8,174,63.9,85,87.1,37,93.5,45,47,92,No,95%,5%
+125,296842,Universidad de Tarapaca,Arica,40.4,124,21.5,151+,9.1,151+,9.7,201+,40.2,145,92.3,25,99.8,5,95.4,28,29.9,173,No,100%,0%
+136,297112,Universidad Alberto Hurtado,Santiago,38.1,135,44.6,100,36.5,119,9.6,201+,59.3,105,7.9,201+,91.8,31,20.3,201+,27.4,185,No,98%,2%
+146,296845,Universidad de La Serena,La Serena,36.3,=145,27.6,151+,16.7,151+,9.9,201+,31.1,180,83.5,48,74.9,59,58.3,134,21.1,201+,No,99%,1%
+148,296839,Universidad de Antofagasta,Antofagasta,36.2,=147,22.6,151+,12.3,151+,24.8,201+,22.7,201+,92.1,26,56.1,87,75.9,92,20.8,201+,No,98%,2%
+155,293417,Universidad Católica de la Santísima Concepción (UCSC),Concepción,n/a,151-160,24,151+,17.5,151+,22.2,201+,31.3,178,43.1,167,73.5,63,86,67,24.8,201+,No,100%,0%
+168,296844,Universidad de Magallanes,Punta Arenas,n/a,161-170,13.3,151+,10.1,151+,55,110,8.6,201+,99,13,49.9,99,65.3,114,19.4,201+,No,,
+173,954565,Universidad Bernardo O'Higgins,Santiago,n/a,171-180,24.8,151+,38.1,113,26.8,201+,29.9,188,12.3,201+,63.2,78,59.2,131,13.9,201+,No,98%,2%
+174,293420,Universidad Católica de Temuco,Temuco,n/a,171-180,25.9,151+,11.2,151+,5.8,201+,63.7,97,10.5,201+,99.8,6,71.8,100,26.3,201+,No,100%,0%
+176,296840,Universidad Mayor,Santiago,n/a,171-180,15.2,151+,23.1,151+,11,201+,16.2,201+,91.2,29,33.5,144,77.3,87,27.3,186,No,99%,1%
+179,294411,Universidad San Sebastian - Chile,Santiago,n/a,171-180,16,151+,26.2,151+,52.2,116,4.9,201+,38.4,179,21.8,199,91.5,53,36.4,132,No,100%,0%
+211,293421,Universidad Católica del Maule,Maule,n/a,201-250,15.5,151+,11.6,151+,27.6,201+,25,201+,21,201+,65.2,74,88.6,61,27.3,188,No,100%,0%
+212,293425,Universidad Central de Chile ,Santiago,n/a,201-250,25.2,151+,21,151+,11.1,201+,13.9,201+,68.8,71,17.3,201+,43.2,201+,20.4,201+,No,98%,2%
+230,293516,Universidad Tecnológica Metropolitana (UTEM),Santiago,n/a,201-250,12.1,151+,20.8,151+,12.7,201+,35.6,167,64.5,81,41.1,118,40.4,201+,22.5,201+,No,100%,0%
+237,293448,Universidad de Los Lagos,Osorno,n/a,201-250,13.3,151+,8.8,151+,9.4,201+,39.2,151,25.7,201+,79.2,51,59.4,130,30.1,171,No,100%,0%
+258,296841,Universidad Arturo Prat ,Iquique,n/a,251-300,7.9,151+,8.5,151+,16.6,201+,17,201+,38,180,34.5,140,67.1,108,17.6,201+,No,93%,7%
+279,294410,Universidad Santo Tomás - Chile,Santiago,n/a,251-300,15.6,151+,18.2,151+,17,201+,5.9,201+,44.6,160,16,201+,66.4,110,8.3,201+,No,99%,1%
+283,296846,Universidad de Atacama,Copiapo,n/a,251-300,7.9,151+,9.1,151+,5.2,201+,16.3,201+,65.9,78,81.5,46,65.5,113,18.2,201+,No,,
+287,295888,Universidad de Las Américas,Santiago,n/a,251-300,26.2,151+,25.5,151+,21.1,201+,10.4,201+,15.8,201+,9.7,201+,46.9,179,17.9,201+,No,98%,2%
+320,294409,Universidad Finis Terrae,Santiago,n/a,301-350,17.4,151+,13.4,151+,22.4,201+,10.3,201+,10.6,201+,24,189,33.7,201+,1,201+,No,98%,2%
+334,294413,Universidad de Playa Ancha,Valparaíso,n/a,301-350,14,151+,n/a,n/a,22.1,201+,21.3,201+,12.9,201+,49.1,101,39.4,201+,21.4,201+,No,100%,0%
+424,293415,Universidad Católica Silva Henríquez,Santiago,n/a,401+,13.5,151+,15.1,151+,18.5,201+,8.8,201+,4.9,201+,17.8,201+,8.8,201+,13.3,201+,No,,
+465,296843,Universidad UNIACC,Santiago,n/a,401+,4,151+,5.8,151+,23.6,201+,2.1,201+,n/a,n/a,1.2,201+,n/a,n/a,7.4,201+,No,,
+479,296847,Universidad del Viña del Mar,Viña del Mar,n/a,401+,8.3,151+,5.5,151+,33.3,195,3.7,201+,4,201+,9.3,201+,18,201+,10.4,201+,No,100%,0%

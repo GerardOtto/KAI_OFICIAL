@@ -1,6 +1,7 @@
 // Comprueba que Tendencias abre en Evolución y que las pestañas quedaron
 // intercambiadas, sin que cambie nada más del comportamiento.
 import fs from "fs";
+import { crearSesion } from "./sesion.mjs";
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
 // Las capturas van junto a la sonda, no a una carpeta temporal de una
 // maquina concreta. Se crea si no existe.
@@ -34,6 +35,13 @@ ws.addEventListener("message", (e) => {
   const m = JSON.parse(e.data);
   if (m.method === "Console.messageAdded" && m.params.message.level === "error") errores.push(m.params.message.text);
 });
+
+// Ningún módulo se abre sin cuenta: se crea una desechable y se deja su testigo
+// en el navegador antes de medir nada (ver `sesion.mjs`).
+const { token: TESTIGO } = await crearSesion();
+await cdp("Page.navigate", { url: APP });
+await esperar(1200);
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)});`);
 
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 1000, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: `${APP}/tendencias` });

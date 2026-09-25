@@ -412,7 +412,9 @@ def responder(mensajes: list[dict]) -> dict:
 
     try:
         respuesta = None
-        for _ in range(MAX_CICLOS):
+        vueltas = 0
+        llamadas_hechas = 0
+        for vueltas in range(1, MAX_CICLOS + 1):
             respuesta, modelo = _generar(contenidos, config, modelo_fijado=modelo)
 
             uso = getattr(respuesta, "usage_metadata", None)
@@ -427,6 +429,7 @@ def responder(mensajes: list[dict]) -> dict:
             llamadas = list(respuesta.function_calls or [])
             if not llamadas:
                 break
+            llamadas_hechas += len(llamadas)
 
             partes = []
             for ll in llamadas:
@@ -482,4 +485,11 @@ def responder(mensajes: list[dict]) -> dict:
     if nombre_motivo == "MAX_TOKENS":
         # Hay texto, pero incompleto: se entrega avisando en vez de descartarlo.
         texto += "\n\n[Respuesta cortada por longitud. Pide una versión más acotada.]"
+
+    # Las vueltas son lo que multiplica el consumo de entrada, y hasta ahora no
+    # quedaba rastro de cuántas hubo. Con esta línea se puede ver en los logs si
+    # el modelo agrupa sus consultas o las encadena de una en una.
+    logger.info("Turno resuelto en %d vuelta(s) con %d llamada(s) a herramientas · "
+                "entrada %d · salida %d · %s",
+                vueltas, llamadas_hechas, entrada, salida, modelo)
     return _res(texto, entrada, salida, ok=True, busquedas=busquedas, modelo=modelo)

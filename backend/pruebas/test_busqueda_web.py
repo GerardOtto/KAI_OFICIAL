@@ -116,8 +116,8 @@ primera = falso.peticiones[0]["config"]
 herramientas = primera.tools[0]
 comprobar("la petición corriente NO declara la búsqueda de Google",
           herramientas.google_search is None and herramientas.url_context is None)
-comprobar("declara las 10 herramientas de datos más la de internet",
-          len(herramientas.function_declarations) == 11, str(len(herramientas.function_declarations)))
+comprobar("declara las 11 herramientas de datos más la de internet",
+          len(herramientas.function_declarations) == 12, str(len(herramientas.function_declarations)))
 comprobar("una de ellas es buscar_en_internet",
           any(d.name == g.BUSQUEDA for d in herramientas.function_declarations))
 comprobar("no se envía configuración de herramientas de servidor", primera.tool_config is None)

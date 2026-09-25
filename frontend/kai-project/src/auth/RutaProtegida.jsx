@@ -37,7 +37,8 @@ export default function RutaProtegida({ children, motivo }) {
             Necesitas una cuenta
           </h2>
           <p className="font-body text-[12.5px] text-[#8a8a8a] leading-relaxed">
-            {motivo || "Este módulo requiere iniciar sesión."}
+            {motivo || "Los módulos de la plataforma trabajan sobre datos de instituciones "
+                     + "concretas, así que se consultan con una cuenta. El registro es gratuito."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -48,14 +49,15 @@ export default function RutaProtegida({ children, motivo }) {
             Iniciar sesión
           </button>
           <button
-            onClick={() => navigate("/ranking")}
+            onClick={() => navigate("/")}
             className="px-5 py-2.5 border border-outline/40 text-[11px] uppercase tracking-widest text-[#c4c4c4] hover:text-white hover:border-white/40 transition-colors"
           >
-            Ver rankings
+            Volver a la portada
           </button>
         </div>
         <p className="font-body text-[10.5px] text-[#6f6f6f]">
-          Los módulos de rankings, tendencias y simulación siguen siendo de acceso libre.
+          El plan gratuito incluye los rankings de Scimago y Shanghai, el glosario y una
+          consulta al asistente cada tres días.
         </p>
       </div>
 

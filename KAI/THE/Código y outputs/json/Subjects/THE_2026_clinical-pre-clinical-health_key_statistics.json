@@ -1,0 +1,283 @@
+{
+  "data": [
+    {
+      "year": 2026,
+      "Rank": "401–500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "No. of FTE students": "28,373",
+      "No. of students per staff": "13.8",
+      "International students": "6%",
+      "Female:Male ratio": null
+    },
+    {
+      "year": 2026,
+      "Rank": "1001–1200",
+      "Name": "University of Chile",
+      "No. of FTE students": "42,010",
+      "No. of students per staff": "17.3",
+      "International students": "3%",
+      "Female:Male ratio": "49 : 51"
+    },
+    {
+      "year": 2026,
+      "Rank": "1001–1200",
+      "Name": "University of Tarapacá",
+      "No. of FTE students": "10,738",
+      "No. of students per staff": "29.9",
+      "International students": "3%",
+      "Female:Male ratio": "54 : 46"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "Adolfo Ibáñez University",
+      "No. of FTE students": "10,615",
+      "No. of students per staff": "20.9",
+      "International students": "5%",
+      "Female:Male ratio": "38 : 62"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "Diego Portales University",
+      "No. of FTE students": "18,505",
+      "No. of students per staff": "17.1",
+      "International students": "3%",
+      "Female:Male ratio": "50 : 50"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "Universidad del Desarrollo",
+      "No. of FTE students": "17,491",
+      "No. of students per staff": "17.7",
+      "International students": "4%",
+      "Female:Male ratio": "57 : 43"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "University of Concepción",
+      "No. of FTE students": "29,870",
+      "No. of students per staff": "17.0",
+      "International students": "2%",
+      "Female:Male ratio": "52 : 48"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "University of La Frontera",
+      "No. of FTE students": "11,481",
+      "No. of students per staff": "20.2",
+      "International students": "1%",
+      "Female:Male ratio": "50 : 50"
+    },
+    {
+      "year": 2026,
+      "Rank": "1201–1500",
+      "Name": "University of La Serena",
+      "No. of FTE students": "7,657",
+      "No. of students per staff": "22.4",
+      "International students": "1%",
+      "Female:Male ratio": "50 : 50"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Alberto Hurtado University",
+      "No. of FTE students": "7,276",
+      "No. of students per staff": "22.0",
+      "International students": "2%",
+      "Female:Male ratio": "58 : 42"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Austral University of Chile",
+      "No. of FTE students": "18,781",
+      "No. of students per staff": "19.1",
+      "International students": "1%",
+      "Female:Male ratio": "55 : 45"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Bernardo O’Higgins University",
+      "No. of FTE students": "9,085",
+      "No. of students per staff": "17.7",
+      "International students": "2%",
+      "Female:Male ratio": "66 : 34"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Catholic University of the North",
+      "No. of FTE students": "11,793",
+      "No. of students per staff": "19.9",
+      "International students": "4%",
+      "Female:Male ratio": "47 : 53"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Federico Santa María Technical University",
+      "No. of FTE students": "19,907",
+      "No. of students per staff": "27.1",
+      "International students": "2%",
+      "Female:Male ratio": "26 : 74"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "No. of FTE students": "18,070",
+      "No. of students per staff": "23.2",
+      "International students": "2%",
+      "Female:Male ratio": "43 : 57"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Temuco Catholic University",
+      "No. of FTE students": "10,711",
+      "No. of students per staff": "10.1",
+      "International students": "0%",
+      "Female:Male ratio": "61 : 39"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "No. of FTE students": "49,719",
+      "No. of students per staff": "17.8",
+      "International students": "3%",
+      "Female:Male ratio": "55 : 45"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Autónoma de Chile",
+      "No. of FTE students": "30,410",
+      "No. of students per staff": "26.8",
+      "International students": "1%",
+      "Female:Male ratio": "64 : 36"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Católica de la Santísima Concepción",
+      "No. of FTE students": "9,954",
+      "No. of students per staff": "23.7",
+      "International students": "1%",
+      "Female:Male ratio": "56 : 44"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Católica del Maule",
+      "No. of FTE students": "12,490",
+      "No. of students per staff": "20.4",
+      "International students": "1%",
+      "Female:Male ratio": "53 : 47"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Mayor",
+      "No. of FTE students": "23,839",
+      "No. of students per staff": "11.5",
+      "International students": "1%",
+      "Female:Male ratio": "55 : 45"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "Universidad Santo Tomás",
+      "No. of FTE students": "26,783",
+      "No. of students per staff": "21.2",
+      "International students": "0%",
+      "Female:Male ratio": "68 : 32"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Antofagasta",
+      "No. of FTE students": "7,763",
+      "No. of students per staff": "10.1",
+      "International students": "3%",
+      "Female:Male ratio": "57 : 43"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Bío-Bío",
+      "No. of FTE students": "11,435",
+      "No. of students per staff": "22.9",
+      "International students": "1%",
+      "Female:Male ratio": "43 : 57"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Los Lagos",
+      "No. of FTE students": "6,923",
+      "No. of students per staff": "19.0",
+      "International students": "0%",
+      "Female:Male ratio": "62 : 38"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Santiago, Chile (USACH)",
+      "No. of FTE students": "26,506",
+      "No. of students per staff": "20.0",
+      "International students": "4%",
+      "Female:Male ratio": "45 : 55"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Talca",
+      "No. of FTE students": "11,543",
+      "No. of students per staff": "12.7",
+      "International students": "2%",
+      "Female:Male ratio": "51 : 49"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of the Andes, Chile",
+      "No. of FTE students": "10,398",
+      "No. of students per staff": "17.7",
+      "International students": "2%",
+      "Female:Male ratio": "56 : 44"
+    },
+    {
+      "year": 2026,
+      "Rank": "1501+",
+      "Name": "University of Valparaíso",
+      "No. of FTE students": "16,514",
+      "No. of students per staff": "17.9",
+      "International students": "3%",
+      "Female:Male ratio": "58 : 42"
+    },
+    {
+      "year": 2026,
+      "Rank": "Reporter",
+      "Name": "Arturo Prat University",
+      "No. of FTE students": "9,977",
+      "No. of students per staff": "22.2",
+      "International students": "6%",
+      "Female:Male ratio": "59 : 41"
+    },
+    {
+      "year": 2026,
+      "Rank": "Reporter",
+      "Name": "Finis Terrae University",
+      "No. of FTE students": "10,227",
+      "No. of students per staff": "9.0",
+      "International students": "4%",
+      "Female:Male ratio": "60 : 40"
+    }
+  ]
+}

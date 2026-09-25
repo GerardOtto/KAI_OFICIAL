@@ -1,0 +1,70 @@
+{
+  "data": [
+    {
+      "year": 2016,
+      "Rank": "401-500",
+      "Name": "Federico Santa María Technical University",
+      "Overall": "0",
+      "Teaching": "17.2",
+      "Research Environment": "10.1",
+      "Research Quality": "70.5",
+      "Industry": "35.1",
+      "International Outlook": "54.1"
+    },
+    {
+      "year": 2016,
+      "Rank": "401-500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "Overall": "0",
+      "Teaching": "28.2",
+      "Research Environment": "21.3",
+      "Research Quality": "37",
+      "Industry": "28",
+      "International Outlook": "52.4"
+    },
+    {
+      "year": 2016,
+      "Rank": "501-600",
+      "Name": "University of Chile",
+      "Overall": "0",
+      "Teaching": "28.3",
+      "Research Environment": "19.6",
+      "Research Quality": "30.5",
+      "Industry": "0",
+      "International Outlook": "44.1"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "Austral University of Chile",
+      "Overall": "0",
+      "Teaching": "16.7",
+      "Research Environment": "9.7",
+      "Research Quality": "14.2",
+      "Industry": "41.1",
+      "International Outlook": "45.2"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "Overall": "0",
+      "Teaching": "18.4",
+      "Research Environment": "8",
+      "Research Quality": "10.4",
+      "Industry": "44.3",
+      "International Outlook": "35.7"
+    },
+    {
+      "year": 2016,
+      "Rank": "601-800",
+      "Name": "University of Santiago, Chile (USACH)",
+      "Overall": "0",
+      "Teaching": "17.6",
+      "Research Environment": "11.3",
+      "Research Quality": "10.2",
+      "Industry": "31",
+      "International Outlook": "40.4"
+    }
+  ]
+}

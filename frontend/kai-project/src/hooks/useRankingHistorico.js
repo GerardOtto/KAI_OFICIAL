@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { cabeceraAuth } from "../auth/AuthContext";
+import { comoLista } from "./respuesta";
 
 const MAX_ANIOS = 6;
 
@@ -22,9 +24,9 @@ export function useRankingHistorico(rankingId, anios) {
 
     Promise.all(
       aniosOrdenados.map(anio =>
-        fetch(`${import.meta.env.VITE_API_URL}/ranking-resumen?ranking_id=${rankingId}&anio=${anio}`)
+        fetch(`${import.meta.env.VITE_API_URL}/ranking-resumen?ranking_id=${rankingId}&anio=${anio}`, { headers: cabeceraAuth() })
           .then(r => r.json())
-          .then(rows => ({ anio, rows }))
+          .then(rows => ({ anio, rows: comoLista(rows) }))
           .catch(() => ({ anio, rows: [] }))
       )
     ).then(porAnio => {

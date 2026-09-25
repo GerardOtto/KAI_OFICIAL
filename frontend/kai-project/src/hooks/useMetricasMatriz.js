@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { cabeceraAuth } from "../auth/AuthContext";
+import { comoLista } from "./respuesta";
 
 // Trae, en paralelo, las métricas de cada tipo (dimensión) — reutiliza el
 // mismo endpoint /metricas-por-tipo que ya usa la vista por categorías,
@@ -18,9 +20,9 @@ export function useMetricasMatriz(tipos) {
     setLoading(true);
     Promise.all(
       tipos.map(tipo =>
-        fetch(`${import.meta.env.VITE_API_URL}/metricas-por-tipo?tipo=${encodeURIComponent(tipo)}`)
+        fetch(`${import.meta.env.VITE_API_URL}/metricas-por-tipo?tipo=${encodeURIComponent(tipo)}`, { headers: cabeceraAuth() })
           .then(r => r.json())
-          .then(data => [tipo, data])
+          .then(data => [tipo, comoLista(data)])
           .catch(() => [tipo, []])
       )
     ).then(entries => {

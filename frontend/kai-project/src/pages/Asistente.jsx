@@ -6,6 +6,7 @@ import { SparkleIcon } from "../components/asistente/iconos";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
 import { generarReporteEjecutivo } from "../reportes/reporteEjecutivo";
+import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 
 const hora = (fecha) =>
   new Date(fecha).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -43,7 +44,12 @@ const SUGERENCIAS = [
 ];
 
 export default function Asistente() {
-  const { usuario, cuota, setCuota, refrescar } = useAuth();
+  const { usuario, cuota, capacidades, setCuota, refrescar } = useAuth();
+  const descarga = useDescarga("asistente");
+  // El asistente está reservado a las cuentas de la institución: el servidor lo
+  // dice en las capacidades, y aquí se usa para no dejar escribir una consulta
+  // que se iba a rechazar.
+  const asistente = capacidades?.asistente;
   const { conversaciones, recargar, eliminar, abrir } = useConversaciones(!!usuario);
   // El catálogo se vuelve a pedir cuando cambia el plan: /motores informa de si
   // el plan incluye cada motor, y esa respuesta caduca al cambiar de plan.
@@ -168,8 +174,14 @@ export default function Asistente() {
   const generarReporte = async (idMensaje) => {
     const hasta = mensajes.findIndex((m) => m.id === idMensaje);
     if (hasta < 0 || generando) return;
-    setGenerando(idMensaje);
     setError("");
+    // El informe se compone aquí, así que el permiso se pide antes: el plan
+    // gratuito incluye uno y el servidor lleva la cuenta.
+    if (!(await descarga.permitir("pdf"))) {
+      setError(descarga.error || motivoAgotado("pdf"));
+      return;
+    }
+    setGenerando(idMensaje);
     try {
       await generarReporteEjecutivo({
         mensajes: mensajes.slice(0, hasta + 1),
@@ -247,11 +259,13 @@ export default function Asistente() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); }
   };
 
+  const sinAfiliacion = asistente ? asistente.permitido === false : false;
+  const espera = cuota?.espera?.horas_restantes || 0;
   const sinCupo = cuota?.excedido;
   // Ningún motor tiene su clave configurada en el servidor: no hay a quién
   // preguntar, y conviene decirlo antes de que el usuario escriba.
   const sinMotor = motores.length > 0 && disponibles.length === 0;
-  const bloqueado = sinCupo || sinMotor;
+  const bloqueado = sinCupo || sinMotor || sinAfiliacion;
 
   return (
     <div className="flex bg-background text-white" style={{ height: "calc(100vh - 64px)" }}>
@@ -353,8 +367,9 @@ export default function Asistente() {
                 <div className="pl-11 flex items-center gap-3 flex-wrap">
                   <button
                     onClick={() => generarReporte(m.id)}
-                    disabled={generando != null}
-                    title="Descargar un PDF con esta conversación hasta aquí"
+                    disabled={generando != null || descarga.agotado("pdf")}
+                    title={descarga.agotado("pdf") ? motivoAgotado("pdf")
+                      : "Descargar un PDF con esta conversación hasta aquí"}
                     className="flex items-center gap-1.5 px-2.5 py-1 border border-outline/40 font-mono text-[9px] uppercase tracking-widest text-outlineSoft hover:border-white/50 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-wait"
                   >
                     <ReportIcon />
@@ -374,6 +389,22 @@ export default function Asistente() {
         </div>
 
         <div className="border-t border-outline/30 px-10 py-5">
+          {/* Los dos motivos permanentes se anuncian antes de escribir, no al
+              enviar: uno no se resuelve esperando y el otro tarda días. */}
+          {sinAfiliacion && (
+            <p className="mb-3 text-[11.5px] text-warn border-l-2 border-warn pl-3 leading-relaxed">
+              {asistente.motivo}
+            </p>
+          )}
+          {!sinAfiliacion && espera > 0 && (
+            <p className="mb-3 text-[11.5px] text-warn border-l-2 border-warn pl-3 leading-relaxed">
+              Tu plan permite una consulta cada {cuota.espera.dias_entre_mensajes} días.
+              La próxima estará disponible en {espera >= 24
+                ? `${(espera / 24).toFixed(1)} días` : `${Math.round(espera)} horas`}.
+              Los planes de pago no tienen esta espera.
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="mb-3 text-[11.5px] text-negative border-l-2 border-negative pl-3 leading-relaxed">
               {error}
@@ -394,9 +425,10 @@ export default function Asistente() {
               onKeyDown={onKeyDown}
               disabled={cargando || bloqueado}
               placeholder={
-                sinMotor ? "Ningún motor configurado en el servidor"
-                  : sinCupo ? "Cuota agotada"
-                    : "Consultar rankings…"
+                sinAfiliacion ? "Asistente no disponible para esta cuenta"
+                  : sinMotor ? "Ningún motor configurado en el servidor"
+                    : sinCupo ? "Cuota agotada"
+                      : "Consultar rankings…"
               }
               className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-outlineSoft/70 disabled:cursor-not-allowed"
             />

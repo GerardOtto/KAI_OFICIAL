@@ -55,12 +55,13 @@ cliente = TestClient(main.app)
 # continua. Se elimina al terminar.
 import uuid
 
-CORREO = f"prueba-convivencia-{uuid.uuid4().hex[:8]}@ejemplo.test"
+CORREO = f"prueba-convivencia-{uuid.uuid4().hex[:8]}@pucv.cl"
 
 db = main.SessionLocal()
 ID_USUARIO = db.execute(text("""
-    INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario, plan_usuario)
-    VALUES ('Prueba Convivencia', :c, :k,
+    INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
+                         institucion_usuario, plan_usuario)
+    VALUES ('Prueba Convivencia', :c, :k, 'Pontificia Universidad Catolica de Valparaiso',
             (SELECT codigo_plan FROM plan
               WHERE tokens_claude_mes IS NULL OR tokens_claude_mes > 0
               ORDER BY orden DESC LIMIT 1))

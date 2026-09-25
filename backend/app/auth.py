@@ -106,7 +106,7 @@ CAMPOS_USUARIO = """
     (u.google_sub IS NOT NULL) AS con_google,
     (u.clave_usuario IS NOT NULL) AS con_clave,
     p.nombre_plan, p.mensajes_por_dia, p.precio_mensual_usd,
-    p.tokens_claude_mes, p.tokens_gemini_mes
+    p.tokens_claude_mes, p.tokens_gemini_mes, p.dias_entre_mensajes
 """
 
 

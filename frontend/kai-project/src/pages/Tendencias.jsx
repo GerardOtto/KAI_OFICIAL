@@ -3,7 +3,9 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
-import { useRankings } from "../hooks/useRankings";
+import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
+import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
+import { useAuth } from "../auth/AuthContext";
 import { useAnios } from "../hooks/useAnios";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
@@ -31,23 +33,32 @@ const ANCHO_PDF = 1400;
 
 export default function Tendencias() {
   const [vista, setVista] = useState("evolucion");
-  const [rankingId, setRankingId] = useState(1);
+  // Sin ranking hasta que llega el catálogo: cuál se puede abrir depende del
+  // plan, y arrancar en el primero pedía datos que el plan gratuito no incluye.
+  const [rankingId, setRankingId] = useState(null);
   const [disciplina, setDisciplina] = useState(null);
   const [anio, setAnio] = useState(null);
   const [metricaId, setMetricaId] = useState(null);
   const [metricasSel, setMetricasSel] = useState([]);
   const [universidadesSel, setUniversidadesSel] = useState([]);
   const [proyeccion, setProyeccion] = useState(true);
+
   const [anosProyeccion, setAnosProyeccion] = useState(3);
   const [pdfEstado, setPdfEstado] = useState("idle"); // idle | generando | listo | error
   const [exportando, setExportando] = useState(false);
 
   const impresionRef = useRef(null);
 
-  const rankings = useRankings();
+  const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
+  const { puedePredecir } = useAuth();
+  const descarga = useDescarga("tendencias");
   const anios = useAnios(rankingId);
   const metricas = useMetricas(rankingId);
   const { universidades } = useUniversidades();
+
+  // El estado arranca encendido, así que sin permiso hay que apagarlo aquí: lo
+  // que llega al gráfico y al PDF es esta variable, no la del botón.
+  const proyectando = proyeccion && puedePredecir;
 
   const esAnual = vista === "anual";
   const maxSeries = VISTAS.find(v => v.id === vista).max;
@@ -150,8 +161,11 @@ export default function Tendencias() {
     }));
   }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, universidades]);
 
-  const handleXLSX = () => {
+  const handleXLSX = async () => {
     if (!filasExport.length) return;
+    // El permiso se pide antes de componer nada: si el plan ya gastó su informe,
+    // no tiene sentido generar un archivo que no debería entregarse.
+    if (!(await descarga.permitir("xlsx"))) return;
     const ws = XLSX.utils.json_to_sheet(filasExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, esAnual ? "Comparación anual" : "Evolución");
@@ -160,6 +174,7 @@ export default function Tendencias() {
 
   const handlePDF = async () => {
     if (pdfEstado === "generando" || !filasExport.length) return;
+    if (!(await descarga.permitir("pdf"))) return;
     setPdfEstado("generando");
     setExportando(true);
     try {
@@ -336,7 +351,7 @@ export default function Tendencias() {
                   {metricaActual?.peso_metrica != null ? ` · Peso ${metricaActual.peso_metrica}` : ""}
                 </h2>
                 <p className="font-body text-[11.5px] text-[#7f7f7f]">
-                  Serie histórica{proyeccion ? ` · proyección lineal a ${anosProyeccion} años` : ""}
+                  Serie histórica{proyectando ? ` · proyección lineal a ${anosProyeccion} años` : ""}
                 </p>
               </>
             )}
@@ -349,13 +364,19 @@ export default function Tendencias() {
               <span className="font-body text-[10px] text-positive">PDF descargado</span>
             )}
             <button
+              title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
               onClick={handlePDF}
               disabled={pdfEstado === "generando" || !filasExport.length}
               className={btnSecundario}
             >
               {pdfEstado === "generando" ? "Generando…" : "↓ PDF"}
             </button>
-            <button onClick={handleXLSX} disabled={!filasExport.length} className={btnSecundario}>
+            <button
+              onClick={handleXLSX}
+              disabled={!filasExport.length || descarga.agotado("xlsx")}
+              title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+              className={btnSecundario}
+            >
               ↓ XLSX
             </button>
           </div>
@@ -400,7 +421,9 @@ export default function Tendencias() {
               className={selectClase}
             >
               {rankings.map(r => (
-                <option key={r.id_ranking} value={r.id_ranking}>{r.nombre_ranking}</option>
+                <option key={r.id_ranking} value={r.id_ranking} disabled={r.restringido}>
+                  {r.nombre_ranking}{r.restringido ? ETIQUETA_RESERVADO : ""}
+                </option>
               ))}
             </select>
           </div>
@@ -458,14 +481,18 @@ export default function Tendencias() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setProyeccion(v => !v)}
+                  onClick={() => puedePredecir && setProyeccion(v => !v)}
+                  disabled={!puedePredecir}
+                  title={puedePredecir ? undefined
+                    : "La proyección por regresión lineal está incluida en los planes de pago."}
                   className={`font-body font-semibold text-[10px] uppercase tracking-[.1em] px-3 py-[7px] border transition-colors ${
-                    proyeccion ? "bg-white text-[#111] border-white" : "border-white/[.16] text-[#9a9a9a] hover:text-white"
+                    !puedePredecir ? "border-white/[.10] text-[#5f5f5f] cursor-not-allowed"
+                    : proyeccion ? "bg-white text-[#111] border-white" : "border-white/[.16] text-[#9a9a9a] hover:text-white"
                   }`}
                 >
-                  Proyección
+                  Proyección{!puedePredecir && " · plan de pago"}
                 </button>
-                {proyeccion && (
+                {proyeccion && puedePredecir && (
                   <div className="flex items-center gap-0.5">
                     <button
                       onClick={() => setAnosProyeccion(v => Math.max(1, v - 1))}
@@ -554,7 +581,7 @@ export default function Tendencias() {
               universidadesSel={graficadas}
               universidades={universidades}
               colorDe={colorDe}
-              proyeccion={proyeccion}
+              proyeccion={proyectando}
               anosProyeccion={anosProyeccion}
             />
           )}
@@ -603,7 +630,7 @@ export default function Tendencias() {
                 universidadesSel={graficadas}
                 universidades={universidades}
                 colorDe={colorDe}
-                proyeccion={proyeccion}
+                proyeccion={proyectando}
                 anosProyeccion={anosProyeccion}
               />
             )}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../auth/AuthContext";
 import BotonGoogle from "../auth/BotonGoogle";
+import SelectorInstitucion from "./SelectorInstitucion";
 
 const campo =
   "w-full bg-surfaceHigh border border-outline/40 text-white py-3 px-4 text-sm placeholder:text-outlineSoft focus:outline-none focus:border-white transition-colors disabled:opacity-50";
@@ -96,10 +97,12 @@ export default function AuthModal({ onClose, onExito }) {
                   value={form.nombre} onChange={cambiar("nombre")} disabled={enviando} />
               </div>
               <div>
-                <label className={etiqueta} htmlFor="institucion">Institución (opcional)</label>
-                <input id="institucion" type="text" autoComplete="organization"
-                  placeholder="Universidad..." className={campo}
-                  value={form.institucion} onChange={cambiar("institucion")} disabled={enviando} />
+                <label className={etiqueta} htmlFor="institucion">Institución</label>
+                <SelectorInstitucion
+                  valor={form.institucion}
+                  onChange={(v) => setForm((f) => ({ ...f, institucion: v }))}
+                  disabled={enviando}
+                />
               </div>
             </>
           )}

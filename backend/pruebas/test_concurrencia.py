@@ -68,7 +68,7 @@ g.cliente = lambda: ClienteFalso()
 g.configurado = lambda: True
 
 cliente = TestClient(app)
-correo = f"prueba-concurrencia-{uuid.uuid4().hex[:8]}@ejemplo.test"
+correo = f"prueba-concurrencia-{uuid.uuid4().hex[:8]}@pucv.cl"
 CLAVE = "Prueba12345!"
 TOPE_DIARIO = 5
 SIMULTANEAS = 12
@@ -76,8 +76,9 @@ id_usuario = None
 codigo_plan = f"prueba-{uuid.uuid4().hex[:6]}"
 
 try:
-    r = cliente.post("/auth/registro", json={"nombre": "Prueba Concurrencia",
-                                             "correo": correo, "clave": CLAVE})
+    r = cliente.post("/auth/registro", json={"nombre": "Prueba Concurrencia", "correo": correo,
+                                             "clave": CLAVE,
+                                             "institucion": "Pontificia Universidad Catolica de Valparaiso"})
     assert r.status_code in (200, 201), r.text
     token = r.json()["token"]
     cabeceras = {"Authorization": f"Bearer {token}"}

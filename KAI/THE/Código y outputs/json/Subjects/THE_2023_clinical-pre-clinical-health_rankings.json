@@ -1,0 +1,290 @@
+{
+  "data": [
+    {
+      "year": 2023,
+      "Rank": "401–500",
+      "Name": "Pontificia Universidad Católica de Chile",
+      "Overall": "42.1–44.9",
+      "Teaching": "24.2",
+      "Research Environment": "31.9",
+      "Research Quality": "66.2",
+      "Industry": "70.3",
+      "International Outlook": "56.2"
+    },
+    {
+      "year": 2023,
+      "Rank": "601–800",
+      "Name": "Universidad del Desarrollo",
+      "Overall": "34.0–39.2",
+      "Teaching": "15.0",
+      "Research Environment": "10.1",
+      "Research Quality": "73.8",
+      "Industry": "39.6",
+      "International Outlook": "50.6"
+    },
+    {
+      "year": 2023,
+      "Rank": "601–800",
+      "Name": "University of Antofagasta",
+      "Overall": "34.0–39.2",
+      "Teaching": "14.8",
+      "Research Environment": "9.5",
+      "Research Quality": "81.0",
+      "Industry": "36.9",
+      "International Outlook": "52.4"
+    },
+    {
+      "year": 2023,
+      "Rank": "801–1000",
+      "Name": "Diego Portales University",
+      "Overall": "29.8–33.9",
+      "Teaching": "15.4",
+      "Research Environment": "11.1",
+      "Research Quality": "69.5",
+      "Industry": "36.9",
+      "International Outlook": "52.1"
+    },
+    {
+      "year": 2023,
+      "Rank": "801–1000",
+      "Name": "Universidad Autónoma de Chile",
+      "Overall": "29.8–33.9",
+      "Teaching": "13.2",
+      "Research Environment": "10.2",
+      "Research Quality": "72.4",
+      "Industry": "36.9",
+      "International Outlook": "49.7"
+    },
+    {
+      "year": 2023,
+      "Rank": "801–1000",
+      "Name": "University of La Serena",
+      "Overall": "29.8–33.9",
+      "Teaching": "12.7",
+      "Research Environment": "9.3",
+      "Research Quality": "65.6",
+      "Industry": "36.9",
+      "International Outlook": "48.0"
+    },
+    {
+      "year": 2023,
+      "Rank": "1001–1200",
+      "Name": "University of Chile",
+      "Overall": "24.4–29.7",
+      "Teaching": "22.6",
+      "Research Environment": "18.6",
+      "Research Quality": "37.1",
+      "Industry": "41.7",
+      "International Outlook": "51.2"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Adolfo Ibáñez University",
+      "Overall": "18.4–24.3",
+      "Teaching": "15.6",
+      "Research Environment": "17.2",
+      "Research Quality": "20.0",
+      "Industry": "38.1",
+      "International Outlook": "60.4"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Austral University of Chile",
+      "Overall": "18.4–24.3",
+      "Teaching": "16.5",
+      "Research Environment": "14.4",
+      "Research Quality": "24.0",
+      "Industry": "44.4",
+      "International Outlook": "51.4"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Catholic University of the North",
+      "Overall": "18.4–24.3",
+      "Teaching": "14.3",
+      "Research Environment": "17.0",
+      "Research Quality": "27.4",
+      "Industry": "38.2",
+      "International Outlook": "57.1"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Federico Santa María Technical University",
+      "Overall": "18.4–24.3",
+      "Teaching": "14.0",
+      "Research Environment": "12.0",
+      "Research Quality": "27.3",
+      "Industry": "39.4",
+      "International Outlook": "54.8"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Pontifical Catholic University of Valparaíso",
+      "Overall": "18.4–24.3",
+      "Teaching": "16.6",
+      "Research Environment": "18.1",
+      "Research Quality": "21.4",
+      "Industry": "47.4",
+      "International Outlook": "50.0"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "Universidad Andrés Bello (UNAB)",
+      "Overall": "18.4–24.3",
+      "Teaching": "14.3",
+      "Research Environment": "9.4",
+      "Research Quality": "29.8",
+      "Industry": "37.8",
+      "International Outlook": "50.4"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of Concepción",
+      "Overall": "18.4–24.3",
+      "Teaching": "16.4",
+      "Research Environment": "14.0",
+      "Research Quality": "30.1",
+      "Industry": "49.9",
+      "International Outlook": "50.7"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of La Frontera",
+      "Overall": "18.4–24.3",
+      "Teaching": "16.0",
+      "Research Environment": "12.9",
+      "Research Quality": "28.8",
+      "Industry": "37.1",
+      "International Outlook": "49.7"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of Santiago, Chile (USACH)",
+      "Overall": "18.4–24.3",
+      "Teaching": "16.6",
+      "Research Environment": "16.1",
+      "Research Quality": "14.6",
+      "Industry": "37.6",
+      "International Outlook": "46.6"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of Talca",
+      "Overall": "18.4–24.3",
+      "Teaching": "17.0",
+      "Research Environment": "11.9",
+      "Research Quality": "25.3",
+      "Industry": "38.3",
+      "International Outlook": "52.3"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of Tarapacá",
+      "Overall": "18.4–24.3",
+      "Teaching": "14.7",
+      "Research Environment": "18.2",
+      "Research Quality": "23.6",
+      "Industry": "37.2",
+      "International Outlook": "52.6"
+    },
+    {
+      "year": 2023,
+      "Rank": "1201–1500",
+      "Name": "University of the Andes, Chile",
+      "Overall": "18.4–24.3",
+      "Teaching": "17.8",
+      "Research Environment": "14.3",
+      "Research Quality": "28.0",
+      "Industry": "40.2",
+      "International Outlook": "48.1"
+    },
+    {
+      "year": 2023,
+      "Rank": "1501+",
+      "Name": "San Sebastián University",
+      "Overall": "10.4–18.3",
+      "Teaching": "17.1",
+      "Research Environment": "8.1",
+      "Research Quality": "8.9",
+      "Industry": "36.9",
+      "International Outlook": "41.6"
+    },
+    {
+      "year": 2023,
+      "Rank": "1501+",
+      "Name": "Temuco Catholic University",
+      "Overall": "10.4–18.3",
+      "Teaching": "16.0",
+      "Research Environment": "10.1",
+      "Research Quality": "7.9",
+      "Industry": "38.3",
+      "International Outlook": "41.5"
+    },
+    {
+      "year": 2023,
+      "Rank": "1501+",
+      "Name": "University of Bío-Bío",
+      "Overall": "10.4–18.3",
+      "Teaching": "13.8",
+      "Research Environment": "8.5",
+      "Research Quality": "8.1",
+      "Industry": "37.0",
+      "International Outlook": "46.3"
+    },
+    {
+      "year": 2023,
+      "Rank": "1501+",
+      "Name": "University of Valparaíso",
+      "Overall": "10.4–18.3",
+      "Teaching": "15.5",
+      "Research Environment": "11.4",
+      "Research Quality": "18.6",
+      "Industry": "37.0",
+      "International Outlook": "47.8"
+    },
+    {
+      "year": 2023,
+      "Rank": "Reporter",
+      "Name": "Bernardo O’Higgins University",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2023,
+      "Rank": "Reporter",
+      "Name": "Universidad Mayor",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    },
+    {
+      "year": 2023,
+      "Rank": "Reporter",
+      "Name": "University of Los Lagos",
+      "Overall": "n/a",
+      "Teaching": "n/a",
+      "Research Environment": "n/a",
+      "Research Quality": "n/a",
+      "Industry": "n/a",
+      "International Outlook": "n/a"
+    }
+  ]
+}
