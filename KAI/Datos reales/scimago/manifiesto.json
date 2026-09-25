@@ -1,0 +1,458 @@
+[
+  {
+    "archivo": "institucion_1150.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1150",
+    "fecha_descarga": "2026-09-25T04:04:20+00:00",
+    "metodo": "requests",
+    "sha256": "c3b305c7f582c4382152346390cf947b17c16e28aac0adba6c236c245e1d5503",
+    "notas": "idp 1150"
+  },
+  {
+    "archivo": "institucion_1151.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1151",
+    "fecha_descarga": "2026-09-25T04:04:16+00:00",
+    "metodo": "requests",
+    "sha256": "dd660d0d0853e6d1fcfdeb522d04be84e49954d0fc238259c637048335ea0754",
+    "notas": "idp 1151"
+  },
+  {
+    "archivo": "institucion_1152.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1152",
+    "fecha_descarga": "2026-09-25T04:04:41+00:00",
+    "metodo": "requests",
+    "sha256": "c52c7a9fc117077166a90cea7e679b352d290d1130e1c5bb165daad28bc155e4",
+    "notas": "idp 1152"
+  },
+  {
+    "archivo": "institucion_1153.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1153",
+    "fecha_descarga": "2026-09-25T04:04:45+00:00",
+    "metodo": "requests",
+    "sha256": "d9a0b8bda39e07d673fe3b71b22ece9d2395d906c2e417cf9fdfa5890072f4f5",
+    "notas": "idp 1153"
+  },
+  {
+    "archivo": "institucion_1154.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1154",
+    "fecha_descarga": "2026-09-25T04:04:49+00:00",
+    "metodo": "requests",
+    "sha256": "9dbf9cadb57d823bf5fbc6a419fb8dc9bf7d96c30d69815070f58be43e244a8b",
+    "notas": "idp 1154"
+  },
+  {
+    "archivo": "institucion_1155.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1155",
+    "fecha_descarga": "2026-09-25T04:04:51+00:00",
+    "metodo": "requests",
+    "sha256": "3fd7d0a7f60634f4102a73f80893a9e39443dd631d5b082fe4ac6e3fc7f491b1",
+    "notas": "idp 1155"
+  },
+  {
+    "archivo": "institucion_1156.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1156",
+    "fecha_descarga": "2026-09-25T04:04:55+00:00",
+    "metodo": "requests",
+    "sha256": "74165b99c03573c508503b088e5345bf98fd25b91b75fe3d4ecb09db14dfec5f",
+    "notas": "idp 1156"
+  },
+  {
+    "archivo": "institucion_1157.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1157",
+    "fecha_descarga": "2026-09-25T04:04:57+00:00",
+    "metodo": "requests",
+    "sha256": "e799f17d7eceb0a4886030fbb4bb4631724a1972ab1358e28260bc28879fcf10",
+    "notas": "idp 1157"
+  },
+  {
+    "archivo": "institucion_1158.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1158",
+    "fecha_descarga": "2026-09-25T04:05:01+00:00",
+    "metodo": "requests",
+    "sha256": "7dbd2b8dc64a19135f15a7faa9e1f4661dcc21f7cb53ba21e1f4fa8f0534abb0",
+    "notas": "idp 1158"
+  },
+  {
+    "archivo": "institucion_1159.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1159",
+    "fecha_descarga": "2026-09-25T04:05:05+00:00",
+    "metodo": "requests",
+    "sha256": "8f73f6df7763d6910e3640f83cc4e8db3ce9b23c251ee2c045e6a4580ef7756b",
+    "notas": "idp 1159"
+  },
+  {
+    "archivo": "institucion_1160.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1160",
+    "fecha_descarga": "2026-09-25T04:05:09+00:00",
+    "metodo": "requests",
+    "sha256": "0a6ddb5d22f671df9b87a076f5f4bc8387772d526bfd54604eb6058fc9f7a6f4",
+    "notas": "idp 1160"
+  },
+  {
+    "archivo": "institucion_1161.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1161",
+    "fecha_descarga": "2026-09-25T04:05:11+00:00",
+    "metodo": "requests",
+    "sha256": "b0f2376a7b8b02cd60720a83959bfca826fbf3361e006e589d55e9bcdd9cac54",
+    "notas": "idp 1161"
+  },
+  {
+    "archivo": "institucion_1162.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1162",
+    "fecha_descarga": "2026-09-25T04:05:14+00:00",
+    "metodo": "requests",
+    "sha256": "6618b464239f1dd17250d35b41c48f3991761aaeced0b9bd3e44bf2f2a55e2eb",
+    "notas": "idp 1162"
+  },
+  {
+    "archivo": "institucion_1163.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1163",
+    "fecha_descarga": "2026-09-25T04:05:18+00:00",
+    "metodo": "requests",
+    "sha256": "76cd54aa66c70764c0ca9c8a99ce6ce7ae80fb66e3f1ec7de42b2de10dc1ec09",
+    "notas": "idp 1163"
+  },
+  {
+    "archivo": "institucion_1164.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1164",
+    "fecha_descarga": "2026-09-25T04:05:21+00:00",
+    "metodo": "requests",
+    "sha256": "6270f56fe9bb12e650f3b202eec9b90bfdd11c8a16d6c68856f70257636051a2",
+    "notas": "idp 1164"
+  },
+  {
+    "archivo": "institucion_1165.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1165",
+    "fecha_descarga": "2026-09-25T04:05:24+00:00",
+    "metodo": "requests",
+    "sha256": "6b558bcac59faa24c9a67bc9502154af55280b1aea627e4e25693aee4d741909",
+    "notas": "idp 1165"
+  },
+  {
+    "archivo": "institucion_1166.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1166",
+    "fecha_descarga": "2026-09-25T04:05:28+00:00",
+    "metodo": "requests",
+    "sha256": "ea34e608c95abf90286b60dd54f44c60efb6b21d1d575450c8b42fa52638a892",
+    "notas": "idp 1166"
+  },
+  {
+    "archivo": "institucion_1168.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1168",
+    "fecha_descarga": "2026-09-25T04:05:31+00:00",
+    "metodo": "requests",
+    "sha256": "9fb1a52b53afbc3973d3bf35f8bea759c9f5153b92691064ff684934a69fd32f",
+    "notas": "idp 1168"
+  },
+  {
+    "archivo": "institucion_1169.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1169",
+    "fecha_descarga": "2026-09-25T04:05:34+00:00",
+    "metodo": "requests",
+    "sha256": "5b814087d1df5fe24247170b1ed2f1dcf6470416c800f77ec4afbe6cd637c70a",
+    "notas": "idp 1169"
+  },
+  {
+    "archivo": "institucion_1170.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1170",
+    "fecha_descarga": "2026-09-25T04:05:38+00:00",
+    "metodo": "requests",
+    "sha256": "3ad77e8599ed0d6eea4e1c47e5da2bd269d292693c27663d49114a89b7c6f137",
+    "notas": "idp 1170"
+  },
+  {
+    "archivo": "institucion_1171.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1171",
+    "fecha_descarga": "2026-09-25T04:05:41+00:00",
+    "metodo": "requests",
+    "sha256": "51526f7054d26aa467705095f88e3fca192f99e62c3c23a1f76572d5db4cf9bd",
+    "notas": "idp 1171"
+  },
+  {
+    "archivo": "institucion_1172.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1172",
+    "fecha_descarga": "2026-09-25T04:05:44+00:00",
+    "metodo": "requests",
+    "sha256": "1c2fe21dd140535069d29c8ff6616a75e4157c8817ac077fa197bab41904fcd6",
+    "notas": "idp 1172"
+  },
+  {
+    "archivo": "institucion_1173.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1173",
+    "fecha_descarga": "2026-09-25T04:05:48+00:00",
+    "metodo": "requests",
+    "sha256": "2fe7987fc79bd3f4265a25e5c2ec189a214839498c7083318825fc1e829eb4cb",
+    "notas": "idp 1173"
+  },
+  {
+    "archivo": "institucion_1174.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1174",
+    "fecha_descarga": "2026-09-25T04:05:52+00:00",
+    "metodo": "requests",
+    "sha256": "15a85919361d7d167d4392bfab8ec1a4d1bfc169514aca5ed098a18c13ce5644",
+    "notas": "idp 1174"
+  },
+  {
+    "archivo": "institucion_1175.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1175",
+    "fecha_descarga": "2026-09-25T04:05:56+00:00",
+    "metodo": "requests",
+    "sha256": "02d5d4e6f77b20d2fcccbc64f902e55a492880dcf32402f5b77685df64aab5fe",
+    "notas": "idp 1175"
+  },
+  {
+    "archivo": "institucion_1176.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1176",
+    "fecha_descarga": "2026-09-25T04:05:59+00:00",
+    "metodo": "requests",
+    "sha256": "11f2471ac3b79595fd308929465a089bc1ebb9bb745bdbd8ca52c12576347839",
+    "notas": "idp 1176"
+  },
+  {
+    "archivo": "institucion_1177.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1177",
+    "fecha_descarga": "2026-09-25T04:06:03+00:00",
+    "metodo": "requests",
+    "sha256": "f503cc7d716c58ac604b43d11d3295a9b62f902a0f6fe57b3f36bce1e7eb21b9",
+    "notas": "idp 1177"
+  },
+  {
+    "archivo": "institucion_1178.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1178",
+    "fecha_descarga": "2026-09-25T04:06:06+00:00",
+    "metodo": "requests",
+    "sha256": "0fb8d3f7e6406ecec6c951c816bde25d89a18d4ffb3bdff3a2107f9972f38607",
+    "notas": "idp 1178"
+  },
+  {
+    "archivo": "institucion_1179.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1179",
+    "fecha_descarga": "2026-09-25T04:06:10+00:00",
+    "metodo": "requests",
+    "sha256": "88806ec373e1afeced749dabbf7a5045679bec75dde44363c1eff9446349de7c",
+    "notas": "idp 1179"
+  },
+  {
+    "archivo": "institucion_1180.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1180",
+    "fecha_descarga": "2026-09-25T04:06:14+00:00",
+    "metodo": "requests",
+    "sha256": "fe800f5e3a9b7cba345c366c21c7c0a950dce82ab0e648a2dafa10d3e5da6b0f",
+    "notas": "idp 1180"
+  },
+  {
+    "archivo": "institucion_1181.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1181",
+    "fecha_descarga": "2026-09-25T04:06:17+00:00",
+    "metodo": "requests",
+    "sha256": "b6214c80d5713cfb8503b98cb5e66ce529d8055145eab88a72d76259fede54d2",
+    "notas": "idp 1181"
+  },
+  {
+    "archivo": "institucion_1183.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1183",
+    "fecha_descarga": "2026-09-25T04:06:20+00:00",
+    "metodo": "requests",
+    "sha256": "d37384e4007e2da8c7d74805306f6394eea7b5cf8e2213d6345f43b9fff01280",
+    "notas": "idp 1183"
+  },
+  {
+    "archivo": "institucion_1184.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1184",
+    "fecha_descarga": "2026-09-25T04:06:22+00:00",
+    "metodo": "requests",
+    "sha256": "cb5554b793746727ce86d77e222e17948e418f1c7fd3e2240be3b15c5ef47920",
+    "notas": "idp 1184"
+  },
+  {
+    "archivo": "institucion_1185.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1185",
+    "fecha_descarga": "2026-09-25T04:06:27+00:00",
+    "metodo": "requests",
+    "sha256": "1b67cb781eae4ab32fc829d4825a824887f2209bdbe65c12eb8dbcbff3474b69",
+    "notas": "idp 1185"
+  },
+  {
+    "archivo": "institucion_1186.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1186",
+    "fecha_descarga": "2026-09-25T04:06:29+00:00",
+    "metodo": "requests",
+    "sha256": "72b1d03ab9cc41b594248d9e636370fb14a65de9fee91cacd676c3476c6e0afb",
+    "notas": "idp 1186"
+  },
+  {
+    "archivo": "institucion_1187.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1187",
+    "fecha_descarga": "2026-09-25T04:06:33+00:00",
+    "metodo": "requests",
+    "sha256": "ac853928ec62c75f4964dd7d3b5cc8d282acb8dbbf61d63d07481d09620c777f",
+    "notas": "idp 1187"
+  },
+  {
+    "archivo": "institucion_1188.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1188",
+    "fecha_descarga": "2026-09-25T04:06:36+00:00",
+    "metodo": "requests",
+    "sha256": "cbca26c23bdb5e29f55fe8246529a81dcce11b90a14f846c0f8298c59339a2f3",
+    "notas": "idp 1188"
+  },
+  {
+    "archivo": "institucion_1189.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1189",
+    "fecha_descarga": "2026-09-25T04:06:39+00:00",
+    "metodo": "requests",
+    "sha256": "c0726efabd44764de54d728b3b0f09674fa9389e87c29999da46b38c871acaa9",
+    "notas": "idp 1189"
+  },
+  {
+    "archivo": "institucion_1190.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1190",
+    "fecha_descarga": "2026-09-25T04:06:43+00:00",
+    "metodo": "requests",
+    "sha256": "bf81e20a388e14b440bbb3206e219b21adb4160dbc56ed55ab9244f3f4ce1ea4",
+    "notas": "idp 1190"
+  },
+  {
+    "archivo": "institucion_1191.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1191",
+    "fecha_descarga": "2026-09-25T04:06:47+00:00",
+    "metodo": "requests",
+    "sha256": "918b33658e203dc9d838946b376a1827fc41f114df6e21e7808c4745e03fcc71",
+    "notas": "idp 1191"
+  },
+  {
+    "archivo": "institucion_1192.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1192",
+    "fecha_descarga": "2026-09-25T04:06:49+00:00",
+    "metodo": "requests",
+    "sha256": "9e0bc6ec260fff0883f396a984eb8fa6526425e094e21888b1e4f4d5ae835bec",
+    "notas": "idp 1192"
+  },
+  {
+    "archivo": "institucion_1193.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1193",
+    "fecha_descarga": "2026-09-25T04:06:53+00:00",
+    "metodo": "requests",
+    "sha256": "8b575f6d18a8dd010e861c13f90502ca6012c46f96e97b8b83dd0fdaaafeaacb",
+    "notas": "idp 1193"
+  },
+  {
+    "archivo": "institucion_1194.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1194",
+    "fecha_descarga": "2026-09-25T04:06:57+00:00",
+    "metodo": "requests",
+    "sha256": "381c66e397e14e905253e5408fa1668165ea863bc169a5366d1f3078866aeb01",
+    "notas": "idp 1194"
+  },
+  {
+    "archivo": "institucion_1195.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1195",
+    "fecha_descarga": "2026-09-25T04:07:00+00:00",
+    "metodo": "requests",
+    "sha256": "a87f8612a7e4efdd7e95d4a60a12e4e14b4bbba0e34820bd6e774eb6b07fb076",
+    "notas": "idp 1195"
+  },
+  {
+    "archivo": "institucion_1196.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1196",
+    "fecha_descarga": "2026-09-25T04:07:03+00:00",
+    "metodo": "requests",
+    "sha256": "b036f7d91001aaf58247f1a70c87adb9794239863e2761175f0ee9ba9a040130",
+    "notas": "idp 1196"
+  },
+  {
+    "archivo": "institucion_1197.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1197",
+    "fecha_descarga": "2026-09-25T04:07:06+00:00",
+    "metodo": "requests",
+    "sha256": "11aecc3d4e7787afdcfc8d30ecf9d7d583b3f565ce759a89893e694a03379732",
+    "notas": "idp 1197"
+  },
+  {
+    "archivo": "institucion_1198.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1198",
+    "fecha_descarga": "2026-09-25T04:07:10+00:00",
+    "metodo": "requests",
+    "sha256": "abda8e610e36208fa4989f51e5f68bb38576aca28b54be6408466f02f1744de9",
+    "notas": "idp 1198"
+  },
+  {
+    "archivo": "institucion_1199.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1199",
+    "fecha_descarga": "2026-09-25T04:07:13+00:00",
+    "metodo": "requests",
+    "sha256": "49eb520c2e24631494e8aac1949673283e23cc10b4062ef5fafd28dbd44a877c",
+    "notas": "idp 1199"
+  },
+  {
+    "archivo": "institucion_1200.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1200",
+    "fecha_descarga": "2026-09-25T04:07:17+00:00",
+    "metodo": "requests",
+    "sha256": "6b83471da57bc6600f0a33968f2870ec8c4e114175b7f47bd11e2e9beca38129",
+    "notas": "idp 1200"
+  },
+  {
+    "archivo": "institucion_1201.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1201",
+    "fecha_descarga": "2026-09-25T04:07:20+00:00",
+    "metodo": "requests",
+    "sha256": "757fe7c8959d21c1f5a71a4b34315893ddb99852f1845cb5f46521c474187686",
+    "notas": "idp 1201"
+  },
+  {
+    "archivo": "institucion_1202.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1202",
+    "fecha_descarga": "2026-09-25T04:07:23+00:00",
+    "metodo": "requests",
+    "sha256": "548eaaec79b34b490b001ee25caa5cbe291ecc3a6bdd7af281f6b0142e13e1a6",
+    "notas": "idp 1202"
+  },
+  {
+    "archivo": "institucion_1203.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1203",
+    "fecha_descarga": "2026-09-25T04:07:26+00:00",
+    "metodo": "requests",
+    "sha256": "4a2441ea408e2d2700684cc83700763cdc847aa8078cc41ae26bcea499eecc46",
+    "notas": "idp 1203"
+  },
+  {
+    "archivo": "institucion_1205.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1205",
+    "fecha_descarga": "2026-09-25T04:07:30+00:00",
+    "metodo": "requests",
+    "sha256": "fdaf868ca3731936a9ebdf686406240cecdfca574631db08e313e078094d8d30",
+    "notas": "idp 1205"
+  },
+  {
+    "archivo": "institucion_1206.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1206",
+    "fecha_descarga": "2026-09-25T04:07:33+00:00",
+    "metodo": "requests",
+    "sha256": "e1049b360b8da1030af1744c9cc3ea8f6a393146d3b009b7ba8f3c8933c87836",
+    "notas": "idp 1206"
+  },
+  {
+    "archivo": "institucion_1207.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1207",
+    "fecha_descarga": "2026-09-25T04:07:37+00:00",
+    "metodo": "requests",
+    "sha256": "03ce492ab5395282b0526919bb0b13bd88c7f42996044f8cc002317ad66883eb",
+    "notas": "idp 1207"
+  },
+  {
+    "archivo": "institucion_1208.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1208",
+    "fecha_descarga": "2026-09-25T04:07:39+00:00",
+    "metodo": "requests",
+    "sha256": "a09ca7528bc9c5317cfea5e5de12e4548b60d1af5ab96bc518becd4d91ffb823",
+    "notas": "idp 1208"
+  },
+  {
+    "archivo": "institucion_1209.html",
+    "url": "https://www.scimagoiber.com/institution.php?id=1209",
+    "fecha_descarga": "2026-09-25T04:07:42+00:00",
+    "metodo": "requests",
+    "sha256": "dba53a3a2ec891fe490d860c6355f1aaca7d88b6915a54ebe2c600982fc2b57e",
+    "notas": "idp 1209"
+  }
+]

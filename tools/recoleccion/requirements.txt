@@ -1,0 +1,9 @@
+# Los guiones de la fase 1 funcionan solo con requests y la biblioteca estándar:
+# se evitó pandas a propósito para que corran en un equipo recién clonado.
+requests>=2.31
+
+# Necesarias para las fases siguientes:
+selenium>=4.20      # páginas que arman sus datos con JavaScript (método C del plan)
+openpyxl>=3.1       # XLSX de QS y de las bases del SIES
+pypdf>=4.0          # estados financieros en PDF (T2.3)
+beautifulsoup4>=4.12  # tablas HTML sin endpoint (Webometrics, CNED)

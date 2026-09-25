@@ -10,3 +10,14 @@ __pycache__/
 *.pyc
 dist/
 **/dist/
+
+# Datos crudos de la recolección: pesan decenas de MB y se vuelven a descargar
+# con `python tools/recoleccion/<fuente>.py`. Lo que sí se versiona es el
+# `procesado.csv` de cada fuente y su `manifiesto.json`, que dice de dónde salió
+# cada archivo y con qué sha256, de modo que el crudo sea reproducible.
+KAI/Datos reales/*/raw/
+KAI/Datos reales/*/debug/
+# El procesado de THE lleva el mundo entero (90 MB) porque sin la distribución
+# mundial no se puede estimar la normalización. Se versiona el subconjunto
+# chileno, `procesado_chile.csv`, y el completo se regenera con el guion.
+KAI/Datos reales/the/procesado.csv

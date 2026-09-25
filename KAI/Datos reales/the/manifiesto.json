@@ -1,0 +1,346 @@
+[
+  {
+    "archivo": "latam_2016_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2016/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:46+00:00",
+    "metodo": "requests",
+    "sha256": "96467d7496db9c920c2e346964ae825c01ba3bfef42bdff2fc84f336a8b94680",
+    "notas": "latam 2016 html"
+  },
+  {
+    "archivo": "latam_2016_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2016/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:47+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "346bbd384fd826cbaa92dfa6641eb311edd89dcae6636fa2298d08fa73007499",
+    "notas": "50 instituciones"
+  },
+  {
+    "archivo": "latam_2017_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2017/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:49+00:00",
+    "metodo": "requests",
+    "sha256": "9606c73f5aa11140e26e28ed443fb494950dc7d4b7e0b3c874688c055819d391",
+    "notas": "latam 2017 html"
+  },
+  {
+    "archivo": "latam_2017_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2017/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:49+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "e03dcef7af5ba9cf2c91e9e8477e29b2a775255d2936dcacbe3f8685f7797ea1",
+    "notas": "82 instituciones"
+  },
+  {
+    "archivo": "latam_2018_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2018/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:51+00:00",
+    "metodo": "requests",
+    "sha256": "724cbb2f1b21550a7ce27cf81cece6014fedadd759ee242d461674db59b89749",
+    "notas": "latam 2018 html"
+  },
+  {
+    "archivo": "latam_2018_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2018/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:51+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "0022137918b9edfa00cd7363b6f8f0030cdd3ea676e18ebe790772a67cbc586f",
+    "notas": "129 instituciones"
+  },
+  {
+    "archivo": "latam_2019_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2019/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:53+00:00",
+    "metodo": "requests",
+    "sha256": "b1d7f1f5f3dc153823baa675f760a4e16f273ad4653f06d755d11ea1c810999e",
+    "notas": "latam 2019 html"
+  },
+  {
+    "archivo": "latam_2019_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2019/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:53+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "2d59ebe468cc12061d95c29582837e7526b0b67c3933c32ca01c9d51c4eaa674",
+    "notas": "150 instituciones"
+  },
+  {
+    "archivo": "latam_2020_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2020/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:55+00:00",
+    "metodo": "requests",
+    "sha256": "0f7207025d211424b67b3dd4c3ac40ba765fd05568852de7f78049dd8035af13",
+    "notas": "latam 2020 html"
+  },
+  {
+    "archivo": "latam_2020_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2020/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:55+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "bcc1fbe01d21eda0e1b6bf7fe27b36b2165934ed11be70bdc49f4f10b6212529",
+    "notas": "166 instituciones"
+  },
+  {
+    "archivo": "latam_2021_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2021/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:58+00:00",
+    "metodo": "requests",
+    "sha256": "5b75b05770d553858cdda933f068df6466715da259b5dedbc2814af973059dbd",
+    "notas": "latam 2021 html"
+  },
+  {
+    "archivo": "latam_2021_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2021/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:56:58+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "aaee7b802b335e420b0c988e7e00f00c9668a2425b53f97da6c2204a9590d4b0",
+    "notas": "177 instituciones"
+  },
+  {
+    "archivo": "latam_2022_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2022/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:01+00:00",
+    "metodo": "requests",
+    "sha256": "3f87d7a2d74b5bdb44d109f355e350be711bf7df728d481f0980385a6b7a389c",
+    "notas": "latam 2022 html"
+  },
+  {
+    "archivo": "latam_2022_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2022/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:01+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "11f3f5c462d75d5d9fcfe17180ae95d3ba4490ec4e9d117bd0c1cadabfbbaafb",
+    "notas": "211 instituciones"
+  },
+  {
+    "archivo": "latam_2023_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2023/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:04+00:00",
+    "metodo": "requests",
+    "sha256": "7b1d8bc04e44ec63a4d158073435dd0b5f88aa576a82fd4f044ba4c2f435fabd",
+    "notas": "latam 2023 html"
+  },
+  {
+    "archivo": "latam_2023_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2023/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:04+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "4fa774d9ec4a9250a0806def9545e1c8a9ce957197d807469cbab62d95fdb316",
+    "notas": "212 instituciones"
+  },
+  {
+    "archivo": "latam_2024_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2024/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:08+00:00",
+    "metodo": "requests",
+    "sha256": "2a84afcdf8d2d53d6964532929cae8fcb866e86faffd92346f55b3f7f230149c",
+    "notas": "latam 2024 html"
+  },
+  {
+    "archivo": "latam_2024_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2024/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:57:08+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "5cf4348ee0fdbe8fa2225fc1b1025b794fad37f0a6ab347af5ba2605bfd3d084",
+    "notas": "230 instituciones"
+  },
+  {
+    "archivo": "latam_2026_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/latin_america_university_rankings/2026/key_statistics",
+    "fecha_descarga": "2026-09-25T03:52:43+00:00",
+    "metodo": "requests",
+    "sha256": null,
+    "notas": "HTTP 404, 0 bytes"
+  },
+  {
+    "archivo": "latam_2026_pagina.html",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2026/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:55:18+00:00",
+    "metodo": "requests",
+    "sha256": "037a52f253a053a8094801df3ccdc8841afc90345a8f0a37d6492d56b09cf3d3",
+    "notas": "latam 2026 html"
+  },
+  {
+    "archivo": "latam_2026_ranking.json",
+    "url": "https://www.timeshighereducation.com/world-university-rankings/2026/latin-america-university-rankings",
+    "fecha_descarga": "2026-09-25T03:55:18+00:00",
+    "metodo": "requests+next_data",
+    "sha256": "2e5c0c8cfdb54070a7a36c0666f54b0d8e6b73c9b481e8b63ca3428210c11c2b",
+    "notas": "250 instituciones"
+  },
+  {
+    "archivo": "wur_2016_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2016/key_statistics",
+    "fecha_descarga": "2026-09-25T03:55:36+00:00",
+    "metodo": "requests",
+    "sha256": "91e7b9301083b0dd38c7abdc637c519dc7ee2be74e846fd5286c9294d1de174b",
+    "notas": "wur 2016 key_statistics"
+  },
+  {
+    "archivo": "wur_2016_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2016",
+    "fecha_descarga": "2026-09-25T03:55:33+00:00",
+    "metodo": "requests",
+    "sha256": "91e7b9301083b0dd38c7abdc637c519dc7ee2be74e846fd5286c9294d1de174b",
+    "notas": "wur 2016 ranking"
+  },
+  {
+    "archivo": "wur_2017_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2017/key_statistics",
+    "fecha_descarga": "2026-09-25T03:55:44+00:00",
+    "metodo": "requests",
+    "sha256": "9c8a30348e739f58b878d26ff60e871cc2f573b5f44d7b2652ebf6c430b56439",
+    "notas": "wur 2017 key_statistics"
+  },
+  {
+    "archivo": "wur_2017_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2017",
+    "fecha_descarga": "2026-09-25T03:55:40+00:00",
+    "metodo": "requests",
+    "sha256": "9c8a30348e739f58b878d26ff60e871cc2f573b5f44d7b2652ebf6c430b56439",
+    "notas": "wur 2017 ranking"
+  },
+  {
+    "archivo": "wur_2018_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2018/key_statistics",
+    "fecha_descarga": "2026-09-25T03:55:51+00:00",
+    "metodo": "requests",
+    "sha256": "802a3f2bf59d2ac7f57b16e9da7fafc40c6f72acb44a864ebe13bcf48d828a2c",
+    "notas": "wur 2018 key_statistics"
+  },
+  {
+    "archivo": "wur_2018_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2018",
+    "fecha_descarga": "2026-09-25T03:55:47+00:00",
+    "metodo": "requests",
+    "sha256": "802a3f2bf59d2ac7f57b16e9da7fafc40c6f72acb44a864ebe13bcf48d828a2c",
+    "notas": "wur 2018 ranking"
+  },
+  {
+    "archivo": "wur_2019_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2019/key_statistics",
+    "fecha_descarga": "2026-09-25T03:55:58+00:00",
+    "metodo": "requests",
+    "sha256": "b69bda4e0cf1e77f5749fc8f5be86f19440d8bba56ef72880c44a8a5a8c3f8bc",
+    "notas": "wur 2019 key_statistics"
+  },
+  {
+    "archivo": "wur_2019_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2019",
+    "fecha_descarga": "2026-09-25T03:55:54+00:00",
+    "metodo": "requests",
+    "sha256": "b69bda4e0cf1e77f5749fc8f5be86f19440d8bba56ef72880c44a8a5a8c3f8bc",
+    "notas": "wur 2019 ranking"
+  },
+  {
+    "archivo": "wur_2020_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2020/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:05+00:00",
+    "metodo": "requests",
+    "sha256": "3d0213440c81814f567591a01d8e077e496e9c44eae4d477172ffbf34be94b57",
+    "notas": "wur 2020 key_statistics"
+  },
+  {
+    "archivo": "wur_2020_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2020",
+    "fecha_descarga": "2026-09-25T03:56:01+00:00",
+    "metodo": "requests",
+    "sha256": "3d0213440c81814f567591a01d8e077e496e9c44eae4d477172ffbf34be94b57",
+    "notas": "wur 2020 ranking"
+  },
+  {
+    "archivo": "wur_2021_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2021/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:13+00:00",
+    "metodo": "requests",
+    "sha256": "4093dabc45079ab530ee2db02e90536ed155c4becf28391e58de6351416821df",
+    "notas": "wur 2021 key_statistics"
+  },
+  {
+    "archivo": "wur_2021_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2021",
+    "fecha_descarga": "2026-09-25T03:56:10+00:00",
+    "metodo": "requests",
+    "sha256": "4093dabc45079ab530ee2db02e90536ed155c4becf28391e58de6351416821df",
+    "notas": "wur 2021 ranking"
+  },
+  {
+    "archivo": "wur_2022_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2022/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:19+00:00",
+    "metodo": "requests",
+    "sha256": "2fa4af3f7958690691a2a9d14800630db4830692d711f1e50073d8e143f3aab5",
+    "notas": "wur 2022 key_statistics"
+  },
+  {
+    "archivo": "wur_2022_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2022",
+    "fecha_descarga": "2026-09-25T03:56:16+00:00",
+    "metodo": "requests",
+    "sha256": "2fa4af3f7958690691a2a9d14800630db4830692d711f1e50073d8e143f3aab5",
+    "notas": "wur 2022 ranking"
+  },
+  {
+    "archivo": "wur_2023_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2023/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:26+00:00",
+    "metodo": "requests",
+    "sha256": "cef0de8aab7eade8f0af80882c54b2c526aa1ae9b35c3cae8f0270dcf9497196",
+    "notas": "wur 2023 key_statistics"
+  },
+  {
+    "archivo": "wur_2023_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2023",
+    "fecha_descarga": "2026-09-25T03:56:21+00:00",
+    "metodo": "requests",
+    "sha256": "cef0de8aab7eade8f0af80882c54b2c526aa1ae9b35c3cae8f0270dcf9497196",
+    "notas": "wur 2023 ranking"
+  },
+  {
+    "archivo": "wur_2024_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2024/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:35+00:00",
+    "metodo": "requests",
+    "sha256": "ec77d5833a6e8a23614c3fc87cbaef74c064bad78ea94757ecfc4944d2165546",
+    "notas": "wur 2024 key_statistics"
+  },
+  {
+    "archivo": "wur_2024_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2024",
+    "fecha_descarga": "2026-09-25T03:56:30+00:00",
+    "metodo": "requests",
+    "sha256": "ec77d5833a6e8a23614c3fc87cbaef74c064bad78ea94757ecfc4944d2165546",
+    "notas": "wur 2024 ranking"
+  },
+  {
+    "archivo": "wur_2025_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2025/key_statistics",
+    "fecha_descarga": "2026-09-25T03:56:44+00:00",
+    "metodo": "requests",
+    "sha256": "4634c745f4f70563425ad273d5f72d3befa5b0a16017902a41954d0c95e11437",
+    "notas": "wur 2025 key_statistics"
+  },
+  {
+    "archivo": "wur_2025_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2025",
+    "fecha_descarga": "2026-09-25T03:56:40+00:00",
+    "metodo": "requests",
+    "sha256": "4634c745f4f70563425ad273d5f72d3befa5b0a16017902a41954d0c95e11437",
+    "notas": "wur 2025 ranking"
+  },
+  {
+    "archivo": "wur_2026_key_statistics.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2026/key_statistics",
+    "fecha_descarga": "2026-09-25T03:52:36+00:00",
+    "metodo": "requests",
+    "sha256": "6c49df7f49b9dd69f60bc86b1aac237e69cedb53f1099219687b7a070ca8ffbd",
+    "notas": "wur 2026 key_statistics"
+  },
+  {
+    "archivo": "wur_2026_ranking.json",
+    "url": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2026",
+    "fecha_descarga": "2026-09-25T03:52:33+00:00",
+    "metodo": "requests",
+    "sha256": "6c49df7f49b9dd69f60bc86b1aac237e69cedb53f1099219687b7a070ca8ffbd",
+    "notas": "wur 2026 ranking"
+  }
+]

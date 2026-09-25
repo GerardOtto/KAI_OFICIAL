@@ -1,0 +1,116 @@
+﻿alias,fuente,nombre_universidad
+Pontificia Universidad Catolica de Chile,base,Pontificia Universidad Catolica de Chile
+Pontificia Universidad Catolica de Valparaiso,base,Pontificia Universidad Catolica de Valparaiso
+Universidad ARCIS,base,Universidad ARCIS
+Universidad Academia de Humanismo Cristiano,base,Universidad Academia de Humanismo Cristiano
+Universidad Adolfo Ibanez,base,Universidad Adolfo Ibanez
+Universidad Adventista de Chile,base,Universidad Adventista de Chile
+Universidad Alberto Hurtado,base,Universidad Alberto Hurtado
+Universidad Andres Bello,base,Universidad Andres Bello
+Universidad Arturo Prat,base,Universidad Arturo Prat
+Universidad Austral de Chile,base,Universidad Austral de Chile
+Universidad Autonoma de Chile,base,Universidad Autonoma de Chile
+Universidad Bernardo O'Higgins,base,Universidad Bernardo O'Higgins
+Universidad Bolivariana de Chile,base,Universidad Bolivariana de Chile
+Universidad Catolica Cardenal Raul Silva Henriquez,base,Universidad Catolica Cardenal Raul Silva Henriquez
+Universidad Catolica de Temuco,base,Universidad Catolica de Temuco
+Universidad Catolica de la Santisima Concepcion,base,Universidad Catolica de la Santisima Concepcion
+Universidad Catolica del Maule,base,Universidad Catolica del Maule
+Universidad Catolica del Norte,base,Universidad Catolica del Norte
+Universidad Central de Chile,base,Universidad Central de Chile
+Universidad Diego Portales,base,Universidad Diego Portales
+Universidad Finis Terrae,base,Universidad Finis Terrae
+Universidad Gabriela Mistral,base,Universidad Gabriela Mistral
+Universidad Iberoamericana de Ciencias y Tecnologia,base,Universidad Iberoamericana de Ciencias y Tecnologia
+Universidad Internacional SEK Chile,base,Universidad Internacional SEK Chile
+Universidad La Republica,base,Universidad La Republica
+Universidad Los Leones,base,Universidad Los Leones
+Universidad Mayor,base,Universidad Mayor
+Universidad Metropolitana de Ciencias de la Educacion,base,Universidad Metropolitana de Ciencias de la Educacion
+Universidad Miguel de Cervantes,base,Universidad Miguel de Cervantes
+Universidad Pedro de Valdivia,base,Universidad Pedro de Valdivia
+Universidad San Sebastian,base,Universidad San Sebastian
+Universidad Santo Tomas,base,Universidad Santo Tomas
+Universidad Tecnica Federico Santa Maria,base,Universidad Tecnica Federico Santa Maria
+Universidad Tecnologica Metropolitana,base,Universidad Tecnologica Metropolitana
+Universidad Tecnologica de Chile,base,Universidad Tecnologica de Chile
+Universidad UNIACC,base,Universidad UNIACC
+Universidad Ucinf,base,Universidad Ucinf
+Universidad de Antofagasta,base,Universidad de Antofagasta
+"Universidad de Artes, Ciencias y Comunicacion",base,"Universidad de Artes, Ciencias y Comunicacion"
+Universidad de Atacama,base,Universidad de Atacama
+Universidad de Chile,base,Universidad de Chile
+Universidad de Concepcion,base,Universidad de Concepcion
+Universidad de La Serena,base,Universidad de La Serena
+Universidad de Las Americas,base,Universidad de Las Americas
+Universidad de Los Lagos,base,Universidad de Los Lagos
+Universidad de Magallanes,base,Universidad de Magallanes
+Universidad de Playa Ancha,base,Universidad de Playa Ancha
+Universidad de Santiago de Chile,base,Universidad de Santiago de Chile
+Universidad de Talca,base,Universidad de Talca
+Universidad de Tarapaca,base,Universidad de Tarapaca
+Universidad de Valparaiso,base,Universidad de Valparaiso
+Universidad de Vina del Mar,base,Universidad de Vina del Mar
+Universidad de la Frontera,base,Universidad de la Frontera
+Universidad de los Andes,base,Universidad de los Andes
+Universidad del Bio-Bio,base,Universidad del Bio-Bio
+Universidad del Desarrollo,base,Universidad del Desarrollo
+Universidad del Mar,base,Universidad del Mar
+Universidad del Pacifico,base,Universidad del Pacifico
+Pontificia Universidad Católica de Valparaíso,generico,Pontificia Universidad Catolica de Valparaiso
+Universidad Adolfo Ibáñez,generico,Universidad Adolfo Ibanez
+Universidad Andrés Bello,generico,Universidad Andres Bello
+Universidad Autónoma de Chile,generico,Universidad Autonoma de Chile
+Universidad Bernardo O'Higgins,generico,Universidad Bernardo O'Higgins
+Universidad Católica de Temuco,generico,Universidad Catolica de Temuco
+Universidad Católica de la Santísima Concepción,generico,Universidad Catolica de la Santisima Concepcion
+Universidad Católica del Maule,generico,Universidad Catolica del Maule
+Universidad Católica del Norte,generico,Universidad Catolica del Norte
+Universidad Santo Tomás,generico,Universidad Santo Tomas
+Universidad Técnica Federico Santa María,generico,Universidad Tecnica Federico Santa Maria
+Universidad de Concepción,generico,Universidad de Concepcion
+Universidad de La Frontera,generico,Universidad de la Frontera
+Universidad de Magallanes,generico,Universidad de Magallanes
+Universidad de Santiago de Chile (USACH),generico,Universidad de Santiago de Chile
+Universidad de Tarapacá,generico,Universidad de Tarapaca
+Universidad de Valparaíso,generico,Universidad de Valparaiso
+Universidad de los Andes,generico,Universidad de los Andes
+Universidad del Bío-Bío,generico,Universidad del Bio-Bio
+"Universidad Andres Bello, Chile",scimago,Universidad Andres Bello
+"Universidad Santo Tomas, Chile",scimago,Universidad Santo Tomas
+"Universidad de Las Americas, Chile",scimago,Universidad de Las Americas
+"Universidad de los Andes, Chile",scimago,Universidad de los Andes
+"Universidad del Mar, Chile",scimago,Universidad del Mar
+"Universidad del Pacifico, Chile",scimago,Universidad del Pacifico
+Adolfo Ibáñez University,the,Universidad Adolfo Ibanez
+Alberto Hurtado University,the,Universidad Alberto Hurtado
+Arturo Prat University,the,Universidad Arturo Prat
+Austral University of Chile,the,Universidad Austral de Chile
+Bernardo O’Higgins University,the,Universidad Bernardo O'Higgins
+Catholic University of the North,the,Universidad Catolica del Norte
+Diego Portales University,the,Universidad Diego Portales
+Federico Santa María Technical University,the,Universidad Tecnica Federico Santa Maria
+Finis Terrae University,the,Universidad Finis Terrae
+Pontifical Catholic University of Valparaíso,the,Pontificia Universidad Catolica de Valparaiso
+Pontificia Universidad Católica de Chile,the,Pontificia Universidad Catolica de Chile
+Temuco Catholic University,the,Universidad Catolica de Temuco
+Universidad Andrés Bello (UNAB),the,Universidad Andres Bello
+Universidad Autónoma de Chile,the,Universidad Autonoma de Chile
+Universidad Católica de la Santísima Concepción,the,Universidad Catolica de la Santisima Concepcion
+Universidad Católica del Maule,the,Universidad Catolica del Maule
+Universidad Mayor,the,Universidad Mayor
+Universidad Santo Tomás,the,Universidad Santo Tomas
+Universidad del Desarrollo,the,Universidad del Desarrollo
+University of Antofagasta,the,Universidad de Antofagasta
+University of Bío-Bío,the,Universidad del Bio-Bio
+University of Chile,the,Universidad de Chile
+University of Concepción,the,Universidad de Concepcion
+University of La Frontera,the,Universidad de la Frontera
+University of La Serena,the,Universidad de La Serena
+University of Los Lagos,the,Universidad de Los Lagos
+University of Magallanes,the,Universidad de Magallanes
+"University of Santiago, Chile",the,Universidad de Santiago de Chile
+University of Talca,the,Universidad de Talca
+University of Tarapacá,the,Universidad de Tarapaca
+University of Valparaíso,the,Universidad de Valparaiso
+"University of the Andes, Chile",the,Universidad de los Andes
