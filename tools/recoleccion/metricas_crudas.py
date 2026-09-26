@@ -41,7 +41,29 @@ import navegador as nav  # noqa: E402
 SALIDA = nav.RAIZ / "metricas_crudas_chile.csv"
 
 COLUMNAS = ["ranking", "metrica", "universidad", "edicion", "valor_crudo", "unidad",
-            "formula", "variables_usadas", "anios_usados", "estado"]
+            "formula", "variables_usadas", "fuentes", "anios_usados", "estado"]
+
+# De qué fuente sale cada variable, según su prefijo. Se deduce de la fórmula en
+# vez de anotarlo métrica por métrica, para que no pueda desincronizarse.
+PREFIJOS_FUENTE = [
+    (("estudiantes_", "academicos_", "graduados_", "titulados_"), "SIES", "institucional"),
+    (("pct_estudiantes_extranjeros",), "THE (declarado)", "institucional"),
+    (("montos_anid_",), "ANID", "institucional"),
+    (("ingresos_",), "Estados financieros", "institucional"),
+    (("publicaciones_openalex", "citas_", "pct_colaboracion", "socios_"), "OpenAlex", "bibliometria"),
+    (("impacto_normalizado", "docs_", "publicaciones_scopus", "patentes"), "SCImago", "bibliometria"),
+]
+
+
+def fuentes_de(formula: str) -> list[tuple[str, str]]:
+    """(fuente, tipo) de las variables que aparecen en la fórmula, sin repetir."""
+    import re
+    vistas: list[tuple[str, str]] = []
+    for variable in re.findall(r"[a-z_]+", formula):
+        for prefijos, fuente, tipo in PREFIJOS_FUENTE:
+            if variable.startswith(prefijos) and (fuente, tipo) not in vistas:
+                vistas.append((fuente, tipo))
+    return vistas
 
 
 # --------------------------------------------------------------------------- #
@@ -353,7 +375,13 @@ def calcular_ranking(ranking: str, anual: dict, ventana: dict, universidades: se
                     "unidad": m.unidad,
                     "formula": m.formula,
                     "variables_usadas": m.formula,
-                    "anios_usados": f"institucional {anio_inst} · bibliometría {etiqueta_ventana}",
+                    "fuentes": ", ".join(f for f, _ in fuentes_de(m.formula)),
+                    # Solo los años que la métrica usa de verdad: una razón del
+                    # SIES no tiene ventana bibliométrica que declarar.
+                    "anios_usados": " · ".join(
+                        (f"datos institucionales {anio_inst}" if tipo == "institucional"
+                         else f"publicaciones {etiqueta_ventana}")
+                        for tipo in dict.fromkeys(t for _, t in fuentes_de(m.formula))),
                     "estado": m.calidad,
                 })
     return filas

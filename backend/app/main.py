@@ -722,12 +722,20 @@ def get_universidades(usuario: dict = Depends(auth.usuario_actual)):
 def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
-        # `pesos_editables` se lee a través de to_jsonb para no depender de que la
-        # migración 009 ya esté aplicada: sin la columna, la clave simplemente no
-        # existe y queda en falso, en vez de romper el catálogo entero.
-        result = db.execute(text("""
+        # `pesos_editables` y `valores_son_crudos` se leen a través de to_jsonb para
+        # no depender de que las migraciones 009 y 010 ya estén aplicadas: sin la
+        # columna, la clave no existe y queda en falso, en vez de romper el
+        # catálogo entero. Por lo mismo, los valores medidos solo se buscan si la
+        # tabla de la 008 existe.
+        con_valores = (
+            "EXISTS (SELECT 1 FROM valor_real_universidad v JOIN metrica m "
+            "ON m.id_metrica = v.id_metrica WHERE m.id_ranking = r.id_ranking)"
+            if _hay_tabla(db, "valor_real_universidad") else "false")
+        result = db.execute(text(f"""
             SELECT r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
-                   COALESCE((to_jsonb(r) ->> 'pesos_editables')::boolean, false) AS pesos_editables
+                   COALESCE((to_jsonb(r) ->> 'pesos_editables')::boolean, false) AS pesos_editables,
+                   COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false)
+                       OR {con_valores} AS tiene_valores_reales
             FROM ranking r
             ORDER BY r.id_ranking"""))
         # Los rankings reservados se devuelven igualmente, marcados: el plan
@@ -1099,6 +1107,117 @@ def get_cientificos_campos(usuario: dict = Depends(auth.usuario_actual)):
         return [row._mapping["campo_principal"] for row in result]
     finally:
         db.close()
+
+def _hay_tabla(db, nombre: str) -> bool:
+    """Si la tabla existe. Permite desplegar el código antes que su migración."""
+    return bool(db.execute(text("SELECT to_regclass(:t) IS NOT NULL"),
+                           {"t": f"public.{nombre}"}).scalar())
+
+
+@app.get("/valores-reales")
+def get_valores_reales(ranking_id: int, anio: int | None = None,
+    usuario: dict = Depends(ranking_permitido)):
+    """Los valores medidos detrás de un ranking —razones, porcentajes, conteos—, en
+    vez de sus puntajes normalizados.
+
+    Dos orígenes, según el ranking. En THE, QS y el Ranking KAI los valores se
+    midieron aparte y viven en `valor_real_universidad`, con su calidad. En
+    Scimago la fuente ya publica el valor crudo, que es lo que guarda
+    `metrica_universidad`. La respuesta incluye la cobertura del año —cuántas
+    componentes del ranking tienen valor y qué peso suman— porque el modo
+    numérico debe decir qué parte del ranking puede mostrar y cuál no.
+    """
+    db = SessionLocal()
+    try:
+        rk = db.execute(text("""
+            SELECT nombre_ranking,
+                   COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false) AS crudos
+            FROM ranking r WHERE id_ranking = :r"""), {"r": ranking_id}).first()
+        if rk is None:
+            raise HTTPException(status_code=404, detail="No existe ese ranking.")
+
+        metricas = [dict(f._mapping) for f in db.execute(text("""
+            SELECT m.id_metrica, m.nombre_metrica, m.peso_metrica, m.pondera,
+                   to_jsonb(m) ->> 'sentido' AS sentido,
+                   to_jsonb(m) ->> 'unidad_valor' AS unidad_valor,
+                   NOT EXISTS (SELECT 1 FROM metrica h WHERE h.id_metrica_padre = m.id_metrica)
+                       AS es_componente
+            FROM metrica m WHERE m.id_ranking = :r
+            ORDER BY m.peso_metrica DESC NULLS LAST, m.nombre_metrica"""), {"r": ranking_id})]
+
+        if rk.crudos:
+            fuente_anios = """SELECT DISTINCT mu.anio_metrica AS anio FROM metrica_universidad mu
+                              JOIN metrica m ON m.id_metrica = mu.id_metrica WHERE m.id_ranking = :r"""
+            consulta = """
+                SELECT mu.id_metrica, mu.id_universidad, u.nombre_universidad,
+                       mu.valor_metrica AS valor, to_jsonb(m) ->> 'unidad_valor' AS unidad,
+                       'directa' AS calidad, NULL AS formula,
+                       'Publicado por ' || r.nombre_ranking AS fuentes,
+                       mu.anio_metrica::text AS anios_origen
+                FROM metrica_universidad mu
+                JOIN metrica m ON m.id_metrica = mu.id_metrica
+                JOIN ranking r ON r.id_ranking = m.id_ranking
+                JOIN universidad u ON u.id_universidad = mu.id_universidad
+                WHERE m.id_ranking = :r AND mu.anio_metrica = :a AND mu.valor_metrica IS NOT NULL"""
+        elif _hay_tabla(db, "valor_real_universidad"):
+            fuente_anios = """SELECT DISTINCT v.anio_edicion AS anio FROM valor_real_universidad v
+                              JOIN metrica m ON m.id_metrica = v.id_metrica WHERE m.id_ranking = :r"""
+            consulta = """
+                SELECT v.id_metrica, v.id_universidad, u.nombre_universidad, v.valor, v.unidad,
+                       v.calidad, v.formula, v.fuentes, v.anios_origen
+                FROM valor_real_universidad v
+                JOIN metrica m ON m.id_metrica = v.id_metrica
+                JOIN universidad u ON u.id_universidad = v.id_universidad
+                WHERE m.id_ranking = :r AND v.anio_edicion = :a
+                  -- Solo universidades que el ranking clasificó esa edición. Los
+                  -- valores de THE se calcularon para toda universidad con datos
+                  -- del SIES, pero THE Latam rankea a una treintena: mostrar las
+                  -- demás bajo su nombre sugeriría que están en él.
+                  AND EXISTS (
+                      SELECT 1 FROM metrica_universidad mu
+                      JOIN metrica m2 ON m2.id_metrica = mu.id_metrica
+                      WHERE m2.id_ranking = :r AND mu.anio_metrica = :a
+                        AND mu.id_universidad = v.id_universidad)"""
+        else:
+            fuente_anios = consulta = None
+
+        anios = sorted((f.anio for f in db.execute(text(fuente_anios), {"r": ranking_id})),
+                       reverse=True) if fuente_anios else []
+        anio = anio if anio is not None else (anios[0] if anios else None)
+        valores = ([dict(f._mapping) for f in db.execute(text(consulta), {"r": ranking_id, "a": anio})]
+                   if consulta and anio in anios else [])
+
+        # Cobertura sobre las componentes —las métricas que no agrupan a otras—,
+        # que son las que tienen valor medible: en THE los diecisiete indicadores
+        # y no los cinco pilares.
+        con_valor = {v["id_metrica"] for v in valores}
+        componentes = [m for m in metricas if m["es_componente"]]
+        for m in metricas:
+            m["peso_metrica"] = float(m["peso_metrica"] or 0)
+            m["tiene_valores"] = m["id_metrica"] in con_valor
+        calidades: dict[str, int] = {}
+        for v in valores:
+            calidades[v["calidad"]] = calidades.get(v["calidad"], 0) + 1
+
+        return {
+            "ranking": rk.nombre_ranking,
+            "origen": "fuente" if rk.crudos else "medido",
+            "anio": anio,
+            "anios": anios,
+            "metricas": metricas,
+            "valores": valores,
+            "cobertura": {
+                "componentes": len(componentes),
+                "componentes_con_valor": sum(1 for m in componentes if m["tiene_valores"]),
+                "peso_total": round(sum(m["peso_metrica"] for m in componentes), 2),
+                "peso_con_valor": round(sum(m["peso_metrica"] for m in componentes
+                                            if m["tiene_valores"]), 2),
+                "calidades": calidades,
+            },
+        }
+    finally:
+        db.close()
+
 
 @app.get("/metricas-con-datos")
 def get_metricas_con_datos(ranking_id: int,

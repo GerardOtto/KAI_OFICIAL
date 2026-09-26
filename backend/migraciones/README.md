@@ -15,6 +15,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | pendiente | pendiente |
 | `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | pendiente | pendiente |
 | `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | pendiente | pendiente |
+| `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | pendiente | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -161,3 +162,32 @@ Ambas se probaron dos veces seguidas sobre una copia de la base local, y la 009
 también en el orden equivocado (sin la 008), donde se niega con un mensaje claro.
 El volcado de integración continua, `backend/pruebas/datos_de_prueba.sql`, se
 regeneró desde esa copia con las migraciones 006 a 009 aplicadas.
+
+
+## 010 y el modo numérico
+
+La pantalla de ranking tiene dos modos: los puntajes que publica cada ranking y
+los **valores medidos** detrás de cada componente. `/valores-reales` los lee de
+dos lugares según el ranking:
+
+| Ranking | Origen | De dónde |
+|---|---|---|
+| THE Latam, QS Latam, QS Global | medido por KAI con la definición del ranking | `valor_real_universidad`, vía `cargar_valores_reales.py` |
+| Ranking KAI | medido | `valor_real_universidad`, vía `cargar_ranking_kai.py` |
+| Scimago Latam | publicado crudo por la fuente | `metrica_universidad` (`ranking.valores_son_crudos`) |
+| Shanghai GRAS y ARWU, QS por Disciplina | — | solo publican puntajes: el modo numérico queda deshabilitado |
+
+Tras la 010, para cargar los valores de THE y QS:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/010_valores_crudos_de_la_fuente.sql
+python tools/recoleccion/cargar_valores_reales.py --escribir
+```
+
+El cargador solo escribe ediciones que el ranking ya tiene en la base —los
+insumos de la edición 2027 de THE existen, pero esa edición no— y no toca las
+filas del Ranking KAI.
+
+La 010 deja anotado un defecto que **no** corrige: el total que la pantalla de
+puntajes calcula para Scimago suma documentos con índices cercanos a 1 y ordena
+por tamaño. Corregirlo cambia lo que muestran Tendencias y el asistente.

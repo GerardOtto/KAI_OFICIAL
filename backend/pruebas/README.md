@@ -42,6 +42,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados, descargas contadas y asistente por dominio |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `ranking-kai` | Ranking KAI: pesos parejos que suman 100, las diez métricas en cada universidad y año, percentiles reproducibles desde el valor medido y abierto al plan gratuito |
+| `valores-reales` | Modo numérico: cobertura por componentes y no por pilares, calidades, solo ediciones publicadas y universidades clasificadas, Scimago idéntico a su tabla, THE y QS reservados |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
@@ -131,9 +132,9 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 009
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 010
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
-instituciones, 1.249 métricas, 20.638 observaciones, 4.500 valores medidos y 4.245
+instituciones, 1.249 métricas, 20.638 observaciones, 9.590 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,
 mensajes, notificaciones ni descargas. Al regenerarlo hay que conservar esas
 exclusiones, y hacerlo desde una base con **todas** las migraciones aplicadas —si

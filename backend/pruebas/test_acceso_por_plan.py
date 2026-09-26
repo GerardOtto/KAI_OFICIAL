@@ -76,7 +76,10 @@ comprobar("queda al menos un ranking libre para el plan gratuito", LIBRE is not 
 print("\n=== 2. Ningún módulo sin sesión ===")
 SIN_SESION = ["/rankings", "/universidades", "/tipos-metrica", f"/anios?ranking_id={LIBRE}",
               f"/metricas?ranking_id={LIBRE}", "/metricas-por-tipo?tipo=Reputacion",
-              f"/simulacion?ranking_id={LIBRE}&anio=2024", "/cientificos-campos"]
+              f"/simulacion?ranking_id={LIBRE}&anio=2024", "/cientificos-campos",
+              # Estuvo abierto: por aquí se leían sin cuenta los datos de THE y QS.
+              f"/tendencias-comparacion?ranking_id={LIBRE}&anio=2024",
+              f"/valores-reales?ranking_id={LIBRE}"]
 cerrados = {ruta: cliente.get(ruta).status_code for ruta in SIN_SESION}
 comprobar("todos responden 401 sin credencial",
           all(c == 401 for c in cerrados.values()),

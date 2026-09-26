@@ -8,6 +8,9 @@ import UniversidadLogo from "../components/UniversidadLogo";
 import ScoreBar from "../components/data/ScoreBar";
 import Sparkline from "../components/data/Sparkline";
 import PanelPesos from "../components/data/PanelPesos";
+import VistaValoresReales from "../components/data/VistaValoresReales";
+import { useValoresReales } from "../hooks/useValoresReales";
+import { filasCSV } from "../utils/valoresReales";
 import {
   clasificar, historico, pesosIniciales, pesosModificados, participacion, variacion,
 } from "../utils/rankingPonderado";
@@ -26,6 +29,15 @@ const PlaceholderIcon = ({ nombre, size }) => (
     </span>
   </div>
 );
+
+function descargarCSV(filas, nombreArchivo) {
+  const csv = filas.map(f => f.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = nombreArchivo.replace(/\s+/g, "_");
+  link.click();
+}
 
 function exportarCSV(data, rankingNombre, anio, ponderacion) {
   const filas = [
@@ -54,6 +66,9 @@ export default function Ranking() {
   const [rankingId, setRankingId] = useState(null);
   const [anio, setAnio] = useState(null);
   const [densidad, setDensidad] = useState("comoda"); // "comoda" | "compacta"
+  // «puntajes»: lo que publica cada ranking, normalizado. «numerico»: los valores
+  // medidos detrás de cada componente, donde existen.
+  const [modo, setModo] = useState("puntajes");
 
   // Después del estado: el hook necesita la selección actual para corregirla si
   // el plan no incluye ese ranking.
@@ -98,6 +113,14 @@ export default function Ranking() {
   );
   const loading = editable ? ponderado.loading : resumen.loading;
 
+  // El modo numérico solo existe donde hay valores medidos. Si se cambia a un
+  // ranking que solo publica puntajes, la vista vuelve sola a los puntajes; la
+  // preferencia se conserva para cuando se vuelva a uno que sí tenga.
+  const conValores = Boolean(rankingActual?.tiene_valores_reales);
+  const numerico = modo === "numerico" && conValores;
+  const valores = useValoresReales(rankingId, anio, numerico);
+  const ordenPuntaje = useMemo(() => data.map(u => u.id_universidad), [data]);
+
   // La edición anterior del ranking, para la variación de puestos. `anios` viene
   // de la más reciente a la más antigua.
   const anioAnterior = anios[anios.indexOf(anio) + 1] ?? null;
@@ -137,7 +160,37 @@ export default function Ranking() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <div role="group" aria-label="Qué valores mostrar" className="flex">
+              {[
+                ["puntajes", "Puntajes"],
+                ["numerico", "Valores medidos"],
+              ].map(([clave, etiqueta]) => {
+                const deshabilitado = clave === "numerico" && !conValores;
+                const activo = clave === "numerico" ? numerico : !numerico;
+                return (
+                  <button
+                    key={clave}
+                    type="button"
+                    aria-pressed={activo}
+                    disabled={deshabilitado}
+                    onClick={() => setModo(clave)}
+                    title={deshabilitado
+                      ? `${rankingActual?.nombre_ranking ?? "Este ranking"} solo publica puntajes normalizados: no hay valores medidos detrás.`
+                      : clave === "numerico"
+                      ? "Los valores medidos de cada componente, sin normalizar"
+                      : "Los puntajes normalizados del ranking"}
+                    className={`text-[11px] py-2 px-3 border transition-colors ${
+                      activo
+                        ? "bg-white text-[#111] border-white"
+                        : "bg-[#1c1c1c] text-[#cfcfcf] border-white/[.14] hover:border-white/30"
+                    } disabled:opacity-40 disabled:cursor-not-allowed ${clave === "numerico" ? "-ml-px" : ""}`}
+                  >
+                    {etiqueta}
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative">
               <select
                 value={anio || ""}
@@ -157,11 +210,18 @@ export default function Ranking() {
               Densidad ⇕
             </button>
             <button
-              onClick={() => data.length && exportarCSV(
-                data, rankingActual?.nombre_ranking || "", anio,
-                editable ? { metricas: ponderado.metricas, pesos } : null
-              )}
-              disabled={!data.length}
+              onClick={() => {
+                if (numerico) {
+                  if (valores.datos?.valores.length) {
+                    descargarCSV(filasCSV(valores.datos.valores, valores.datos.metricas, valores.datos.origen),
+                      `valores_medidos_${rankingActual?.nombre_ranking || ""}_${anio}.csv`);
+                  }
+                } else if (data.length) {
+                  exportarCSV(data, rankingActual?.nombre_ranking || "", anio,
+                    editable ? { metricas: ponderado.metricas, pesos } : null);
+                }
+              }}
+              disabled={numerico ? !valores.datos?.valores.length : !data.length}
               className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Exportar
@@ -220,7 +280,18 @@ export default function Ranking() {
         )}
 
         {/* Estados */}
-        {!rankingId || !anio ? (
+        {numerico ? (
+          <VistaValoresReales
+            datos={valores.datos}
+            loading={valores.loading}
+            error={valores.error}
+            ordenPuntaje={ordenPuntaje}
+            nombreRanking={rankingActual?.nombre_ranking}
+            propio={editable}
+            anio={anio}
+            onElegirAnio={setAnio}
+          />
+        ) : !rankingId || !anio ? (
           <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
             Selecciona un ranking para comenzar.
           </div>

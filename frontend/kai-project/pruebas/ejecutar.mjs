@@ -32,6 +32,9 @@ const SONDAS = {
   reporte: "Composición del PDF y dibujo del bloque de gráfico",
   revelado: "Aparición progresiva de la respuesta e indicador de espera",
   ponderado: "Reponderado del Ranking KAI en el cliente",
+  valores_medidos: "Formato, orden y exportación del modo numérico",
+  modo_numerico: "Modo numérico de la pantalla de ranking",
+  ranking_kai: "Panel de pesos del Ranking KAI",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el
