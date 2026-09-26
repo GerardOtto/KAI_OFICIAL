@@ -1,14 +1,11 @@
-// Sonda del modo numérico de la pantalla de ranking.
+// Sonda del modo numérico en Resumen (la pantalla de ranking).
 //
-// Comprueba que el conmutador aparezca solo donde hay valores medidos, que al
-// entrar se vea la advertencia de cobertura, que la tabla muestre las
-// componentes con sus unidades y que ordenar por una de ellas respete si más
-// es mejor o peor. Los rankings reservados (THE, QS) se revisan solo si se pasa
-// un testigo de un plan de pago en KAI_TOKEN_PAGO; la batería del backend cubre
-// su acceso en cualquier caso.
-//
-// Requiere un backend con las migraciones 008 a 010, los datos del Ranking KAI y
-// los valores de cargar_valores_reales.py, y la aplicación compilada contra él.
+// El modo lo fija el switch global del header («Puntajes» / «Valores»). Comprueba
+// que al pasar a Valores se vea la advertencia de cobertura, que la tabla muestre
+// las componentes con sus unidades, que ordenar por una respete si más es mejor o
+// peor, y que un ranking sin cifras muestre sus puntajes y lo diga. Los rankings
+// reservados (THE, QS) se revisan solo con un testigo de un plan de pago en
+// KAI_TOKEN_PAGO; la batería del backend cubre su acceso en cualquier caso.
 import fs from "fs";
 import { crearSesion } from "./sesion.mjs";
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
@@ -43,13 +40,11 @@ const capturar = async (nombre) => {
   if (result?.data) fs.writeFileSync(`${SALIDA}${nombre}.png`, Buffer.from(result.data, "base64"));
 };
 
-const pestana = (texto) => `[...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith(${JSON.stringify(texto)}))`;
-const boton = (texto) => `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(texto)})`;
-const estadoModo = () => ev(`
-  const b = ${boton("Valores medidos")};
-  return b ? { deshabilitado: b.disabled, activo: b.getAttribute('aria-pressed') === 'true' } : null;
-`);
+const pestana = (texto) => `[...document.querySelectorAll('main button')].find(b => b.textContent.trim().startsWith(${JSON.stringify(texto)}))`;
+const boton = (texto) => `[...document.querySelectorAll('main button')].find(b => b.textContent.trim() === ${JSON.stringify(texto)})`;
+const switchHeader = (texto) => `[...document.querySelectorAll('header button')].find(b => b.textContent.trim() === ${JSON.stringify(texto)})`;
 const aviso = () => ev(`return document.getElementById('titulo-aviso-valores')?.closest('section')?.textContent || null;`);
+const avisoSinValores = () => ev(`return [...document.querySelectorAll('[role=note]')].some(n => /solo publica puntajes/.test(n.textContent));`);
 const cabeceras = () => ev(`
   return [...document.querySelectorAll('table thead th')].slice(2)
     .map(th => th.textContent.replace(/\\s+/g, ' ').trim());
@@ -65,7 +60,7 @@ const aNumero = (t) => Number(String(t).replace(/\./g, "").replace(",", ".").rep
 async function abrir(token) {
   await cdp("Page.navigate", { url: APP });
   await esperar(1200);
-  await ev(`localStorage.setItem("kai_token", ${JSON.stringify(token)});`);
+  await ev(`localStorage.setItem("kai_token", ${JSON.stringify(token)}); localStorage.removeItem("kai_modo_valores");`);
   await cdp("Emulation.setDeviceMetricsOverride", { width: 1500, height: 1100, deviceScaleFactor: 1, mobile: false });
   await cdp("Page.navigate", { url: `${APP}/ranking` });
   await esperar(4000);
@@ -75,18 +70,16 @@ await cdp("Runtime.enable"); await cdp("Page.enable"); await cdp("Console.enable
 const { token } = await crearSesion();
 await abrir(token);
 
-console.log("=== 1. Solo donde hay valores medidos ===");
-await ev(`${pestana("Shanghai GRAS")}?.click();`);
-await esperar(2500);
-const gras = await estadoModo();
-comprobar("en Shanghai GRAS el modo numérico está deshabilitado", gras?.deshabilitado === true, JSON.stringify(gras));
-await ev(`${pestana("Ranking KAI")}.click();`);
-await esperar(4000);
-const kai = await estadoModo();
-comprobar("en el Ranking KAI está disponible", kai && !kai.deshabilitado, JSON.stringify(kai));
+console.log("=== 1. El switch está en el header, no en la pantalla ===");
+comprobar("el header tiene los botones Puntajes y Valores",
+  await ev(`return Boolean(${switchHeader("Puntajes")} && ${switchHeader("Valores")});`));
+comprobar("la pantalla de ranking ya no tiene un conmutador propio",
+  !(await ev(`return Boolean(${boton("Valores medidos")});`)));
 
 console.log("\n=== 2. Ranking KAI en valores medidos ===");
-await ev(`${boton("Valores medidos")}.click();`);
+await ev(`${pestana("Ranking KAI")}.click();`);
+await esperar(4000);
+await ev(`${switchHeader("Valores")}.click();`);
 await esperar(2500);
 const textoAviso = await aviso();
 comprobar("aparece la advertencia", Boolean(textoAviso));
@@ -95,8 +88,7 @@ comprobar("dice que cubren las diez componentes", /las 10 componentes/.test(text
 comprobar("explica que no hay total", /no tiene total/.test(textoAviso || ""));
 const heads = await cabeceras();
 comprobar("la tabla tiene diez columnas de métricas", heads.length === 10, JSON.stringify(heads));
-comprobar("cada columna muestra su unidad", heads.every(h => /peso/.test(h)) && heads.some(h => /estudiantes por académico/.test(h)),
-  heads[0]);
+comprobar("cada columna muestra su unidad", heads.every(h => /peso/.test(h)) && heads.some(h => /estudiantes por académico/.test(h)), heads[0]);
 comprobar("la métrica de «menos es mejor» lo anuncia", heads.some(h => /menos es mejor/.test(h)));
 const i = heads.findIndex(h => h.startsWith("Estudiantes por académico"));
 await ev(`[...document.querySelectorAll('table thead th button')].find(b => b.textContent.trim().startsWith('Estudiantes por académico')).click();`);
@@ -104,28 +96,27 @@ await esperar(400);
 const col = (await columna(i)).map(x => aNumero(x.v)).filter(n => !Number.isNaN(n));
 comprobar("ordenar por estudiantes por académico pone primero el valor más bajo",
   col.length > 10 && col.every((n, k) => k === 0 || col[k - 1] <= n), col.slice(0, 5).join(" "));
-const exportar = await ev(`return ${boton("Exportar")}.disabled;`);
-comprobar("se puede exportar lo que se ve", exportar === false);
+comprobar("se puede exportar lo que se ve", (await ev(`return ${boton("Exportar")}.disabled;`)) === false);
 await capturar("modo_numerico_kai");
 
 console.log("\n=== 3. Scimago: valores de la fuente ===");
 await ev(`${pestana("Scimago Latam")}.click();`);
 await esperar(3500);
-const sci = await estadoModo();
-comprobar("el modo numérico se conserva al cambiar a un ranking que lo admite", sci?.activo === true, JSON.stringify(sci));
 const avisoSci = await aviso();
+comprobar("el modo se conserva al cambiar de ranking", Boolean(avisoSci));
 comprobar("el aviso dice que la fuente los publica tal cual", /tal cual/.test(avisoSci || ""), avisoSci?.slice(0, 120));
 comprobar("y nombra lo que falta", /Sin valor medido/.test(avisoSci || ""), avisoSci?.slice(0, 300));
 await capturar("modo_numerico_scimago");
 
-console.log("\n=== 4. Volver a un ranking sin valores devuelve los puntajes ===");
+console.log("\n=== 4. Un ranking sin cifras muestra puntajes y lo dice ===");
 await ev(`${pestana("Shanghai GRAS")}.click();`);
 await esperar(2500);
-comprobar("en Shanghai GRAS no aparece la advertencia", !(await aviso()));
+comprobar("en Shanghai GRAS no aparece la tabla de cifras", !(await aviso()));
+comprobar("se avisa que solo publica puntajes", await avisoSinValores());
 comprobar("y se ve la tabla de puntajes", await ev(`return [...document.querySelectorAll('span')].some(s => /^Score en/.test(s.textContent));`));
 
 console.log("\n=== 5. Scimago en modo Puntajes: normalizado, no cifras sumadas ===");
-await ev(`${boton("Puntajes")}.click();`);
+await ev(`${switchHeader("Puntajes")}.click();`);
 await ev(`${pestana("Scimago Latam")}.click();`);
 await esperar(3500);
 const puntajesSci = await ev(`
@@ -133,8 +124,7 @@ const puntajesSci = await ev(`
     .map(s => s.textContent.trim()).filter(t => /^\\d{1,4}([.,]\\d)?$/.test(t)).map(t => Number(t.replace(',', '.')));
 `);
 const maximo = Math.max(...puntajesSci.filter(n => n > 20));
-comprobar("los totales de Scimago quedan en la escala 0-100", puntajesSci.length > 5 && maximo <= 100,
-  `máximo ${maximo}`);
+comprobar("los totales de Scimago quedan en la escala 0-100", puntajesSci.length > 5 && maximo <= 100, `máximo ${maximo}`);
 await capturar("modo_puntajes_scimago");
 
 if (process.env.KAI_TOKEN_PAGO) {
@@ -142,7 +132,7 @@ if (process.env.KAI_TOKEN_PAGO) {
   await abrir(process.env.KAI_TOKEN_PAGO);
   await ev(`${pestana("THE Latam")}.click();`);
   await esperar(3000);
-  await ev(`${boton("Valores medidos")}.click();`);
+  await ev(`${switchHeader("Valores")}.click();`);
   await esperar(3000);
   const avisoThe = await aviso();
   comprobar("advierte que no son las cifras enviadas a THE", /No son las cifras que cada universidad envió/.test(avisoThe || ""), avisoThe?.slice(0, 120));

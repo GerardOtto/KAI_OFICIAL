@@ -640,17 +640,20 @@ def get_subrankings(usuario: dict = Depends(auth.usuario_actual)):
 
 @app.get("/trends")
 def get_trends(ranking_id: int, metrica_id: int, universidades: str = None,
+    modo: str = "puntajes",
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
 
-        base_query = """
+        base_query = f"""
             SELECT 
                 u.nombre_universidad AS universidad,
                 mu.anio_metrica AS anio,
                 mu.valor_metrica AS valor,
+                mu.unidad,
+                mu.calidad,
                 u.id_universidad
-            FROM metrica_universidad mu
+            FROM {_fuente_valores(db, modo)} mu
             JOIN universidad u ON u.id_universidad = mu.id_universidad
             JOIN metrica m ON m.id_metrica = mu.id_metrica
             WHERE m.id_ranking = :ranking_id
@@ -735,7 +738,9 @@ def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
             SELECT r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
                    COALESCE((to_jsonb(r) ->> 'pesos_editables')::boolean, false) AS pesos_editables,
                    COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false)
-                       OR {con_valores} AS tiene_valores_reales
+                       OR {con_valores} AS tiene_valores_reales,
+                   to_jsonb(r) ->> 'normalizacion' AS normalizacion,
+                   to_jsonb(r) ->> 'origen_valores' AS origen_valores
             FROM ranking r
             ORDER BY r.id_ranking"""))
         # Los rankings reservados se devuelven igualmente, marcados: el plan
@@ -750,6 +755,7 @@ def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
 
 @app.get("/simulacion")
 def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
+    modo: str = "puntajes",
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
@@ -769,14 +775,21 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
                 m.nombre_metrica,
                 m.disciplina,
                 m.peso_metrica,
+                m.pondera,
+                to_jsonb(m) ->> 'sentido' AS sentido,
                 mu.valor_metrica,
-                mu.anio_metrica
+                mu.anio_metrica,
+                mu.unidad,
+                mu.calidad
             FROM metrica m
-            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             JOIN universidad u ON u.id_universidad = mu.id_universidad
             WHERE m.id_ranking = :ranking_id
               AND mu.anio_metrica = :anio
-              AND m.pondera
+              -- En puntajes, solo lo que compone el total. En valores medidos
+              -- también los indicadores de referencia: en THE son ellos, y no los
+              -- pilares, los que tienen cifra.
+              {"AND m.pondera" if modo == "puntajes" else ""}
               {uni_filter}
             ORDER BY u.nombre_universidad, m.id_metrica
         """)
@@ -787,13 +800,13 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
         db.close()
 
 @app.get("/anios")
-def get_anios(ranking_id: int,
+def get_anios(ranking_id: int, modo: str = "puntajes",
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
-        result = db.execute(text("""
+        result = db.execute(text(f"""
             SELECT DISTINCT mu.anio_metrica
-            FROM metrica_universidad mu
+            FROM {_fuente_valores(db, modo)} mu
             JOIN metrica m ON m.id_metrica = mu.id_metrica
             WHERE m.id_ranking = :ranking_id
             ORDER BY mu.anio_metrica DESC
@@ -895,10 +908,11 @@ def get_metricas_por_tipo(tipo: str,
 
 @app.get("/valores-metrica-universidad")
 def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int,
+    modo: str = "puntajes",
     usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
-        result = db.execute(text("""
+        result = db.execute(text(f"""
             SELECT
                 m.id_metrica,
                 m.nombre_metrica,
@@ -906,10 +920,12 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int,
                 m.disciplina,
                 r.nombre_ranking,
                 mu.valor_metrica,
-                mu.anio_metrica
+                mu.anio_metrica,
+                mu.unidad,
+                mu.calidad
             FROM metrica m
             JOIN ranking r ON r.id_ranking = m.id_ranking
-            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             WHERE m.tipo_metrica = :tipo
               AND mu.id_universidad = :universidad_id
               AND mu.anio_metrica = :anio
@@ -1108,6 +1124,43 @@ def get_cientificos_campos(usuario: dict = Depends(auth.usuario_actual)):
     finally:
         db.close()
 
+MODOS = ("puntajes", "numerico")
+
+
+def _modo(modo: str) -> str:
+    if modo not in MODOS:
+        raise HTTPException(status_code=422, detail=f"modo debe ser uno de {', '.join(MODOS)}.")
+    return modo
+
+
+def _fuente_valores(db, modo: str) -> str:
+    """Tabla derivada con la forma de metrica_universidad para el modo pedido.
+
+    El switch global de la interfaz alterna entre el puntaje normalizado y el
+    valor cuantificable. En vez de duplicar cada consulta, los endpoints leen de
+    esta tabla derivada: mismas columnas —más `unidad` y `calidad`— y el mismo
+    alias. En modo numérico solo entran las universidades que el ranking clasificó
+    ese año, igual que en /valores-reales.
+    """
+    _modo(modo)
+    if modo == "numerico":
+        if not _hay_tabla(db, "valor_real_universidad"):
+            return ("(SELECT NULL::int AS id_metrica, NULL::int AS id_universidad, "
+                    "NULL::float AS valor_metrica, NULL::int AS anio_metrica, "
+                    "NULL::text AS unidad, NULL::text AS calidad WHERE false)")
+        return """(SELECT v.id_metrica, v.id_universidad, v.valor AS valor_metrica,
+                          v.anio_edicion AS anio_metrica, v.unidad, v.calidad
+                   FROM valor_real_universidad v
+                   JOIN metrica m0 ON m0.id_metrica = v.id_metrica
+                   WHERE EXISTS (
+                       SELECT 1 FROM metrica_universidad p
+                       JOIN metrica m1 ON m1.id_metrica = p.id_metrica
+                       WHERE m1.id_ranking = m0.id_ranking AND p.anio_metrica = v.anio_edicion
+                         AND p.id_universidad = v.id_universidad))"""
+    return ("(SELECT id_metrica, id_universidad, valor_metrica, anio_metrica, "
+            "NULL::text AS unidad, NULL::text AS calidad FROM metrica_universidad)")
+
+
 def _hay_tabla(db, nombre: str) -> bool:
     """Si la tabla existe. Permite desplegar el código antes que su migración."""
     return bool(db.execute(text("SELECT to_regclass(:t) IS NOT NULL"),
@@ -1223,15 +1276,17 @@ def get_valores_reales(ranking_id: int, anio: int | None = None,
 
 
 @app.get("/metricas-con-datos")
-def get_metricas_con_datos(ranking_id: int,
+def get_metricas_con_datos(ranking_id: int, modo: str = "puntajes",
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
-        result = db.execute(text("""
+        result = db.execute(text(f"""
             SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
-                   MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max
+                   to_jsonb(m) ->> 'sentido' AS sentido,
+                   MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max,
+                   MAX(mu.unidad) AS unidad
             FROM metrica m
-            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id
             GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica
             ORDER BY m.nombre_metrica, m.disciplina
@@ -1247,6 +1302,7 @@ def get_tendencias_comparacion(
     anio: int,
     metricas: str = None,
     universidades: str = None,
+    modo: str = "puntajes",
     # Faltaba: era el único endpoint de datos sin sesión, y por él se leían los
     # valores de THE y QS que el plan gratuito no incluye. El cliente ya enviaba
     # el token, así que exigirlo no cambia nada para quien usa la interfaz.
@@ -1270,10 +1326,11 @@ def get_tendencias_comparacion(
             params["uni_ids"] = [int(x) for x in universidades.split(",") if x.strip()]
             uni_filter = "AND u.id_universidad = ANY(:uni_ids)"
 
+        fuente = _fuente_valores(db, modo)
         query = text(f"""
             WITH techos AS (
                 SELECT mu.id_metrica, MAX(mu.valor_metrica) AS techo
-                FROM metrica_universidad mu
+                FROM {fuente} mu
                 JOIN metrica m ON m.id_metrica = mu.id_metrica
                 WHERE m.id_ranking = :ranking_id
                 GROUP BY mu.id_metrica
@@ -1286,9 +1343,11 @@ def get_tendencias_comparacion(
                 t.techo,
                 u.id_universidad,
                 u.nombre_universidad,
-                mu.valor_metrica AS valor
+                mu.valor_metrica AS valor,
+                mu.unidad,
+                mu.calidad
             FROM metrica m
-            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+            JOIN {fuente} mu ON mu.id_metrica = m.id_metrica
             JOIN universidad u ON u.id_universidad = mu.id_universidad
             JOIN techos t ON t.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id

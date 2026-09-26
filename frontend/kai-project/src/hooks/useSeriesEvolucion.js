@@ -4,7 +4,7 @@ import { cabeceraAuth } from "../auth/AuthContext";
 // Vista "Evolución": una métrica a lo largo de los años, una serie por institución.
 // Reusa /trends, pero acotando el payload a las instituciones seleccionadas y
 // con dependencias estables (la lista viaja como string, no como array).
-export function useSeriesEvolucion(rankingId, metricaId, universidadIds) {
+export function useSeriesEvolucion(rankingId, metricaId, universidadIds, modo = "puntajes") {
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +19,7 @@ export function useSeriesEvolucion(rankingId, metricaId, universidadIds) {
       ranking_id: rankingId,
       metrica_id: metricaId,
       universidades: uniKey,
+      modo,
     });
 
     let cancelado = false;
@@ -38,7 +39,7 @@ export function useSeriesEvolucion(rankingId, metricaId, universidadIds) {
       });
 
     return () => { cancelado = true; };
-  }, [rankingId, metricaId, uniKey]);
+  }, [rankingId, metricaId, uniKey, modo]);
 
   return { filas, loading };
 }

@@ -4,6 +4,7 @@ import Lenis from "@studio-freight/lenis";
 
 import Header from "./components/Header";
 import { AuthProvider } from "./auth/AuthContext";
+import { ModoValoresProvider } from "./estado/ModoValores";
 import RutaProtegida from "./auth/RutaProtegida";
 import Landing from "./pages/Landing";
 import Ranking from "./pages/Ranking";
@@ -91,7 +92,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppContent />
+        <ModoValoresProvider>
+          <AppContent />
+        </ModoValoresProvider>
       </AuthProvider>
     </BrowserRouter>
   );

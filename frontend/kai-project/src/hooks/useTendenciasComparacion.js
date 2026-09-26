@@ -4,7 +4,7 @@ import { cabeceraAuth } from "../auth/AuthContext";
 // Vista "Comparación anual": N instituciones x M métricas en un solo año.
 // El backend devuelve también el techo observado de cada métrica para poder
 // normalizar en un mismo eje escalas distintas (0-100, 0-5, conteos).
-export function useTendenciasComparacion(rankingId, anio, metricaIds, universidadIds) {
+export function useTendenciasComparacion(rankingId, anio, metricaIds, universidadIds, modo = "puntajes") {
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +21,7 @@ export function useTendenciasComparacion(rankingId, anio, metricaIds, universida
       anio,
       metricas: metKey,
       universidades: uniKey,
+      modo,
     });
 
     let cancelado = false;
@@ -40,7 +41,7 @@ export function useTendenciasComparacion(rankingId, anio, metricaIds, universida
       });
 
     return () => { cancelado = true; };
-  }, [rankingId, anio, metKey, uniKey]);
+  }, [rankingId, anio, metKey, uniKey, modo]);
 
   return { filas, loading };
 }

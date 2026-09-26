@@ -62,10 +62,11 @@ const columnas = await ev(`
 comprobar("hay columnas de rankings", columnas.length > 0, JSON.stringify(columnas));
 comprobar("«QS por Disciplina» no aparece como columna",
   !columnas.some(c => /QS POR DISCIPLINA/i.test(c)), JSON.stringify(columnas));
-comprobar("los demás rankings siguen",
-  ["THE Latam", "QS Latam", "Scimago Latam", "Shanghai GRAS", "QS Global", "Shanghai ARWU"]
+// El Ranking KAI —el índice propio, migración 009— es la séptima columna.
+comprobar("los demás rankings siguen, incluido el Ranking KAI",
+  ["THE Latam", "QS Latam", "Scimago Latam", "Shanghai GRAS", "QS Global", "Shanghai ARWU", "Ranking KAI"]
     .every(n => columnas.some(c => c.toUpperCase() === n.toUpperCase())), JSON.stringify(columnas));
-comprobar("quedan seis columnas", columnas.length === 6, columnas.length);
+comprobar("quedan siete columnas", columnas.length === 7, columnas.length);
 
 console.log("\n=== 2. Shanghai GRAS: cifras proporcionadas ===");
 const gras = await ev(`

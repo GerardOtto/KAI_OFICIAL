@@ -35,6 +35,8 @@ const SONDAS = {
   valores_medidos: "Formato, orden y exportación del modo numérico",
   modo_numerico: "Modo numérico de la pantalla de ranking",
   ranking_kai: "Panel de pesos del Ranking KAI",
+  switch_global: "Switch global de valores en los cuatro módulos",
+  simulacion_cifras: "Percentiles de la simulación sobre cifras",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el

@@ -17,6 +17,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | pendiente | pendiente |
 | `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | pendiente | pendiente |
 | `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | pendiente | pendiente |
+| `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | pendiente | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -216,3 +217,25 @@ muestran ahora los percentiles de Scimago, como los puntajes de los demás. El
 asistente recibe, junto a cada puntaje, la cifra medida con su unidad y calidad
 (`valor_medido`), y puede consultar `valor_real_universidad` con la herramienta
 de SQL.
+
+## 012 y el switch global de valores
+
+El header tiene un switch **Puntajes / Valores** que fija el modo de toda la
+plataforma: Resumen, Tendencias, Simulación y Glosario lo leen de un estado único
+(`src/estado/ModoValores.jsx`), y cada hook de datos lo pasa al backend como
+`modo=puntajes|numerico`. Los endpoints `/anios`, `/trends`,
+`/tendencias-comparacion`, `/metricas-con-datos`, `/simulacion` y
+`/valores-metrica-universidad` leen de una tabla derivada con la forma de
+`metrica_universidad` (`_fuente_valores` en `main.py`), así que no se duplicó
+ninguna consulta.
+
+La 012 agrega `ranking.normalizacion`, que decide qué puede hacer Simulación con
+las cifras:
+
+| normalizacion | Rankings | En «Valores» |
+|---|---|---|
+| `percentil` | Ranking KAI, Scimago | se simula sobre la cifra real y el percentil se recalcula contra todas las universidades del año |
+| `propia` | THE, QS, Shanghai | la cifra se muestra, pero no se puede convertir en puntaje: la simulación usa puntajes y lo dice |
+
+Un ranking sin cifras (Shanghai, QS por Disciplina) muestra sus puntajes en
+cualquier modo, con un aviso.

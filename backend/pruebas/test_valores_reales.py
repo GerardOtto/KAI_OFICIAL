@@ -184,7 +184,69 @@ try:
     comprobar("todos sus valores son medidos", set(kai["cobertura"]["calidades"]) == {"directa"},
               kai["cobertura"]["calidades"])
 
-    print("\n=== 6. Un ranking sin valores medidos ===")
+    print("\n=== 6. El modo global en cada endpoint ===")
+    kai_id, sci_id, the_id = ids["Ranking KAI"], ids["Scimago Latam"], ids["THE Latam"]
+    catalogo = {r["nombre_ranking"]: r for r in cliente.get("/rankings", headers=gratis).json()}
+    comprobar("el catálogo dice cómo normaliza cada ranking",
+              catalogo["Ranking KAI"]["normalizacion"] == "percentil"
+              and catalogo["Scimago Latam"]["normalizacion"] == "percentil"
+              and catalogo["THE Latam"]["normalizacion"] == "propia",
+              {k: v.get("normalizacion") for k, v in catalogo.items()})
+    comprobar("un modo desconocido se rechaza",
+              cliente.get(f"/anios?ranking_id={kai_id}&modo=otro", headers=gratis).status_code == 422)
+
+    anios_p = cliente.get(f"/anios?ranking_id={the_id}", headers=pago).json()
+    anios_n = cliente.get(f"/anios?ranking_id={the_id}&modo=numerico", headers=pago).json()
+    comprobar("los años con cifras son un subconjunto de los años con puntaje",
+              set(anios_n) <= set(anios_p) and anios_n, f"{anios_n} frente a {anios_p}")
+
+    met_n = cliente.get(f"/metricas-con-datos?ranking_id={the_id}&modo=numerico", headers=pago).json()
+    comprobar("en THE, las métricas con cifras son indicadores y traen unidad",
+              met_n and all(m["unidad"] for m in met_n)
+              and not any(m["nombre_metrica"] in ("Teaching", "Research Quality") for m in met_n),
+              [m["nombre_metrica"] for m in met_n][:5])
+    met_p = cliente.get(f"/metricas-con-datos?ranking_id={the_id}", headers=pago).json()
+    comprobar("en puntajes, siguen siendo los pilares", any(m["nombre_metrica"] == "Teaching" for m in met_p))
+
+    id_ssr = next(m["id_metrica"] for m in cliente.get(f"/valores-reales?ranking_id={kai_id}", headers=gratis).json()["metricas"]
+                  if m["nombre_metrica"] == "Estudiantes por académico")
+    serie_n = cliente.get(f"/trends?ranking_id={kai_id}&metrica_id={id_ssr}&universidades=2&modo=numerico",
+                          headers=gratis).json()["data"]
+    serie_p = cliente.get(f"/trends?ranking_id={kai_id}&metrica_id={id_ssr}&universidades=2",
+                          headers=gratis).json()["data"]
+    db = main.SessionLocal()
+    reales = {a: float(v) for a, v in db.execute(text("""
+        SELECT anio_edicion, valor FROM valor_real_universidad
+        WHERE id_metrica = :m AND id_universidad = 2"""), {"m": id_ssr})}
+    db.close()
+    comprobar("la serie numérica de Tendencias son las cifras medidas",
+              serie_n and all(abs(float(f["valor"]) - reales[f["anio"]]) < 1e-9 for f in serie_n)
+              and all(f["unidad"] for f in serie_n), serie_n[:2])
+    comprobar("la serie de puntajes sigue en 0-100 y difiere de la numérica",
+              serie_p and all(0 <= float(f["valor"]) <= 100 for f in serie_p)
+              and [float(f["valor"]) for f in serie_p] != [float(f["valor"]) for f in serie_n])
+
+    ultimo = max(reales)
+    comp = cliente.get(f"/tendencias-comparacion?ranking_id={kai_id}&anio={ultimo}&metricas={id_ssr}&modo=numerico",
+                       headers=gratis).json()
+    comprobar("la comparación anual numérica trae la cifra, su unidad y un techo en esa escala",
+              comp and all(f["unidad"] for f in comp) and float(comp[0]["techo"]) >= max(float(f["valor"]) for f in comp),
+              comp[:1])
+
+    sim_n = cliente.get(f"/simulacion?ranking_id={kai_id}&anio={ultimo}&modo=numerico", headers=gratis).json()
+    comprobar("la simulación numérica trae todas las universidades con cifra, sentido y unidad",
+              len({f["id_universidad"] for f in sim_n}) > 30 and all(f["sentido"] in ("mayor", "menor") for f in sim_n)
+              and all(f["unidad"] for f in sim_n), len(sim_n))
+    sim_the = cliente.get(f"/simulacion?ranking_id={the_id}&anio={anios_n[0]}&modo=numerico", headers=pago).json()
+    comprobar("en THE numérico la simulación incluye los indicadores de referencia",
+              sim_the and any(not f["pondera"] for f in sim_the))
+
+    glos = cliente.get(f"/valores-metrica-universidad?tipo=Alumnado&universidad_id=2&anio={ultimo}&modo=numerico",
+                       headers=gratis).json()
+    comprobar("el glosario numérico trae la cifra con su unidad",
+              glos and all(f["unidad"] for f in glos), glos[:1])
+
+    print("\n=== 7. Un ranking sin valores medidos ===")
     gras = cliente.get(f"/valores-reales?ranking_id={ids['Shanghai GRAS']}", headers=gratis).json()
     comprobar("Shanghai GRAS responde sin años ni valores", gras["anios"] == [] and gras["valores"] == [], gras["anios"])
 finally:

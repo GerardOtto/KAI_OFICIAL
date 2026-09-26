@@ -31,8 +31,16 @@ export const alpha = (hex, a) => {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 };
 
-export const fmt = (v, d = 1) =>
-  v === null || v === undefined || Number.isNaN(v) ? "—" : Number(v).toFixed(d).replace(".", ",");
+// Las cifras del modo numérico pueden ser millones de pesos por académico: se
+// abrevian en millones y los miles llevan separador. Los puntajes de 0 a 100 no
+// cambian.
+export const fmt = (v, d = 1) => {
+  if (v === null || v === undefined || Number.isNaN(v)) return "—";
+  const n = Number(v);
+  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1).replace(".", ",")} M`;
+  if (Math.abs(n) >= 1000) return Math.round(n).toLocaleString("es-CL");
+  return n.toFixed(d).replace(".", ",");
+};
 
 // Decimales razonables según la escala de la métrica.
 export const decimalesPara = (techo) => (techo >= 1000 ? 0 : techo >= 100 ? 1 : 2);

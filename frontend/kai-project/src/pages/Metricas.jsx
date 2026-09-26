@@ -7,6 +7,8 @@ import { useUniversidades } from "../hooks/useUniversidades";
 import { useRankings } from "../hooks/useRankings";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import HeatCell from "../components/data/HeatCell";
+import { useModoValores } from "../estado/ModoValores";
+import { formatearValor } from "../utils/valoresReales";
 
 const DownloadIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,7 +60,10 @@ export default function Metricas() {
   const [showUniPicker, setShowUniPicker] = useState(false);
 
   const { matriz, loading } = useMetricasMatriz(tipos);
-  const { valoresMap } = useValoresMatriz(tipos, universidadId, anio || null);
+  // Switch global: en «Valores», el número de cada celda es la cifra medida.
+  const { numerico } = useModoValores();
+  const { valoresMap, unidadesMap } = useValoresMatriz(
+    tipos, universidadId, anio || null, numerico ? "numerico" : "puntajes");
 
   const universidadNombre = useMemo(
     () => universidades?.find(u => u.id_universidad === universidadId)?.nombre_universidad || null,
@@ -126,7 +131,10 @@ export default function Metricas() {
     if (nDisciplinas <= 1) {
       const cuentan = items.filter(pondera);
       const peso = cuentan.reduce((s, m) => s + Number(m.peso_metrica || 0), 0);
-      const principal = [...cuentan].sort(
+      const candidatas = numerico
+        ? items.filter(m => valoresMap[m.id_metrica] != null)
+        : cuentan;
+      const principal = [...candidatas].sort(
         (a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0))[0];
       return {
         peso,
@@ -137,6 +145,7 @@ export default function Metricas() {
         soloReferencia: cuentan.length === 0,
         parteDe: cuentan.length === 0 ? items.find(m => m.nombre_metrica_padre)?.nombre_metrica_padre ?? null : null,
         valor: principal ? valoresMap[principal.id_metrica] ?? null : null,
+        unidad: principal ? unidadesMap[principal.id_metrica] ?? null : null,
         principal: principal?.nombre_metrica,
         // El desglose muestra los dos niveles; los de referencia van al final,
         // marcados con el agregador que los contiene.
@@ -145,6 +154,7 @@ export default function Metricas() {
             nombre: m.nombre_metrica,
             peso: Number(m.peso_metrica || 0),
             valor: valoresMap[m.id_metrica] ?? null,
+            unidad: unidadesMap[m.id_metrica] ?? null,
             referencia: !pondera(m),
             parteDe: m.nombre_metrica_padre || null,
           }))
@@ -315,7 +325,8 @@ export default function Metricas() {
               Qué mide cada ranking, y cuánto pesa
             </h2>
             <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed">
-              Intensidad = peso de la métrica en ese ranking. Número = valor {universidadNombre || "de la institución seleccionada"}.
+              Intensidad = peso de la métrica en ese ranking. Número = {numerico ? "cifra medida" : "puntaje"} {universidadNombre ? `de ${universidadNombre}` : "de la institución seleccionada"}.
+              {numerico ? " Los rankings que solo publican puntajes quedan sin número. " : " "}
               Celda vacía = el ranking no mide esa dimensión. Pasa el cursor por una celda para ver su desglose.
             </p>
             {hayMultidisciplinar && (
@@ -462,7 +473,7 @@ export default function Metricas() {
                           dimension={tipo}
                           ranking={r.nombre_ranking}
                           restringido={r.restringido}
-                          valorFormateado={c ? formatNumero(c.valor) : null}
+                          valorFormateado={c ? (numerico ? formatearValor(c.valor) : formatNumero(c.valor)) : null}
                         />
                       );
                     })}

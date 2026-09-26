@@ -7,6 +7,10 @@ import { useMetricas } from "../hooks/useMetricas";
 import SimulacionUnitaria from "../components/simulacion/SimulacionUnitaria";
 import SimulacionComparada from "../components/simulacion/SimulacionComparada";
 import AgenteIA from "../components/simulacion/AgenteIA";
+import SimulacionUnitariaCifras from "../components/simulacion/SimulacionUnitariaCifras";
+import SimulacionComparadaCifras from "../components/simulacion/SimulacionComparadaCifras";
+import AvisoModo from "../components/data/AvisoModo";
+import { useModoValores } from "../estado/ModoValores";
 
 // Mismo selector que las vistas de Tendencias. El modo vive en la URL
 // (/simulacion/:modo), así que sigue siendo direccionable por enlace.
@@ -30,7 +34,19 @@ export default function Simulacion() {
   const [searchUni, setSearchUni] = useState("");
 
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
-  const anios = useAnios(rankingId);
+
+  // Switch global. En «Valores» se simula sobre la cifra real solo donde el
+  // puntaje es su percentil (Ranking KAI, Scimago); en los demás rankings se
+  // simula con puntajes y el aviso explica por qué.
+  const { numerico: pidioNumerico } = useModoValores();
+  const rankingSel = rankings.find(r => r.id_ranking === rankingId);
+  const enCifras = pidioNumerico && Boolean(rankingSel?.tiene_valores_reales)
+    && rankingSel?.normalizacion === "percentil";
+  const aviso = !pidioNumerico || !rankingSel ? null
+    : !rankingSel.tiene_valores_reales ? "sinValores"
+    : rankingSel.normalizacion !== "percentil" ? "noSimulable" : null;
+
+  const anios = useAnios(rankingId, enCifras ? "numerico" : "puntajes");
   const { universidades } = useUniversidades();
   const metricasRanking = useMetricas(rankingId);
 
@@ -67,7 +83,7 @@ export default function Simulacion() {
         {/* Título */}
         <section className="mb-1">
           <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
-            Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}
+            Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}{enCifras ? " · cifras medidas" : ""}
           </p>
           <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
             Simulación de escenarios
@@ -203,8 +219,28 @@ export default function Simulacion() {
           </div>
         </div>
 
+        {aviso && <AvisoModo tipo={aviso} ranking={rankingNombre} />}
+
         {/* Cuerpo por modo */}
-        {modo === "unitaria" ? (
+        {enCifras ? (
+          modo === "unitaria" ? (
+            <SimulacionUnitariaCifras
+              key={`${rankingId}-${anio}-${institucionUnitaria}`}
+              rankingId={rankingId}
+              anio={anio}
+              rankingNombre={rankingNombre}
+              universidadId={institucionUnitaria}
+            />
+          ) : (
+            <SimulacionComparadaCifras
+              key={`${rankingId}-${anio}`}
+              rankingId={rankingId}
+              anio={anio}
+              rankingNombre={rankingNombre}
+              selectedUniversidades={institucionesComparada}
+            />
+          )
+        ) : modo === "unitaria" ? (
           <SimulacionUnitaria
             rankingId={rankingId}
             anio={anio}

@@ -6,6 +6,8 @@ import * as XLSX from "xlsx";
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import { useAuth } from "../auth/AuthContext";
+import { useModoValores } from "../estado/ModoValores";
+import AvisoModo from "../components/data/AvisoModo";
 import { useAnios } from "../hooks/useAnios";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
@@ -52,8 +54,16 @@ export default function Tendencias() {
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
   const { puedePredecir } = useAuth();
   const descarga = useDescarga("tendencias");
-  const anios = useAnios(rankingId);
-  const metricas = useMetricas(rankingId);
+
+  // Switch global: en «Valores», las series son las cifras medidas. Un ranking que
+  // solo publica puntajes los sigue mostrando, y el aviso lo dice.
+  const { numerico: pidioNumerico } = useModoValores();
+  const rankingSel = rankings.find(r => r.id_ranking === rankingId);
+  const numerico = pidioNumerico && Boolean(rankingSel?.tiene_valores_reales);
+  const modo = numerico ? "numerico" : "puntajes";
+
+  const anios = useAnios(rankingId, modo);
+  const metricas = useMetricas(rankingId, modo);
   const { universidades } = useUniversidades();
 
   // El estado arranca encendido, así que sin permiso hay que apagarlo aquí: lo
@@ -127,11 +137,13 @@ export default function Tendencias() {
 
   // --- datos ---
   const { filas: filasAnual } = useTendenciasComparacion(
-    esAnual ? rankingId : null, anioActivo, metricasSel, graficadas
+    esAnual ? rankingId : null, anioActivo, metricasSel, graficadas, modo
   );
   const { filas: filasEvol } = useSeriesEvolucion(
-    esAnual ? null : rankingId, metricaId, graficadas
+    esAnual ? null : rankingId, metricaId, graficadas, modo
   );
+  // La unidad de lo que se grafica, para el título. En puntajes no hace falta.
+  const unidadActual = numerico ? (metricaActual?.unidad || filasEvol[0]?.unidad || null) : null;
 
   const techoActual = filasAnual.length ? Number(filasAnual[0].techo) : null;
 
@@ -148,6 +160,7 @@ export default function Tendencias() {
         Peso: f.peso_metrica,
         Universidad: f.nombre_universidad,
         Valor: Number(f.valor),
+        ...(numerico ? { Unidad: f.unidad || "", "Tipo de valor": "medido" } : { "Tipo de valor": "puntaje" }),
         "Techo observado": Number(f.techo),
         "% del techo": Number(f.techo) ? Number(((f.valor / f.techo) * 100).toFixed(1)) : null,
       }));
@@ -158,8 +171,9 @@ export default function Tendencias() {
       Universidad: f.universidad || nombreUni(f.id_universidad),
       Año: f.anio,
       Valor: Number(f.valor),
+      ...(numerico ? { Unidad: f.unidad || "", "Tipo de valor": "medido" } : { "Tipo de valor": "puntaje" }),
     }));
-  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, universidades]);
+  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, universidades, numerico]);
 
   const handleXLSX = async () => {
     if (!filasExport.length) return;
@@ -327,6 +341,10 @@ export default function Tendencias() {
     <div className="min-h-screen bg-background text-white">
       <main className="max-w-[1600px] mx-auto px-8 pt-[22px] pb-10">
 
+        {pidioNumerico && rankingSel && !rankingSel.tiene_valores_reales && (
+          <AvisoModo tipo="sinValores" ranking={rankingSel.nombre_ranking} />
+        )}
+
         {/* Contexto + título + exportación */}
         <section className="flex items-start justify-between gap-6 flex-wrap">
           <div className="min-w-0">
@@ -341,7 +359,9 @@ export default function Tendencias() {
                   Comparación {anioActivo ?? "—"}
                 </h2>
                 <p className="font-body text-[11.5px] text-[#7f7f7f]">
-                  {graficadas.length} instituciones × {metricasSel.length} métricas · valores normalizados al techo de cada métrica
+                  {graficadas.length} instituciones × {metricasSel.length} métricas · {numerico
+                    ? "cifras medidas, expresadas como porcentaje de la mayor observada en cada métrica"
+                    : "valores normalizados al techo de cada métrica"}
                 </p>
               </>
             ) : (
@@ -351,7 +371,8 @@ export default function Tendencias() {
                   {metricaActual?.peso_metrica != null ? ` · Peso ${metricaActual.peso_metrica}` : ""}
                 </h2>
                 <p className="font-body text-[11.5px] text-[#7f7f7f]">
-                  Serie histórica{proyectando ? ` · proyección lineal a ${anosProyeccion} años` : ""}
+                  {numerico ? `Cifra medida${unidadActual ? ` · ${unidadActual}` : ""}` : "Serie histórica"}
+                  {proyectando ? ` · proyección lineal a ${anosProyeccion} años` : ""}
                 </p>
               </>
             )}

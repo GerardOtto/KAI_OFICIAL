@@ -132,7 +132,7 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 011
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 012
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
 instituciones, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,

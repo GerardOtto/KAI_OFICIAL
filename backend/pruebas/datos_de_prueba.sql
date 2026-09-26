@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Gi1MrcVOdpRiV7xDRh4oIhXJlCVqgQWLyNEpSonFak4XFEN1muHitCBvxebi94g
+\restrict C6L3cJsiGe8mpoFLTu4EB5Kv5VEFScKR7ZCZHeqlhWgH3fOnJDUW1vEQZt2BbxK
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -376,6 +376,8 @@ CREATE TABLE public.ranking (
     pesos_editables boolean DEFAULT false NOT NULL,
     valores_son_crudos boolean DEFAULT false NOT NULL,
     origen_valores text,
+    normalizacion text,
+    CONSTRAINT ranking_normalizacion_check CHECK ((normalizacion = ANY (ARRAY['percentil'::text, 'propia'::text]))),
     CONSTRAINT ranking_origen_valores_check CHECK ((origen_valores = ANY (ARRAY['fuente'::text, 'medido'::text])))
 );
 
@@ -399,6 +401,13 @@ COMMENT ON COLUMN public.ranking.valores_son_crudos IS 'Verdadero si metrica_uni
 --
 
 COMMENT ON COLUMN public.ranking.origen_valores IS 'fuente: el ranking publica sus valores cuantificables y se guardan tal cual. medido: KAI los midió con la definición que el ranking publica. Nulo si el ranking no tiene valores cuantificables.';
+
+
+--
+-- Name: COLUMN ranking.normalizacion; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ranking.normalizacion IS 'percentil: el puntaje es el percentil de valor_real_universidad entre las universidades del año, y se puede recalcular. propia: lo calcula el ranking con parámetros que no publica.';
 
 
 --
@@ -37792,15 +37801,15 @@ institucional	Institucional	\N	Para la oficina de análisis institucional, sin t
 -- Data for Name: ranking; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.ranking (id_ranking, nombre_ranking, descripcion_ranking, nivel_ranking, categoria_ranking, pais_ranking, metodologia_ranking, pesos_editables, valores_son_crudos, origen_valores) FROM stdin;
-7	QS por Disciplina	QS World University Rankings by Subject: clasificacion de QS separada por 55 disciplinas y areas academicas (5 grandes areas + 50 disciplinas especificas), con metodologia y universo de instituciones consideradas propios de cada disciplina, distinta del QS World (ranking general).	Internacional	Prestigio academico y empleabilidad por disciplina	Reino Unido	Cada disciplina pondera de forma independiente: Academic Reputation, Employer Reputation, Citations per Paper, H-index Citations e International Research Network (los pesos varian por disciplina y pueden cambiar entre ediciones).	f	f	\N
-4	Shanghai GRAS	Clasificación anual de las 1.000 mejores universidades del mundo, publicada desde 2003 por ShanghaiRanking Consultancy. Se centra fuertemente en la investigación, premiando la calidad de la educación, el rendimiento del personal y las publicaciones científicas de alto impacto 	Nacional	Docencia e investigación	China	Evalúa universidades basándose 100% en indicadores académicos y de investigación objetiva, con un fuerte enfoque en la producción científica de élite, premios Nobel/Fields y citas, representando el 20% cada uno	f	f	\N
-6	Shanghai ARWU	Academic Ranking of World Universities (ARWU), el ranking clasico de ShanghaiRanking, distinto del Global Ranking of Academic Subjects (GRAS).	Internacional	Investigacion y prestigio academico	China	Combina Alumni (10%, egresados ganadores de Nobel/Fields), Award (20%, personal ganador de Nobel/Fields), HiCi (20%, investigadores altamente citados), N&S (20%, articulos en Nature/Science), PUB (20%, articulos indexados en SCIE/SSCI) y PCP (10%, rendimiento academico per capita).	f	f	\N
-1	THE Latam	Evalúa instituciones intensivas en investigación bajo métricas de docencia, investigación, citas, perspectiva internacional e ingresos de la industria	Nacional	Docencia e investigación	Reino Unido	Evalúa universidades intensivas en investigación basándose en 18 indicadores de rendimiento, agrupados en cinco pilares clave: Docencia, Entorno de investigación, Calidad de la investigación, Perspectiva internacional e Industria. Utiliza datos bibliométricos de Scopus, encuestas de reputación y datos institucionales para un análisis integral.	f	f	medido
-3	Scimago Latam	Clasificación mundial que evalúa la calidad y el impacto de las instituciones académicas y de investigación. Es desarrollado por SCImago Lab, una organización de investigación que utiliza los datos de la base científica Scopus (Elsevier).	Nacional	Docencia e investigación	España	La metodología del SIR se basa en un indicador compuesto que combina métricas de investigación (50%), innovación (30%) e impacto social (20%), utilizando  datos de la base Scopus y Patstat.	f	f	fuente
-5	QS Global	Evalúa instituciones basadas en reputación académica, empleabilidad, investigación y calidad docente.	Internacional	Reputación institucional, calidad de los académicos, colaboración internacional y proyección de estudiantes.	Reino Unido	El ranking global de QS evalúa a las universidades mediante un sistema de seis indicadores agrupados en cinco pilares, con un fuerte enfoque en la reputación y empleabilidad: Investigación y Descubrimiento (50%): Mide la Reputación Académica (30%) a través de encuestas a expertos y las Citas por Facultad (20%) utilizando datos de Scopus. Empleabilidad y Resultados (20%): Evalúa la Reputación de los Empleadores (15%) y los Resultados de Empleo de los graduados (5%). Compromiso Global (15%): Considera la proporción de profesores y estudiantes internacionales, y la diversidad de las redes internacionales de investigación. Experiencia de Aprendizaje (10%): Evalúa la proporción entre profesores y estudiantes, proxy para medir el apoyo y la calidad de la enseñanza. Sostenibilidad (5%): Mide el compromiso ambiental, social y de gobernanza de la institución.	f	f	medido
-2	QS Latam	Evalúa instituciones basadas en reputación académica, empleabilidad, investigación y calidad docente.	Nacional	Reputación académica	Reino Unido	La metodología del QS Latam evalúa a las universidades mediante ocho indicadores adaptados a la realidad regional, destacando la reputación académica (30%) y la reputación entre empleadores (20%) como sus pilares principales. A diferencia del ranking mundial, otorga un peso especial a la formación docente (personal con doctorado), la productividad científica y el impacto web, buscando equilibrar el prestigio internacional con el impacto social y académico dentro del contexto latinoamericano.	f	f	medido
-8	Ranking KAI	Índice propio de KAI, construido solo con datos medidos en fuentes oficiales: el SIES del Ministerio de Educación, la ANID y OpenAlex. Diez métricas con el mismo peso, que puedes cambiar para ordenar las universidades según tus propios criterios. No incluye encuestas de reputación: todas sus variables dependen de decisiones de la institución.	Nacional	Gestión institucional	Chile	Diez métricas en cinco dimensiones: cuerpo académico (estudiantes por académico, académicos con doctorado), formación avanzada (doctorados otorgados, matrícula de posgrado), investigación (productividad, citas por publicación), financiamiento (fondos ANID, fondos con la industria) e internacionalización (colaboración internacional, académicos extranjeros). Cada una se mide con su fórmula y se convierte en un percentil: la proporción de las demás universidades elegibles de ese año a las que supera, de 0 a 100. El puntaje del ranking es el promedio ponderado de los diez percentiles; por defecto todos pesan 10 %. Los académicos se cuentan en jornadas completas equivalentes (JCE), porque el recuento de personas no es comparable entre universidades. La bibliometría usa la ventana de cinco años que termina en el año del ranking. Los flujos —fondos adjudicados y doctorados otorgados— se promedian en los tres últimos años, para que un centro plurianual adjudicado de una vez o una cohorte que se titula junta no produzcan un salto que no existió. Son elegibles las universidades con datos del SIES en el año, al menos 1.000 estudiantes y 20 académicos JCE.	t	f	medido
+COPY public.ranking (id_ranking, nombre_ranking, descripcion_ranking, nivel_ranking, categoria_ranking, pais_ranking, metodologia_ranking, pesos_editables, valores_son_crudos, origen_valores, normalizacion) FROM stdin;
+3	Scimago Latam	Clasificación mundial que evalúa la calidad y el impacto de las instituciones académicas y de investigación. Es desarrollado por SCImago Lab, una organización de investigación que utiliza los datos de la base científica Scopus (Elsevier).	Nacional	Docencia e investigación	España	La metodología del SIR se basa en un indicador compuesto que combina métricas de investigación (50%), innovación (30%) e impacto social (20%), utilizando  datos de la base Scopus y Patstat.	f	f	fuente	percentil
+7	QS por Disciplina	QS World University Rankings by Subject: clasificacion de QS separada por 55 disciplinas y areas academicas (5 grandes areas + 50 disciplinas especificas), con metodologia y universo de instituciones consideradas propios de cada disciplina, distinta del QS World (ranking general).	Internacional	Prestigio academico y empleabilidad por disciplina	Reino Unido	Cada disciplina pondera de forma independiente: Academic Reputation, Employer Reputation, Citations per Paper, H-index Citations e International Research Network (los pesos varian por disciplina y pueden cambiar entre ediciones).	f	f	\N	propia
+4	Shanghai GRAS	Clasificación anual de las 1.000 mejores universidades del mundo, publicada desde 2003 por ShanghaiRanking Consultancy. Se centra fuertemente en la investigación, premiando la calidad de la educación, el rendimiento del personal y las publicaciones científicas de alto impacto 	Nacional	Docencia e investigación	China	Evalúa universidades basándose 100% en indicadores académicos y de investigación objetiva, con un fuerte enfoque en la producción científica de élite, premios Nobel/Fields y citas, representando el 20% cada uno	f	f	\N	propia
+5	QS Global	Evalúa instituciones basadas en reputación académica, empleabilidad, investigación y calidad docente.	Internacional	Reputación institucional, calidad de los académicos, colaboración internacional y proyección de estudiantes.	Reino Unido	El ranking global de QS evalúa a las universidades mediante un sistema de seis indicadores agrupados en cinco pilares, con un fuerte enfoque en la reputación y empleabilidad: Investigación y Descubrimiento (50%): Mide la Reputación Académica (30%) a través de encuestas a expertos y las Citas por Facultad (20%) utilizando datos de Scopus. Empleabilidad y Resultados (20%): Evalúa la Reputación de los Empleadores (15%) y los Resultados de Empleo de los graduados (5%). Compromiso Global (15%): Considera la proporción de profesores y estudiantes internacionales, y la diversidad de las redes internacionales de investigación. Experiencia de Aprendizaje (10%): Evalúa la proporción entre profesores y estudiantes, proxy para medir el apoyo y la calidad de la enseñanza. Sostenibilidad (5%): Mide el compromiso ambiental, social y de gobernanza de la institución.	f	f	medido	propia
+2	QS Latam	Evalúa instituciones basadas en reputación académica, empleabilidad, investigación y calidad docente.	Nacional	Reputación académica	Reino Unido	La metodología del QS Latam evalúa a las universidades mediante ocho indicadores adaptados a la realidad regional, destacando la reputación académica (30%) y la reputación entre empleadores (20%) como sus pilares principales. A diferencia del ranking mundial, otorga un peso especial a la formación docente (personal con doctorado), la productividad científica y el impacto web, buscando equilibrar el prestigio internacional con el impacto social y académico dentro del contexto latinoamericano.	f	f	medido	propia
+6	Shanghai ARWU	Academic Ranking of World Universities (ARWU), el ranking clasico de ShanghaiRanking, distinto del Global Ranking of Academic Subjects (GRAS).	Internacional	Investigacion y prestigio academico	China	Combina Alumni (10%, egresados ganadores de Nobel/Fields), Award (20%, personal ganador de Nobel/Fields), HiCi (20%, investigadores altamente citados), N&S (20%, articulos en Nature/Science), PUB (20%, articulos indexados en SCIE/SSCI) y PCP (10%, rendimiento academico per capita).	f	f	\N	propia
+1	THE Latam	Evalúa instituciones intensivas en investigación bajo métricas de docencia, investigación, citas, perspectiva internacional e ingresos de la industria	Nacional	Docencia e investigación	Reino Unido	Evalúa universidades intensivas en investigación basándose en 18 indicadores de rendimiento, agrupados en cinco pilares clave: Docencia, Entorno de investigación, Calidad de la investigación, Perspectiva internacional e Industria. Utiliza datos bibliométricos de Scopus, encuestas de reputación y datos institucionales para un análisis integral.	f	f	medido	propia
+8	Ranking KAI	Índice propio de KAI, construido solo con datos medidos en fuentes oficiales: el SIES del Ministerio de Educación, la ANID y OpenAlex. Diez métricas con el mismo peso, que puedes cambiar para ordenar las universidades según tus propios criterios. No incluye encuestas de reputación: todas sus variables dependen de decisiones de la institución.	Nacional	Gestión institucional	Chile	Diez métricas en cinco dimensiones: cuerpo académico (estudiantes por académico, académicos con doctorado), formación avanzada (doctorados otorgados, matrícula de posgrado), investigación (productividad, citas por publicación), financiamiento (fondos ANID, fondos con la industria) e internacionalización (colaboración internacional, académicos extranjeros). Cada una se mide con su fórmula y se convierte en un percentil: la proporción de las demás universidades elegibles de ese año a las que supera, de 0 a 100. El puntaje del ranking es el promedio ponderado de los diez percentiles; por defecto todos pesan 10 %. Los académicos se cuentan en jornadas completas equivalentes (JCE), porque el recuento de personas no es comparable entre universidades. La bibliometría usa la ventana de cinco años que termina en el año del ranking. Los flujos —fondos adjudicados y doctorados otorgados— se promedian en los tres últimos años, para que un centro plurianual adjudicado de una vez o una cohorte que se titula junta no produzcan un salto que no existió. Son elegibles las universidades con datos del SIES en el año, al menos 1.000 estudiantes y 20 académicos JCE.	t	f	medido	percentil
 \.
 
 
@@ -53599,21 +53608,21 @@ SELECT pg_catalog.setval('public.cientifico_id_cientifico_seq', 4245, true);
 -- Name: conversacion_id_conversacion_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.conversacion_id_conversacion_seq', 872, true);
+SELECT pg_catalog.setval('public.conversacion_id_conversacion_seq', 891, true);
 
 
 --
 -- Name: descarga_id_descarga_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.descarga_id_descarga_seq', 77, true);
+SELECT pg_catalog.setval('public.descarga_id_descarga_seq', 84, true);
 
 
 --
 -- Name: mensaje_id_mensaje_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mensaje_id_mensaje_seq', 2039, true);
+SELECT pg_catalog.setval('public.mensaje_id_mensaje_seq', 2085, true);
 
 
 --
@@ -53648,7 +53657,7 @@ SELECT pg_catalog.setval('public.universidad_id_universidad_seq', 58, true);
 -- Name: usuario_id_usuario_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 412, true);
+SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 457, true);
 
 
 --
@@ -53985,5 +53994,5 @@ ALTER TABLE ONLY public.valor_real_universidad
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Gi1MrcVOdpRiV7xDRh4oIhXJlCVqgQWLyNEpSonFak4XFEN1muHitCBvxebi94g
+\unrestrict C6L3cJsiGe8mpoFLTu4EB5Kv5VEFScKR7ZCZHeqlhWgH3fOnJDUW1vEQZt2BbxK
 

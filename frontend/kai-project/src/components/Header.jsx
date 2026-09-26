@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../auth/AuthContext";
 import AuthModal from "./AuthModal";
+import { useModoValores, RUTAS_CON_MODO } from "../estado/ModoValores";
 
 // Los modos de Simulación se eligen dentro del propio módulo, con el mismo
 // selector que las vistas de Tendencias; aquí basta un enlace a la sección.
@@ -153,11 +154,71 @@ function MenuUsuario() {
   );
 }
 
+/** Switch global entre puntajes normalizados y valores medidos.
+ *
+ * Aparece solo en los módulos donde tiene efecto —Resumen, Tendencias,
+ * Simulación y Glosario—: en la portada o el asistente sería un control que no
+ * hace nada. Las etiquetas son cortas a propósito: el header no puede desbordar
+ * en ningún ancho, y la explicación larga va en el título de cada botón.
+ */
+function SwitchModo() {
+  const location = useLocation();
+  const { modo, setModo } = useModoValores();
+  if (!RUTAS_CON_MODO.some((r) => location.pathname.startsWith(r))) return null;
+
+  const opciones = [
+    ["puntajes", "Puntajes", "Puntajes normalizados de 0 a 100, como los publica cada ranking"],
+    ["numerico", "Valores", "Valores medidos: las cifras reales detrás de cada puntaje"],
+  ];
+  const otro = modo === "numerico" ? "puntajes" : "numerico";
+  return (
+    <>
+      {/* En pantallas chicas no caben dos botones junto al logo y al menú: uno solo
+          muestra el modo vigente y cambia al otro. */}
+      <button
+        type="button"
+        className="sm:hidden shrink-0 px-2 py-1.5 text-[10px] uppercase tracking-wider border border-white/40 text-white"
+        aria-label={`Modo ${modo === "numerico" ? "valores medidos" : "puntajes"}. Cambiar a ${otro === "numerico" ? "valores medidos" : "puntajes"}`}
+        onClick={() => setModo(otro)}
+      >
+        {modo === "numerico" ? "Valores" : "Puntajes"} ⇄
+      </button>
+      <SwitchDoble opciones={opciones} modo={modo} setModo={setModo} />
+    </>
+  );
+}
+
+function SwitchDoble({ opciones, modo, setModo }) {
+  return (
+    <div role="group" aria-label="Tipo de valores en toda la plataforma" className="hidden sm:flex shrink-0">
+      {opciones.map(([clave, etiqueta, ayuda], i) => {
+        const activo = modo === clave;
+        return (
+          <button
+            key={clave}
+            type="button"
+            aria-pressed={activo}
+            title={ayuda}
+            onClick={() => setModo(clave)}
+            className={`px-2.5 sm:px-3 py-1.5 text-[10px] uppercase tracking-widest border transition-colors ${
+              activo
+                ? "bg-white text-black border-white"
+                : "text-[#c4c4c4] border-white/20 hover:border-white/50"
+            } ${i > 0 ? "-ml-px" : ""}`}
+          >
+            {etiqueta}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="flex justify-between items-center px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
+    <header className="flex justify-between items-center px-4 sm:px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
 
       <img
         src={logo}
@@ -179,7 +240,8 @@ export default function Header() {
         ))}
       </nav>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <SwitchModo />
         {/* Sustituye al nav ancho por debajo de `lg`. Antes de esto no había
             navegación alguna en pantallas estrechas. */}
         <MenuCompacto />

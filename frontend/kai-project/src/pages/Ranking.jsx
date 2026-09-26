@@ -11,6 +11,8 @@ import PanelPesos from "../components/data/PanelPesos";
 import VistaValoresReales from "../components/data/VistaValoresReales";
 import { useValoresReales } from "../hooks/useValoresReales";
 import { filasCSV } from "../utils/valoresReales";
+import { useModoValores } from "../estado/ModoValores";
+import AvisoModo from "../components/data/AvisoModo";
 import {
   clasificar, historico, pesosIniciales, pesosModificados, participacion, variacion,
 } from "../utils/rankingPonderado";
@@ -66,9 +68,8 @@ export default function Ranking() {
   const [rankingId, setRankingId] = useState(null);
   const [anio, setAnio] = useState(null);
   const [densidad, setDensidad] = useState("comoda"); // "comoda" | "compacta"
-  // «puntajes»: lo que publica cada ranking, normalizado. «numerico»: los valores
-  // medidos detrás de cada componente, donde existen.
-  const [modo, setModo] = useState("puntajes");
+  // El modo lo fija el switch global del header.
+  const { numerico: pidioNumerico } = useModoValores();
 
   // Después del estado: el hook necesita la selección actual para corregirla si
   // el plan no incluye ese ranking.
@@ -113,11 +114,11 @@ export default function Ranking() {
   );
   const loading = editable ? ponderado.loading : resumen.loading;
 
-  // El modo numérico solo existe donde hay valores medidos. Si se cambia a un
-  // ranking que solo publica puntajes, la vista vuelve sola a los puntajes; la
-  // preferencia se conserva para cuando se vuelva a uno que sí tenga.
+  // El modo numérico solo existe donde hay valores medidos. En un ranking que
+  // solo publica puntajes la vista los muestra y lo dice; el switch global sigue
+  // en «Valores» para cuando se vuelva a uno que sí tenga.
   const conValores = Boolean(rankingActual?.tiene_valores_reales);
-  const numerico = modo === "numerico" && conValores;
+  const numerico = pidioNumerico && conValores;
   const valores = useValoresReales(rankingId, anio, numerico);
   const ordenPuntaje = useMemo(() => data.map(u => u.id_universidad), [data]);
 
@@ -161,36 +162,6 @@ export default function Ranking() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <div role="group" aria-label="Qué valores mostrar" className="flex">
-              {[
-                ["puntajes", "Puntajes"],
-                ["numerico", "Valores medidos"],
-              ].map(([clave, etiqueta]) => {
-                const deshabilitado = clave === "numerico" && !conValores;
-                const activo = clave === "numerico" ? numerico : !numerico;
-                return (
-                  <button
-                    key={clave}
-                    type="button"
-                    aria-pressed={activo}
-                    disabled={deshabilitado}
-                    onClick={() => setModo(clave)}
-                    title={deshabilitado
-                      ? `${rankingActual?.nombre_ranking ?? "Este ranking"} solo publica puntajes normalizados: no hay valores medidos detrás.`
-                      : clave === "numerico"
-                      ? "Los valores medidos de cada componente, sin normalizar"
-                      : "Los puntajes normalizados del ranking"}
-                    className={`text-[11px] py-2 px-3 border transition-colors ${
-                      activo
-                        ? "bg-white text-[#111] border-white"
-                        : "bg-[#1c1c1c] text-[#cfcfcf] border-white/[.14] hover:border-white/30"
-                    } disabled:opacity-40 disabled:cursor-not-allowed ${clave === "numerico" ? "-ml-px" : ""}`}
-                  >
-                    {etiqueta}
-                  </button>
-                );
-              })}
-            </div>
             <div className="relative">
               <select
                 value={anio || ""}
@@ -269,6 +240,10 @@ export default function Ranking() {
             </span>
           )}
         </div>
+
+        {pidioNumerico && rankingActual && !conValores && (
+          <AvisoModo tipo="sinValores" ranking={rankingActual.nombre_ranking} />
+        )}
 
         {editable && ponderado.metricas.length > 0 && (
           <PanelPesos

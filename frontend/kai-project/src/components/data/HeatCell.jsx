@@ -82,6 +82,7 @@ function Globo({ rect, dimension, ranking, datos }) {
             <span className="font-mono text-white">{datos.principal}</span>
             {": "}
             <span className="font-semibold text-white">{numero(datos.valor)}</span>
+            {datos.unidad && <span className="text-outlineSoft"> {datos.unidad}</span>}
             {datos.multi && datos.disciplinasConDato > 0 && (
               <span className="text-outlineSoft"> · {datos.disciplinasConDato} disciplinas con dato</span>
             )}
@@ -103,7 +104,9 @@ function Globo({ rect, dimension, ranking, datos }) {
                 <span className="px-1 mr-1 border border-white/15 text-[8px] uppercase tracking-wider">ref</span>
               )}
               {porcentaje(m.peso)}
-              {m.valor != null && <span className="text-white"> · {numero(m.valor)}</span>}
+              {m.valor != null && (
+                <span className="text-white" title={m.unidad || undefined}> · {numero(m.valor)}</span>
+              )}
             </span>
           </div>
         ))}
