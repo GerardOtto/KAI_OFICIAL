@@ -93,57 +93,57 @@ def pct(a, b):
 #  THE Latam — las 17 métricas hoja, con la definición textual de la metodología
 # --------------------------------------------------------------------------- #
 THE = [
-    Metrica("THE Latam", "Student Staff Ratio",
+    Metrica("THE Latam", "Student staff ratio",
             "estudiantes_total / academicos_jce", "estudiantes por académico",
             lambda i, b: div(i("estudiantes_total"), i("academicos_jce")), "directa",
             "THE la define como personal FTE dividido por estudiantes FTE; se publica "
             "invertida, como estudiantes por académico, y así se calcula aquí"),
 
-    Metrica("THE Latam", "Doctorate Bachelor Ratio",
+    Metrica("THE Latam", "Doctorate bachelor ratio",
             "graduados_doctorado / titulados_pregrado_total", "razón",
             lambda i, b: div(i("graduados_doctorado"), i("titulados_pregrado_total")), "directa",
             "«dividing the total number of doctorates awarded by the total number of "
             "undergraduate degrees awarded»"),
 
-    Metrica("THE Latam", "Doctorate Staff Ratio",
+    Metrica("THE Latam", "Doctorate staff ratio",
             "graduados_doctorado / academicos_jce", "doctorados por académico",
             lambda i, b: div(i("graduados_doctorado"), i("academicos_jce")), "directa",
             "doctorados OTORGADOS por académico, no la proporción de académicos que "
             "tienen doctorado: son métricas distintas y es fácil confundirlas"),
 
-    Metrica("THE Latam", "International Students",
+    Metrica("THE Latam", "International students",
             "pct_estudiantes_extranjeros (declarado a THE)", "%",
             lambda i, b: i("pct_estudiantes_extranjeros"), "directa",
             "THE lo publica entre sus key statistics, redondeado al entero"),
 
-    Metrica("THE Latam", "International Staff",
+    Metrica("THE Latam", "International staff",
             "100 * academicos_jce_extranjeros / academicos_jce", "%",
             lambda i, b: pct(i("academicos_jce_extranjeros"), i("academicos_jce")), "directa",
             "THE pide FTE sobre FTE, y el SIES publica ambos en JCE"),
 
-    Metrica("THE Latam", "International Co-authorship",
+    Metrica("THE Latam", "International co-authorship",
             "pct_colaboracion_internacional", "%",
             lambda i, b: b("pct_colaboracion_internacional"), "aproximada",
             "misma definición, universo distinto: OpenAlex en vez de Scopus"),
 
-    Metrica("THE Latam", "Citation Impact",
+    Metrica("THE Latam", "Citation impact",
             "impacto_normalizado", "índice",
             lambda i, b: b("impacto_normalizado"), "aproximada",
             "impacto normalizado por campo de Scimago como sustituto del FWCI de Scopus"),
 
-    Metrica("THE Latam", "Research Excellence",
+    Metrica("THE Latam", "Research excellence",
             "docs_top10_scimago / academicos_jce", "documentos por académico",
             lambda i, b: div(b("docs_top10_scimago"), i("academicos_jce")), "aproximada",
             "«top 10% of publications worldwide by FWCI […] adjust by […] the total "
             "number of academic and research staff»: el divisor es parte de la métrica"),
 
-    Metrica("THE Latam", "Research Influence",
+    Metrica("THE Latam", "Research influence",
             "docs_alta_calidad / academicos_jce", "documentos por académico",
             lambda i, b: div(b("docs_alta_calidad"), i("academicos_jce")), "aproximada",
             "THE pondera cada cita por la importancia de quien cita; Scimago no publica "
             "ese cálculo, así que es un sustituto de familia, no equivalente"),
 
-    Metrica("THE Latam", "Research Productivity",
+    Metrica("THE Latam", "Research productivity",
             "publicaciones_scopus / academicos_jce", "documentos por académico",
             lambda i, b: div(b("publicaciones_scopus"), i("academicos_jce")), "directa",
             "«papers […] indexed by Scopus […] divided by […] FTE research staff and "
@@ -155,32 +155,32 @@ THE = [
             "«count of patents citing an entity's published research […] we also "
             "normalise this by the sum of academic and research staff»"),
 
-    Metrica("THE Latam", "Research Income",
+    Metrica("THE Latam", "Research income",
             "montos_anid_adjudicados / academicos_jce", "pesos por académico",
             lambda i, b: div(i("montos_anid_adjudicados"), i("academicos_jce")), "parcial",
             "ANID es una parte del ingreso de investigación, no el total; además THE "
             "ajusta por paridad de poder adquisitivo"),
 
-    Metrica("THE Latam", "Industry Income",
+    Metrica("THE Latam", "Industry income",
             "montos_anid_con_industria / academicos_jce", "pesos por académico",
             lambda i, b: div(i("montos_anid_con_industria"), i("academicos_jce")), "parcial",
             "solo capta el aporte de industria que pasa por un proyecto ANID"),
 
-    Metrica("THE Latam", "Institutional Income",
+    Metrica("THE Latam", "Institutional income",
             "ingresos_totales / academicos_jce", "pesos por académico",
             lambda i, b: div(i("ingresos_totales"), i("academicos_jce")), "parcial",
             "pendiente de los estados financieros (T2.3)"),
 
-    Metrica("THE Latam", "Research Strength", "—", "percentil",
+    Metrica("THE Latam", "Research strength", "—", "percentil",
             lambda i, b: None, "parcial",
             "percentil 75 del FWCI de cada trabajo: exige el FWCI trabajo a trabajo, "
             "que ninguna fuente abierta publica"),
 
-    Metrica("THE Latam", "Research Reputation", "—", "puntaje",
+    Metrica("THE Latam", "Research reputation", "—", "puntaje",
             lambda i, b: None, "parcial",
             "encuesta propia de THE; no se publica ni se vende"),
 
-    Metrica("THE Latam", "Teaching Reputation", "—", "puntaje",
+    Metrica("THE Latam", "Teaching reputation", "—", "puntaje",
             lambda i, b: None, "parcial",
             "encuesta propia de THE; no se publica ni se vende"),
 ]

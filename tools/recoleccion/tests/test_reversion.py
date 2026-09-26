@@ -13,7 +13,7 @@ Uso:
 from __future__ import annotations
 
 import csv
-import statistics
+
 import sys
 from pathlib import Path
 
@@ -115,9 +115,9 @@ ok(all(m.nota for m in sin_formula),
    "toda métrica sin fórmula explica por qué no la tiene")
 
 # La confusión fácil: doctorados otorgados contra académicos con doctorado.
-dsr = next(m for m in mc.CATALOGO if m.nombre == "Doctorate Staff Ratio")
+dsr = next(m for m in mc.CATALOGO if m.nombre == "Doctorate staff ratio")
 ok("graduados_doctorado" in dsr.formula and "academicos_doctorado" not in dsr.formula,
-   "Doctorate Staff Ratio usa doctorados OTORGADOS, no académicos con doctorado",
+   "Doctorate staff ratio usa doctorados OTORGADOS, no académicos con doctorado",
    dsr.formula)
 
 phd = next(m for m in mc.CATALOGO if m.nombre == "Staff with PhD")
@@ -126,8 +126,8 @@ ok("academicos_doctorado" in phd.formula and "graduados" not in phd.formula,
    phd.formula)
 
 # Las que THE normaliza por personal deben llevar el divisor en la fórmula.
-for nombre in ("Patents", "Research Excellence", "Research Influence",
-               "Research Productivity", "Research Income", "Industry Income"):
+for nombre in ("Patents", "Research excellence", "Research influence",
+               "Research productivity", "Research income", "Industry income"):
     m = next(x for x in mc.CATALOGO if x.nombre == nombre and x.ranking == "THE Latam")
     ok("academicos_jce" in m.formula,
        f"«{nombre}» se divide por el personal, como manda la metodología",
@@ -146,12 +146,12 @@ anual = {("U", "estudiantes_total"): {2023: 1000.0},
          ("U", "academicos_jce"): {2023: 50.0}}
 ventana: dict = {}
 filas = mc.calcular_ranking("THE Latam", anual, ventana, {"U"})
-ssr = [f for f in filas if f["metrica"] == "Student Staff Ratio"]
+ssr = [f for f in filas if f["metrica"] == "Student staff ratio"]
 ok(len(ssr) == 1 and ssr[0]["edicion"] == 2026 and ssr[0]["valor_crudo"] == 20.0,
-   "con datos de 2023, Student Staff Ratio sale en la edición 2026 y vale 20",
+   "con datos de 2023, Student staff ratio sale en la edición 2026 y vale 20",
    f"{ssr[0]['edicion']} -> {ssr[0]['valor_crudo']}" if ssr else "no se calculó")
 
-sin_insumo = [f for f in filas if f["metrica"] in ("Patents", "Citation Impact")]
+sin_insumo = [f for f in filas if f["metrica"] in ("Patents", "Citation impact")]
 ok(not sin_insumo,
    "las métricas sin insumo no aparecen en la salida en vez de salir en cero")
 
@@ -171,6 +171,39 @@ nombres = {m.nombre for m in mc.CATALOGO}
 huerfanas = [k[1] for k in cal.ANCLAS_QS if k[1] not in nombres]
 ok(not huerfanas, "toda ancla corresponde a una métrica del catálogo",
    f"sin correspondencia: {huerfanas}" if huerfanas else "")
+
+
+# --------------------------------------------------------------------------- #
+seccion("5b. Los nombres del catálogo son los de la base")
+
+# Sin esto, una métrica recalculada nunca encuentra su fila y la carga la
+# descarta en silencio. Pasó: la metodología de THE escribe «Student Staff
+# Ratio» y la base guarda «Student staff ratio».
+try:
+    import os
+
+    from dotenv import load_dotenv
+    from sqlalchemy import create_engine, text
+
+    load_dotenv(AQUI.parents[3] / "backend" / ".env")
+    url = os.getenv("DATABASE_URL")
+except ImportError:
+    url = None
+
+if not url:
+    print("  (sin base de datos a mano; se omite)")
+else:
+    motor = create_engine(url)
+    with motor.connect() as c:
+        en_bd = {(r[0], r[1]) for r in c.execute(text(
+            "select r.nombre_ranking, m.nombre_metrica from metrica m "
+            "join ranking r on r.id_ranking = m.id_ranking"))}
+    for ranking in ("THE Latam", "QS Latam", "QS Global"):
+        faltan = [m.nombre for m in mc.CATALOGO
+                  if m.ranking == ranking and (ranking, m.nombre) not in en_bd]
+        ok(not faltan,
+           f"las métricas de {ranking} existen en la base con ese nombre exacto",
+           f"sin correspondencia: {faltan}" if faltan else "")
 
 
 # --------------------------------------------------------------------------- #
