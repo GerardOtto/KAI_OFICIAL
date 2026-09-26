@@ -3,9 +3,14 @@ import { useRankingsPermitidos } from "../hooks/useRankingsPermitidos";
 import { useAnios } from "../hooks/useAnios";
 import { useRankingResumen } from "../hooks/useRankingResumen";
 import { useRankingHistorico } from "../hooks/useRankingHistorico";
+import { useRankingPonderado } from "../hooks/useRankingPonderado";
 import UniversidadLogo from "../components/UniversidadLogo";
 import ScoreBar from "../components/data/ScoreBar";
 import Sparkline from "../components/data/Sparkline";
+import PanelPesos from "../components/data/PanelPesos";
+import {
+  clasificar, historico, pesosIniciales, pesosModificados, participacion, variacion,
+} from "../utils/rankingPonderado";
 
 const PUCV_ID = 2;
 const GRID_COLS = "44px 1fr 210px 120px 150px";
@@ -22,11 +27,21 @@ const PlaceholderIcon = ({ nombre, size }) => (
   </div>
 );
 
-function exportarCSV(data, rankingNombre, anio) {
+function exportarCSV(data, rankingNombre, anio, ponderacion) {
   const filas = [
     ["Posición", "Institución", "País", "Score"],
     ...data.map((u, i) => [i + 1, u.nombre_universidad, u.pais_universidad, Number(u.score_total).toFixed(1)]),
   ];
+  // Un ranking reponderado sin sus pesos no se puede reproducir ni comparar:
+  // el archivo los lleva al final.
+  if (ponderacion) {
+    const partes = participacion(ponderacion.pesos);
+    filas.push([], ["Métrica", "Peso", "Parte del total (%)"]);
+    ponderacion.metricas.forEach((m) => {
+      const w = ponderacion.pesos[m.id_metrica] ?? m.peso_metrica;
+      filas.push([m.nombre_metrica, w, (partes[m.id_metrica] ?? 0).toFixed(1)]);
+    });
+  }
   const csv = filas.map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
@@ -45,13 +60,47 @@ export default function Ranking() {
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
 
   const anios = useAnios(rankingId);
-  const { data, loading } = useRankingResumen(rankingId, anio);
-  const { historicoMap } = useRankingHistorico(rankingId, anios);
 
   const rankingActual = useMemo(
     () => rankings.find(r => r.id_ranking === rankingId),
     [rankings, rankingId]
   );
+
+  // Los rankings con pesos editables —el Ranking KAI— se ordenan en el cliente
+  // con los pesos del usuario; los demás, con el total que calcula el servidor.
+  const editable = Boolean(rankingActual?.pesos_editables);
+  const resumen = useRankingResumen(editable ? null : rankingId, anio);
+  const { historicoMap: historicoServidor } = useRankingHistorico(editable ? null : rankingId, anios);
+  const ponderado = useRankingPonderado(rankingId, anios, editable);
+
+  // Solo se guardan los pesos que el usuario tocó, y ligados al ranking: al
+  // cambiar de ranking se vuelve solo a los de fábrica, sin un efecto que resetee.
+  const [ajustes, setAjustes] = useState({ rankingId: null, pesos: {} });
+  const pesos = useMemo(() => ({
+    ...pesosIniciales(ponderado.metricas),
+    ...(ajustes.rankingId === rankingId ? ajustes.pesos : {}),
+  }), [ponderado.metricas, ajustes, rankingId]);
+  const modificados = editable && pesosModificados(pesos, ponderado.metricas);
+
+  const cambiarPeso = (idMetrica, valor) => setAjustes(prev => ({
+    rankingId,
+    pesos: { ...(prev.rankingId === rankingId ? prev.pesos : {}), [idMetrica]: valor },
+  }));
+  const restablecerPesos = () => setAjustes({ rankingId, pesos: {} });
+
+  const data = useMemo(
+    () => (editable ? clasificar(ponderado.porAnio[anio] || [], pesos) : resumen.data),
+    [editable, ponderado.porAnio, anio, pesos, resumen.data]
+  );
+  const historicoMap = useMemo(
+    () => (editable ? historico(ponderado.porAnio, pesos) : historicoServidor),
+    [editable, ponderado.porAnio, pesos, historicoServidor]
+  );
+  const loading = editable ? ponderado.loading : resumen.loading;
+
+  // La edición anterior del ranking, para la variación de puestos. `anios` viene
+  // de la más reciente a la más antigua.
+  const anioAnterior = anios[anios.indexOf(anio) + 1] ?? null;
 
   useEffect(() => {
     if (rankings.length && !rankingId) setRankingId(rankings[0].id_ranking);
@@ -108,7 +157,10 @@ export default function Ranking() {
               Densidad ⇕
             </button>
             <button
-              onClick={() => data.length && exportarCSV(data, rankingActual?.nombre_ranking || "", anio)}
+              onClick={() => data.length && exportarCSV(
+                data, rankingActual?.nombre_ranking || "", anio,
+                editable ? { metricas: ponderado.metricas, pesos } : null
+              )}
               disabled={!data.length}
               className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -158,6 +210,15 @@ export default function Ranking() {
           )}
         </div>
 
+        {editable && ponderado.metricas.length > 0 && (
+          <PanelPesos
+            metricas={ponderado.metricas}
+            pesos={pesos}
+            onCambio={cambiarPeso}
+            onRestablecer={restablecerPesos}
+          />
+        )}
+
         {/* Estados */}
         {!rankingId || !anio ? (
           <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
@@ -188,7 +249,7 @@ export default function Ranking() {
             >
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Pos</span>
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Institución</span>
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Score en {rankingActual?.nombre_ranking}</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Score en {rankingActual?.nombre_ranking}{modificados ? " · tus pesos" : ""}</span>
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Δ año ant.</span>
               {!esCompacta && (
                 <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">
@@ -203,8 +264,7 @@ export default function Ranking() {
                 const pos = i + 1;
                 const esPropia = uni.id_universidad === PUCV_ID;
                 const hist = historicoMap[uni.id_universidad];
-                const posAnterior = hist?.posicionAnterior;
-                const delta = posAnterior != null ? posAnterior - pos : null;
+                const delta = variacion(hist, anio, anioAnterior);
 
                 return (
                   <div

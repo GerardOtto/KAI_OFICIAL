@@ -31,6 +31,7 @@ const SONDAS = {
   motores: "Selector de motores y derivación",
   reporte: "Composición del PDF y dibujo del bloque de gráfico",
   revelado: "Aparición progresiva de la respuesta e indicador de espera",
+  ponderado: "Reponderado del Ranking KAI en el cliente",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el

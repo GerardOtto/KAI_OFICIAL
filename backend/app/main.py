@@ -722,7 +722,14 @@ def get_universidades(usuario: dict = Depends(auth.usuario_actual)):
 def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
     try:
-        result = db.execute(text("SELECT id_ranking, nombre_ranking FROM ranking ORDER BY id_ranking"))
+        # `pesos_editables` se lee a través de to_jsonb para no depender de que la
+        # migración 009 ya esté aplicada: sin la columna, la clave simplemente no
+        # existe y queda en falso, en vez de romper el catálogo entero.
+        result = db.execute(text("""
+            SELECT r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
+                   COALESCE((to_jsonb(r) ->> 'pesos_editables')::boolean, false) AS pesos_editables
+            FROM ranking r
+            ORDER BY r.id_ranking"""))
         # Los rankings reservados se devuelven igualmente, marcados: el plan
         # gratuito ve que existen y qué se pierde, en lugar de encontrarse una
         # lista corta que no explica nada.
@@ -749,6 +756,7 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
             SELECT
                 u.id_universidad,
                 u.nombre_universidad,
+                u.pais_universidad,
                 m.id_metrica,
                 m.nombre_metrica,
                 m.disciplina,
@@ -760,6 +768,7 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
             JOIN universidad u ON u.id_universidad = mu.id_universidad
             WHERE m.id_ranking = :ranking_id
               AND mu.anio_metrica = :anio
+              AND m.pondera
               {uni_filter}
             ORDER BY u.nombre_universidad, m.id_metrica
         """)
@@ -805,6 +814,10 @@ def get_ranking_resumen(ranking_id: int, anio: int,
             JOIN universidad u ON u.id_universidad = mu.id_universidad
             WHERE r.id_ranking = :ranking_id
               AND mu.anio_metrica = :anio
+              -- Solo las métricas que componen el total. Hoy las de referencia no
+              -- tienen observaciones, así que el resultado es el mismo; el filtro
+              -- impide que una carga futura en ese nivel sume dos veces el peso.
+              AND m.pondera
             GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
                      u.id_universidad, u.nombre_universidad, u.pais_universidad
             ORDER BY score_total DESC
@@ -1112,6 +1125,10 @@ def get_tendencias_comparacion(
     anio: int,
     metricas: str = None,
     universidades: str = None,
+    # Faltaba: era el único endpoint de datos sin sesión, y por él se leían los
+    # valores de THE y QS que el plan gratuito no incluye. El cliente ya enviaba
+    # el token, así que exigirlo no cambia nada para quien usa la interfaz.
+    usuario: dict = Depends(ranking_permitido),
 ):
     """Vista 'Comparación anual' de Tendencias: N instituciones x M métricas en un
     único año. Devuelve además el techo observado de cada métrica (su máximo

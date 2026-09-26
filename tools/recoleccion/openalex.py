@@ -36,9 +36,16 @@ FUENTE = "openalex"
 API = "https://api.openalex.org"
 CORREO = os.getenv("KAI_CORREO_OPENALEX", "keyacademicsindicators@gmail.com")
 
-# Las tres ventanas que interesan: la de Scimago 2019-2023 sirve para calcular el
-# factor entre universos, y las otras dos acompañan a las ediciones vigentes.
-VENTANAS = [(2018, 2022), (2019, 2023), (2020, 2024)]
+# Ventanas quinquenales que terminan entre 2017 y 2025. Al principio eran tres
+# —la de Scimago 2019-2023 para el factor entre universos y dos para las
+# ediciones vigentes de THE y QS—; el Ranking KAI necesita una por año para que
+# su serie tenga la misma extensión que la del SIES, y para que Tendencias pueda
+# ajustar una recta con algo más que tres puntos.
+VENTANAS = [(desde, desde + 4) for desde in range(2013, 2022)]
+
+# Los socios recurrentes se piden solo para una ventana, que es la que usa QS. Se
+# fija aparte para que agregar ventanas nuevas al final no cambie cuál es.
+VENTANA_SOCIOS = (2020, 2024)
 
 # Un socio cuenta como recurrente a partir de tres trabajos conjuntos, que es el
 # umbral que usa QS en su métrica de red internacional.
@@ -158,9 +165,10 @@ def recolectar(universidades: dict[str, str], solo: list[str] | None,
                rehacer: bool = False) -> list[dict]:
     """Consulta la API y deja el crudo de cada universidad en `raw/`.
 
-    Si el crudo ya existe se reutiliza en vez de volver a preguntar: son siete
-    peticiones por universidad y la recolección completa pasa de media hora. Con
-    `--rehacer` se ignora lo guardado.
+    Lo guardado se reutiliza **por ventana**: si el crudo ya tiene una ventana no
+    se vuelve a pedir, y si le faltan —porque `VENTANAS` creció— se piden solo
+    esas. Así extender la serie cuesta lo que las ventanas nuevas y no una
+    recolección completa. Con `--rehacer` se ignora lo guardado.
     """
     filas: list[dict] = []
     objetivo = {k: v for k, v in universidades.items() if not solo or k in solo}
@@ -168,19 +176,24 @@ def recolectar(universidades: dict[str, str], solo: list[str] | None,
 
     for n, (universidad, id_openalex) in enumerate(sorted(objetivo.items()), start=1):
         guardado = _archivo_crudo(universidad)
+        crudo = None
         if guardado.exists() and not rehacer:
             try:
                 crudo = json.loads(guardado.read_text(encoding="utf-8"))
             except ValueError:
                 crudo = None
-            if crudo and crudo.get("ventanas"):
-                print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]} · en caché")
-                filas.extend(_filas_de_crudo(universidad, crudo))
-                continue
+        if not crudo or not crudo.get("ventanas"):
+            crudo = {"id_openalex": id_openalex, "ventanas": {}}
 
-        print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]}")
-        crudo = {"id_openalex": id_openalex, "ventanas": {}}
-        for desde, hasta in VENTANAS:
+        faltan = [(d, h) for d, h in VENTANAS if f"{d}-{h}" not in crudo["ventanas"]]
+        sin_socios = "socios" not in crudo
+        if not faltan and not sin_socios:
+            print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]} · en caché")
+            filas.extend(_filas_de_crudo(universidad, crudo))
+            continue
+
+        print(f"  [{n:2}/{len(objetivo)}] {universidad[:46]} · {len(faltan)} ventanas por pedir")
+        for desde, hasta in faltan:
             ventana = f"{desde}-{hasta}"
             try:
                 resumen = resumen_de_ventana(id_openalex, desde, hasta)
@@ -188,15 +201,19 @@ def recolectar(universidades: dict[str, str], solo: list[str] | None,
                 print(f"      {ventana}: fallo ({type(e).__name__})")
                 continue
             crudo["ventanas"][ventana] = resumen
+            # Se guarda tras cada ventana: si la recolección se corta, lo pedido
+            # no se pierde.
+            guardado.write_text(json.dumps(crudo, ensure_ascii=False, indent=1), encoding="utf-8")
 
-        # Los socios se piden solo para la ventana más reciente: es la que usa QS.
-        desde, hasta = VENTANAS[-1]
-        try:
-            lista = socios(id_openalex, desde, hasta)
-        except Exception as e:  # noqa: BLE001
-            print(f"      socios: fallo ({type(e).__name__})")
-            lista = []
-        crudo["socios"] = lista
+        if sin_socios:
+            desde, hasta = VENTANA_SOCIOS
+            try:
+                lista = socios(id_openalex, desde, hasta)
+            except Exception as e:  # noqa: BLE001
+                print(f"      socios: fallo ({type(e).__name__})")
+                lista = []
+            crudo["socios"] = lista
+            crudo["ventana_socios"] = f"{desde}-{hasta}"
         guardado.write_text(json.dumps(crudo, ensure_ascii=False, indent=1), encoding="utf-8")
         filas.extend(_filas_de_crudo(universidad, crudo))
 
@@ -252,7 +269,9 @@ def _filas_de_crudo(universidad: str, crudo: dict) -> list[dict]:
 
     socios_guardados = crudo.get("socios") or []
     if socios_guardados:
-        desde, hasta = VENTANAS[-1]
+        # Los crudos anteriores a `ventana_socios` se pidieron para 2020-2024.
+        desde, hasta = (int(x) for x in
+                        crudo.get("ventana_socios", "2020-2024").split("-"))
         filas.append(nav.dato(FUENTE, universidad, "socios_recurrentes", len(socios_guardados),
                               anio_dato=hasta, ventana=f"{desde}-{hasta}", unidad="instituciones",
                               definicion=f"Instituciones con {MINIMO_SOCIO} o más trabajos conjuntos",

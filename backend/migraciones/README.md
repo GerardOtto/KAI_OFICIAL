@@ -13,6 +13,8 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | pendiente |
 | `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | pendiente |
 | `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | pendiente | pendiente |
+| `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | pendiente | pendiente |
+| `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | pendiente | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -121,3 +123,41 @@ Para generar un secreto:
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
+
+
+## 008 y 009: valores medidos y Ranking KAI
+
+La 009 define el ranking y sus métricas, pero **no trae datos**: los calcula
+`tools/recoleccion/cargar_ranking_kai.py`, que es la única fuente de las fórmulas.
+El orden completo, en local o en Railway:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/008_valores_reales.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/009_ranking_kai.sql
+python tools/recoleccion/cargar_ranking_kai.py --escribir            # base de backend/.env
+python tools/recoleccion/cargar_ranking_kai.py --url "$URL" --escribir  # otra base
+```
+
+El cargador reemplaza en una transacción todo lo que el Ranking KAI tenía, así
+que volver a ejecutarlo tras una recolección nueva solo actualiza los datos. Con
+`--sql archivo.sql` escribe el mismo contenido como SQL, para aplicarlo con `psql`
+donde no se pueda correr Python.
+
+Tres cosas que estas migraciones cuidan y que conviene no deshacer:
+
+- **Los valores medidos van en `valor_real_universidad`, nunca en
+  `metrica_universidad`.** `/ranking-resumen` suma `valor · peso / 100` sobre las
+  métricas del ranking: dieciséis millones de pesos por académico en esa tabla
+  llevarían el puntaje de una universidad de 46 a más de 900.000. La 008 aborta si
+  encuentra valores en las hojas de THE, que es donde ese error ocurriría primero.
+- **Las secuencias de `ranking` y `metrica` estaban atrasadas**: los datos
+  originales se cargaron con identificadores explícitos. La 009 las pone al día
+  antes de insertar; sin eso el primer `INSERT` choca con la clave primaria.
+- **La 009 se verifica a sí misma**: aborta si el Ranking KAI no queda con diez
+  métricas planas, pesos parejos que sumen 100, sentido declarado en todas y pesos
+  editables.
+
+Ambas se probaron dos veces seguidas sobre una copia de la base local, y la 009
+también en el orden equivocado (sin la 008), donde se niega con un mensaje claro.
+El volcado de integración continua, `backend/pruebas/datos_de_prueba.sql`, se
+regeneró desde esa copia con las migraciones 006 a 009 aplicadas.

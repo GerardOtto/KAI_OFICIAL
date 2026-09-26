@@ -45,6 +45,7 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `calibrar.py` | T5.3 | La recta de QS, la hipótesis CDF de THE y la verificación de Scimago |
 | `tests/test_sies.py` | T2.1 | Valida la agregación contra cifras públicas y contra THE |
 | `tests/test_reversion.py` | T5.2-3 | Comprueba desfases, fórmulas y aritmética de la calibración |
+| `cargar_ranking_kai.py` | — | Calcula el Ranking KAI y lo carga en la base (requiere las migraciones 008 y 009) |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del
 formato largo, mapa de nombres y, para las fuentes que lo necesiten, un navegador
@@ -65,6 +66,7 @@ python tools/recoleccion/metricas_crudas.py
 python tools/recoleccion/calibrar.py           # consulta la base para Scimago
 python tools/recoleccion/tests/test_sies.py
 python tools/recoleccion/tests/test_reversion.py
+python tools/recoleccion/cargar_ranking_kai.py --escribir   # tras las migraciones 008 y 009
 python tools/recoleccion/the.py --solo-procesar # reprocesa sin descargar
 ```
 
@@ -150,8 +152,22 @@ por mil el presupuesto de investigación del país.
 
 **OpenAlex.** Se consulta con `mailto` para entrar en su cola cortés. Los
 agregados salen de `group_by`, que resuelve en una petición lo que recorrer los
-trabajos costaría cientos. La recolección es **reanudable**: el crudo de cada
-universidad queda en `raw/` y una segunda ejecución lo reutiliza.
+trabajos costaría cientos. La recolección es **reanudable por ventana**: el crudo
+de cada universidad queda en `raw/` y una segunda ejecución solo pide las ventanas
+que le falten. Así se extendió la serie de tres ventanas a nueve (2013-2017 a
+2021-2025), que es lo que el Ranking KAI necesita para cubrir 2017-2025.
+
+Dos cosas de OpenAlex que conviene saber antes de lanzar una recolección:
+
+- **Tiene cuota diaria.** Desde 2025 la cola cortés da un presupuesto gratuito de
+  1.000 créditos al día (0,10 USD); al agotarse responde `429` con un
+  `Retry-After` de varias horas. Extender las nueve ventanas a 55 universidades la
+  agotó. Una recolección completa desde cero ya no cabe en un día gratis: hay que
+  repartirla, o usar una clave de pago.
+- **No todas las universidades se llaman en castellano.** La de Viña del Mar
+  figura como «Viña del Mar University» y la búsqueda por nombre la descartaba; se
+  agregó ese nombre como alias. Sus nueve ventanas quedan por pedir cuando se
+  reponga la cuota: sin ellas, el Ranking KAI la excluye por falta de registro.
 
 ### Lo que produce la consolidación
 

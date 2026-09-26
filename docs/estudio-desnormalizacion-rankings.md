@@ -343,7 +343,7 @@ el error en puntos de puntaje:
 
 | Indicador | R² | Error mediano | Veredicto |
 |---|---:|---:|---|
-| Citations per Faculty (Global) | 0,75 | 0,8 | **sirve** |
+| Citations per Faculty (Global) | 0,76 | 0,9 | **sirve** |
 | Staff with PhD (Latam) | 0,72 | 6,1 | **sirve** |
 | International Faculty Ratio (Global) | 0,67 | 2,0 | **sirve** |
 | International Students Ratio (Global) | 0,54 | 0,7 | sirve con reparo |
