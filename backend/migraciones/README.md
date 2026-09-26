@@ -16,6 +16,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | pendiente | pendiente |
 | `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | pendiente | pendiente |
 | `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | pendiente | pendiente |
+| `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | pendiente | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -188,6 +189,30 @@ El cargador solo escribe ediciones que el ranking ya tiene en la base —los
 insumos de la edición 2027 de THE existen, pero esa edición no— y no toca las
 filas del Ranking KAI.
 
-La 010 deja anotado un defecto que **no** corrige: el total que la pantalla de
-puntajes calcula para Scimago suma documentos con índices cercanos a 1 y ordena
-por tamaño. Corregirlo cambia lo que muestran Tendencias y el asistente.
+## 011: una sola regla para todos los rankings
+
+Desde la 011, sin excepciones:
+
+| Tabla | Qué guarda | Modo |
+|---|---|---|
+| `metrica_universidad` | el **puntaje normalizado**, de 0 a 100 | «Puntajes» |
+| `valor_real_universidad` | el **valor cuantificable** detrás, con unidad, calidad y fuentes | «Valores medidos» |
+
+Scimago era la excepción: guardaba sus cifras crudas como si fueran puntajes, y el
+total de su pantalla sumaba documentos con índices cercanos a 1, así que ordenaba
+por tamaño (la U. de Chile con 3.934,9 «puntos»). La 011 copia cada cifra a
+`valor_real_universidad` y la reemplaza en `metrica_universidad` por su percentil
+entre las universidades del año —el mismo método del Ranking KAI—, redondeado a
+dos decimales.
+
+No se pierde nada: la verificación del final aborta si algún puntaje queda sin su
+cifra, y `calibrar.py --parte scimago` compara las 6.120 cifras migradas con una
+descarga independiente de SCImago (desvío 0,00 %). La transformación solo corre
+mientras `ranking.valores_son_crudos` esté activo y lo apaga al terminar, de modo
+que una segunda ejecución no trata percentiles como cifras.
+
+Efectos fuera de la pantalla de ranking: Tendencias, Simulación y el Glosario
+muestran ahora los percentiles de Scimago, como los puntajes de los demás. El
+asistente recibe, junto a cada puntaje, la cifra medida con su unidad y calidad
+(`valor_medido`), y puede consultar `valor_real_universidad` con la herramienta
+de SQL.

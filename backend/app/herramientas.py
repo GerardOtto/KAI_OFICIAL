@@ -14,6 +14,7 @@ científicos— y a nada más. Las tablas de cuentas, conversaciones, mensajes,
 notificaciones y planes quedan fuera por diseño, tanto de las consultas escritas
 a mano como de la herramienta de SQL libre, que las rechaza (ver `TABLAS_PUBLICAS`).
 """
+import functools
 import os
 import re
 
@@ -53,6 +54,7 @@ Primero la base; si no basta, la web, y dilo. Marca el origen cuando mezcles las
 - No alcanzas cuentas, conversaciones, mensajes, notificaciones ni planes, ni debes intentarlo. Si preguntan por datos de usuarios, di que quedan fuera de tu alcance por diseño.
 - Los pesos cambiaron entre ediciones en varios rankings (con claridad en Shanghai GRAS y THE): comprueba de qué año es cada uno antes de sumar o comparar.
 - Shanghai GRAS y QS por Disciplina son multidisciplinarios: agregar sin fijar disciplina infla las cifras.
+- `valor` es el puntaje 0-100; `valor_medido`, la cifra real (con `unidad` y `calidad`). Para cantidades cita la cifra, nunca el puntaje.
 - Algunos rankings publican dos niveles, pilares e indicadores (THE Latam trae ambos). Suma pesos solo con `pondera` verdadero; `parte_de` dice a qué pilar pertenece cada indicador y sirve para explicar la composición sin contarla dos veces.
 
 # Formato
@@ -470,6 +472,24 @@ def buscar_universidades(texto: str = "", pais: str = "") -> str:
     )
 
 
+@functools.lru_cache(maxsize=1)
+def _hay_valores_medidos() -> bool:
+    """Si existe `valor_real_universidad`. Se consulta una vez por proceso."""
+    with SessionLocal() as db:
+        return bool(db.execute(text(
+            "SELECT to_regclass('public.valor_real_universidad') IS NOT NULL")).scalar())
+
+
+def _medido(alias_mu: str) -> tuple[str, str]:
+    """Columnas y JOIN para acompañar cada puntaje con su cifra medida."""
+    if not _hay_valores_medidos():
+        return "NULL AS valor_medido, NULL AS unidad, NULL AS calidad", ""
+    return ("round(v.valor::numeric, 4) AS valor_medido, v.unidad, v.calidad",
+            f"""LEFT JOIN valor_real_universidad v ON v.id_metrica = {alias_mu}.id_metrica
+                 AND v.id_universidad = {alias_mu}.id_universidad
+                 AND v.anio_edicion = {alias_mu}.anio_metrica""")
+
+
 def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
                       metrica_ids: str = "", disciplina: str = "") -> str:
     """Valores de las métricas de un ranking en un año, universidad por universidad. Filtra por universidad, métrica o disciplina: sin filtros devuelve cientos de filas que luego arrastras en cada vuelta.
@@ -481,12 +501,15 @@ def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
         metrica_ids: IDs de métricas separados por coma. Vacío = todas.
         disciplina: Disciplina exacta o fragmento. Vacío = todas.
     """
+    columnas_medido, join_medido = _medido("mu")
     return _consulta(
         f"""
-        SELECT u.nombre_universidad, m.nombre_metrica, m.disciplina, m.peso_metrica, mu.valor_metrica
+        SELECT u.nombre_universidad, m.nombre_metrica, m.disciplina, m.peso_metrica, mu.valor_metrica,
+               {columnas_medido}
         FROM metrica_universidad mu
         JOIN metrica m ON m.id_metrica = mu.id_metrica
         JOIN universidad u ON u.id_universidad = mu.id_universidad
+        {join_medido}
         WHERE m.id_ranking = :rid AND mu.anio_metrica = :anio
           AND (:sin_u OR mu.id_universidad = ANY(:uids))
           AND (:sin_m OR mu.id_metrica = ANY(:mids))
@@ -496,7 +519,7 @@ def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
         {"rid": ranking_id, "anio": anio, "dis": disciplina or "",
          "uids": _ids(universidad_ids) or [0], "sin_u": not _ids(universidad_ids),
          "mids": _ids(metrica_ids) or [0], "sin_m": not _ids(metrica_ids)},
-        ["universidad", "metrica", "disciplina", "peso_%", "valor"],
+        ["universidad", "metrica", "disciplina", "peso_%", "valor", "valor_medido", "unidad", "calidad"],
         lambda: f"No hay valores para el año {anio} en esa combinación. "
                 + _metricas_con_datos(ranking_id, _ids(universidad_ids)),
     )
@@ -526,19 +549,21 @@ def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str =
                 f"Al responder, di que la cifra es la del pilar {nombre}, no la del "
                 "indicador suelto.")
 
+    columnas_medido, join_medido = _medido("mu")
     return _consulta(
-        """
-        SELECT u.nombre_universidad, mu.anio_metrica, mu.valor_metrica
+        f"""
+        SELECT u.nombre_universidad, mu.anio_metrica, mu.valor_metrica, {columnas_medido}
         FROM metrica_universidad mu
         JOIN metrica m ON m.id_metrica = mu.id_metrica
         JOIN universidad u ON u.id_universidad = mu.id_universidad
+        {join_medido}
         WHERE m.id_ranking = :rid AND m.id_metrica = :mid
           AND (:sin_u OR mu.id_universidad = ANY(:uids))
         ORDER BY u.nombre_universidad, mu.anio_metrica
         """,
         {"rid": ranking_id, "mid": metrica_id,
          "uids": universidades or [0], "sin_u": not universidades},
-        ["universidad", "anio", "valor"],
+        ["universidad", "anio", "valor", "valor_medido", "unidad", "calidad"],
         sin_datos,
     )
 
@@ -590,13 +615,15 @@ def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "
                 "con más datos están en tu contexto; el resto, con buscar_universidades.")
     pedidos = _ids(anios)[:6]
 
+    columnas_medido, join_medido = _medido("mu")
     filas = _filas(
         f"""
         SELECT mu.id_universidad, u.nombre_universidad, mu.anio_metrica,
-               m.nombre_metrica, m.peso_metrica, m.pondera, mu.valor_metrica
+               m.nombre_metrica, m.peso_metrica, m.pondera, mu.valor_metrica, {columnas_medido}
         FROM metrica_universidad mu
         JOIN metrica m ON m.id_metrica = mu.id_metrica
         JOIN universidad u ON u.id_universidad = mu.id_universidad
+        {join_medido}
         WHERE m.id_ranking = :rid
           AND mu.id_universidad = ANY(:uids)
           AND (:sin_anios OR mu.anio_metrica = ANY(:anios))
@@ -618,15 +645,32 @@ def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "
     nombres = {f.id_universidad: f.nombre_universidad for f in filas}
     columnas = [(u, a) for u in universidades if u in nombres for a in años]
     valores = {(f.id_universidad, f.anio_metrica, f.nombre_metrica): f.valor_metrica for f in filas}
+    medidos = {(f.id_universidad, f.anio_metrica, f.nombre_metrica): (f.valor_medido, f.calidad)
+               for f in filas if f.valor_medido is not None}
+    unidades = {f.nombre_metrica: f.unidad for f in filas if f.unidad}
     pesos = {f.nombre_metrica: (f.peso_metrica, f.pondera) for f in filas}
     metricas = sorted(pesos, key=lambda n: (-(pesos[n][0] or 0), n))[:TOPE_FILAS]
 
-    def celda(valor):
-        return "" if valor is None else f"{valor:g}"
+    def cifra(x) -> str:
+        """Compacta: los montos en millones, lo demás con cuatro cifras significativas."""
+        x = float(x)
+        return f"{x / 1e6:.1f}M" if abs(x) >= 1e6 else f"{x:.4g}"
+
+    def celda(clave):
+        valor = valores.get(clave)
+        if valor is None:
+            return ""
+        medido = medidos.get(clave)
+        if medido is None:
+            return cifra(valor)
+        # «~» y «½» marcan lo aproximado y lo parcial sin gastar una columna.
+        marca = {"aproximada": "~", "parcial": "½"}.get(medido[1], "")
+        return f"{cifra(valor)} ({marca}{cifra(medido[0])})"
 
     cabecera = "metrica | peso_% | " + " | ".join(f"u{u}·{a}" for u, a in columnas)
     cuerpo = [
-        f"{n} | {pesos[n][0]:g} | " + " | ".join(celda(valores.get((u, a, n))) for u, a in columnas)
+        f"{n}{f' [{unidades[n]}]' if n in unidades else ''} | {pesos[n][0]:g} | "
+        + " | ".join(celda((u, a, n)) for u, a in columnas)
         for n in metricas
     ]
     # El score ponderado es lo que de verdad responde «quién está mejor», y
@@ -639,6 +683,9 @@ def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "
     cuerpo.append("SCORE PONDERADO (solo métricas que ponderan) |  | " + " | ".join(totales))
 
     leyenda = "; ".join(f"u{u} = {nombres[u]}" for u in universidades if u in nombres)
+    if medidos:
+        leyenda += ("\nCada celda: puntaje 0-100 (cifra medida en la unidad entre corchetes; "
+                    "~ aproximada, ½ parcial).")
     faltan = [str(u) for u in universidades if u not in nombres]
     aviso = f"\nSin datos en este ranking: {', '.join(faltan)}." if faltan else ""
     return f"{leyenda}\n{cabecera}\n" + "\n".join(cuerpo) + aviso
@@ -746,7 +793,7 @@ def perfil_cientifico(id_cientifico: int) -> str:
 # planes contratados— queda fuera, y el guardián de abajo rechaza la consulta
 # entera si aparece cualquier otro identificador de tabla.
 TABLAS_PUBLICAS = {
-    "ranking", "universidad", "metrica", "metrica_universidad",
+    "ranking", "universidad", "metrica", "metrica_universidad", "valor_real_universidad",
     "cientifico", "cientifico_metrica", "cientifico_topico",
 }
 
@@ -754,7 +801,7 @@ TABLAS_PUBLICAS = {
 # la lista blanca porque son el motivo mismo de que exista este guardián: si una
 # forma de escribir la consulta se escapara del análisis de relaciones, este
 # filtro por palabra la detiene igual.
-TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan"}
+TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan", "descarga"}
 
 _COMENTARIOS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 # Identificadores en posición de tabla: lo que sigue a FROM, JOIN, INTO o UPDATE.
@@ -821,6 +868,7 @@ def consulta_sql(sql: str) -> str:
       universidad(id_universidad, nombre_universidad, pais_universidad)
       metrica(id_metrica, id_ranking, nombre_metrica, descripcion_metrica, tipo_metrica, peso_metrica, disciplina, pondera, id_metrica_padre)
       metrica_universidad(id_metrica, id_universidad, valor_metrica, anio_metrica)
+      valor_real_universidad(id_metrica, id_universidad, anio_edicion, valor, unidad, calidad)
       cientifico(id_cientifico, nombre_cientifico, id_universidad, institucion_original, campo_principal, subcampo_principal, anio_primera_publicacion, anio_ultima_publicacion, pais_cientifico, orcid)
       cientifico_metrica(id_cientifico, anio_datos, fuente, rank_global, rank_global_ns, h_index, hm_index, citas_totales, num_articulos, composite_score, self_citation_pct)
       cientifico_topico(id_cientifico, topico, fuente, anio_datos, autor_documentos, topico_fwci)

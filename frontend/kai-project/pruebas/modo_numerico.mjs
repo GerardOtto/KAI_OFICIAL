@@ -124,8 +124,21 @@ await esperar(2500);
 comprobar("en Shanghai GRAS no aparece la advertencia", !(await aviso()));
 comprobar("y se ve la tabla de puntajes", await ev(`return [...document.querySelectorAll('span')].some(s => /^Score en/.test(s.textContent));`));
 
+console.log("\n=== 5. Scimago en modo Puntajes: normalizado, no cifras sumadas ===");
+await ev(`${boton("Puntajes")}.click();`);
+await ev(`${pestana("Scimago Latam")}.click();`);
+await esperar(3500);
+const puntajesSci = await ev(`
+  return [...document.querySelectorAll('main .grid span.font-mono')]
+    .map(s => s.textContent.trim()).filter(t => /^\\d{1,4}([.,]\\d)?$/.test(t)).map(t => Number(t.replace(',', '.')));
+`);
+const maximo = Math.max(...puntajesSci.filter(n => n > 20));
+comprobar("los totales de Scimago quedan en la escala 0-100", puntajesSci.length > 5 && maximo <= 100,
+  `máximo ${maximo}`);
+await capturar("modo_puntajes_scimago");
+
 if (process.env.KAI_TOKEN_PAGO) {
-  console.log("\n=== 5. THE Latam con un plan de pago ===");
+  console.log("\n=== 6. THE Latam con un plan de pago ===");
   await abrir(process.env.KAI_TOKEN_PAGO);
   await ev(`${pestana("THE Latam")}.click();`);
   await esperar(3000);

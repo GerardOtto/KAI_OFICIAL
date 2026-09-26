@@ -132,20 +132,49 @@ try:
     comprobar("un año sin valores devuelve la lista vacía y los años que sí tienen",
               vacio["valores"] == [] and vacio["anios"], len(vacio["anios"]))
 
-    print("\n=== 4. Scimago: los valores de la fuente, tal cual ===")
+    print("\n=== 4. Scimago en dos modos ===")
     sci = cliente.get(f"/valores-reales?ranking_id={ids['Scimago Latam']}", headers=gratis).json()
-    comprobar("el origen es «fuente»", sci["origen"] == "fuente")
+    comprobar("el origen es «fuente»: SCImago publica esas cifras", sci["origen"] == "fuente")
     db = main.SessionLocal()
-    tabla = {(r[0], r[1]): float(r[2]) for r in db.execute(text("""
-        SELECT mu.id_metrica, mu.id_universidad, mu.valor_metrica FROM metrica_universidad mu
-        JOIN metrica m ON m.id_metrica = mu.id_metrica
-        WHERE m.id_ranking = :r AND mu.anio_metrica = :a"""), {"r": ids["Scimago Latam"], "a": sci["anio"]})}
+    crudos = db.execute(text("SELECT count(*) FROM ranking WHERE valores_son_crudos")).scalar()
+    puntajes = {(r[0], r[1], r[2]): float(r[3]) for r in db.execute(text("""
+        SELECT mu.id_metrica, mu.id_universidad, mu.anio_metrica, mu.valor_metrica
+        FROM metrica_universidad mu JOIN metrica m ON m.id_metrica = mu.id_metrica
+        WHERE m.id_ranking = :r"""), {"r": ids["Scimago Latam"]})}
+    medidos = {(r[0], r[1], r[2]): float(r[3]) for r in db.execute(text("""
+        SELECT v.id_metrica, v.id_universidad, v.anio_edicion, v.valor
+        FROM valor_real_universidad v JOIN metrica m ON m.id_metrica = v.id_metrica
+        WHERE m.id_ranking = :r"""), {"r": ids["Scimago Latam"]})}
     db.close()
-    distintos = [v for v in sci["valores"] if abs(float(v["valor"]) - tabla[(v["id_metrica"], v["id_universidad"])]) > 1e-9]
-    comprobar("cada valor coincide con la tabla de observaciones", not distintos and len(sci["valores"]) == len(tabla),
-              f"{len(distintos)} distintos, {len(sci['valores'])} frente a {len(tabla)}")
-    con_unidad = sum(1 for m in sci["metricas"] if m["tiene_valores"] and m["unidad_valor"])
-    comprobar("casi todas sus métricas declaran unidad", con_unidad >= 15, con_unidad)
+    comprobar("ningún ranking guarda ya cifras crudas como puntajes", crudos == 0, crudos)
+    comprobar("cada puntaje de Scimago tiene su cifra medida con la misma clave",
+              set(puntajes) == set(medidos), f"{len(set(puntajes) ^ set(medidos))} sin pareja")
+    comprobar("todos los puntajes de Scimago quedan entre 0 y 100",
+              all(0 <= v <= 100 for v in puntajes.values()))
+    # El puntaje es el percentil de la cifra medida entre las universidades del año.
+    grupos = {}
+    for (m, u, a), x in medidos.items():
+        grupos.setdefault((m, a), []).append((u, x))
+    malos = 0
+    for (m, a), pares in grupos.items():
+        n = len(pares)
+        for u, x in pares:
+            esperado = 100.0 if n == 1 else 100.0 * sum(1 for _, y in pares if y < x) / (n - 1)
+            if abs(puntajes[(m, u, a)] - esperado) > 0.01:
+                malos += 1
+    comprobar("cada puntaje de Scimago es el percentil de su cifra medida", malos == 0, malos)
+    comprobar("la vista numérica de Scimago entrega las cifras, no los percentiles",
+              len(sci["valores"]) > 0 and all(
+                  abs(float(v["valor"]) - medidos[(v["id_metrica"], v["id_universidad"], sci["anio"])]) < 1e-9
+                  for v in sci["valores"]))
+    con_unidad = sum(1 for v in sci["valores"] if v["unidad"] and v["unidad"] != "según SCImago")
+    comprobar("casi todas sus cifras llevan unidad", con_unidad >= 0.9 * len(sci["valores"]),
+              f"{con_unidad} de {len(sci['valores'])}")
+    total = cliente.get(f"/ranking-resumen?ranking_id={ids['Scimago Latam']}&anio={sci['anio']}",
+                        headers=gratis).json()
+    comprobar("el total de la pantalla de puntajes vuelve a la escala 0-100",
+              bool(total) and all(0 <= float(f["score_total"]) <= 100 for f in total),
+              max((float(f["score_total"]) for f in total), default=None))
 
     print("\n=== 5. Ranking KAI ===")
     kai = cliente.get(f"/valores-reales?ranking_id={ids['Ranking KAI']}", headers=gratis).json()

@@ -1131,7 +1131,8 @@ def get_valores_reales(ranking_id: int, anio: int | None = None,
     try:
         rk = db.execute(text("""
             SELECT nombre_ranking,
-                   COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false) AS crudos
+                   COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false) AS crudos,
+                   to_jsonb(r) ->> 'origen_valores' AS origen
             FROM ranking r WHERE id_ranking = :r"""), {"r": ranking_id}).first()
         if rk is None:
             raise HTTPException(status_code=404, detail="No existe ese ranking.")
@@ -1201,7 +1202,9 @@ def get_valores_reales(ranking_id: int, anio: int | None = None,
 
         return {
             "ranking": rk.nombre_ranking,
-            "origen": "fuente" if rk.crudos else "medido",
+            # Quién produjo las cifras: la fuente (Scimago) o KAI con la definición
+            # del ranking. La interfaz advierte distinto en cada caso.
+            "origen": rk.origen or ("fuente" if rk.crudos else "medido"),
             "anio": anio,
             "anios": anios,
             "metricas": metricas,

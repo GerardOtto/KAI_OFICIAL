@@ -1,43 +1,4 @@
 ﻿ranking,metrica,edicion,modelo,n,a,b,r2,residuo_mediano,saturados_excluidos,nota
-QS Global,Citations per Faculty,2024,lineal,25,0.6839,0.07998686,0.673,0.755,0,desfase institucional E-4
-QS Global,Citations per Faculty,2025,lineal,25,0.8748,0.08135846,0.7451,0.723,0,desfase institucional E-4
-QS Global,Citations per Faculty,2026,lineal,20,2.5085,0.15679707,0.7758,1.536,0,desfase institucional E-4
-QS Global,Citations per Faculty,2027,lineal,17,0.7507,0.24583368,0.8573,1.114,0,desfase institucional E-4
-QS Global,Faculty Student Ratio,2024,lineal,25,-0.116,79.96764101,0.1579,1.853,0,desfase institucional E-4
-QS Global,Faculty Student Ratio,2025,lineal,25,2.308,54.66405417,0.0575,1.981,0,desfase institucional E-4
-QS Global,Faculty Student Ratio,2026,lineal,20,1.9682,103.9930668,0.0965,2.333,0,desfase institucional E-4
-QS Global,Faculty Student Ratio,2027,lineal,17,5.1882,67.23434679,0.0382,3.874,0,desfase institucional E-4
-QS Global,International Faculty Ratio,2024,lineal,24,-7.704,3.45719754,0.6837,1.769,0,desfase institucional E-4
-QS Global,International Faculty Ratio,2025,lineal,24,-9.1891,3.62292695,0.7248,1.75,0,desfase institucional E-4
-QS Global,International Faculty Ratio,2026,lineal,20,-15.3585,5.50868989,0.5139,2.175,0,desfase institucional E-4
-QS Global,International Faculty Ratio,2027,lineal,17,-14.7789,4.83577819,0.66,2.569,0,desfase institucional E-4
-QS Global,International Research Network,2026,lineal,20,-365.538,2.08013699,0.0226,9.44,0,desfase institucional E-4
-QS Global,International Students Ratio,2024,lineal,16,1.2065,0.41304348,0.5942,0.483,0,desfase institucional E-4
-QS Global,International Students Ratio,2025,lineal,17,1.1432,0.41228814,0.5244,0.356,0,desfase institucional E-4
-QS Global,International Students Ratio,2026,lineal,18,1.4621,0.95614407,0.4289,0.824,0,desfase institucional E-4
-QS Global,International Students Ratio,2027,lineal,15,1.0415,1.22195122,0.5615,0.985,0,desfase institucional E-4
-QS Latam,Citations per paper,2024,lineal,35,-33.6944,4.54008532,0.3918,16.597,4,desfase institucional E-4
-QS Latam,Citations per paper,2025,lineal,32,-27.1454,5.51257876,0.4967,12.263,7,desfase institucional E-4
-QS Latam,Citations per paper,2026,lineal,33,-25.9226,6.68165113,0.5514,11.791,6,desfase institucional E-4
-QS Latam,Faculty student ratio,2024,lineal,40,-3.4558,261.95385419,0.3058,4.994,0,desfase institucional E-4
-QS Latam,Faculty student ratio,2025,lineal,41,4.9212,186.30171606,0.11,5.018,0,desfase institucional E-4
-QS Latam,Faculty student ratio,2026,lineal,41,4.1331,194.49332888,0.138,5.152,0,desfase institucional E-4
-QS Latam,International research network,2026,lineal,25,-223.8676,1.47267485,0.4093,11.051,14,desfase institucional E-4
-QS Latam,Papers per faculty,2024,lineal,33,5.37,20.81244701,0.7552,9.087,7,desfase institucional E-4
-QS Latam,Papers per faculty,2025,lineal,30,16.0221,19.98629977,0.5982,11.243,10,desfase institucional E-4
-QS Latam,Staff with PhD,2024,lineal,34,-1.5795,1.69548116,0.7126,6.688,1,desfase institucional E-4
-QS Latam,Staff with PhD,2026,lineal,40,-7.5405,1.70230586,0.7336,5.603,1,desfase institucional E-4
-THE Latam,International Students,2016,cdf (normal),800,13.1372,0.707272,0.7634,,0,población mundial; R2 percentil 0.742 vs normal 0.763
-THE Latam,International Students,2017,cdf (normal),979,12.4114,0.699724,0.7613,,0,población mundial; R2 percentil 0.730 vs normal 0.761
-THE Latam,International Students,2018,cdf (normal),1103,12.4248,0.694807,0.7655,,0,población mundial; R2 percentil 0.727 vs normal 0.765
-THE Latam,International Students,2019,cdf (normal),1257,13.4391,0.677147,0.754,,0,población mundial; R2 percentil 0.700 vs normal 0.754
-THE Latam,International Students,2020,cdf (normal),1395,13.5086,0.672251,0.7508,,0,población mundial; R2 percentil 0.692 vs normal 0.751
-THE Latam,International Students,2021,cdf (normal),1525,13.9662,0.661378,0.7405,,0,población mundial; R2 percentil 0.677 vs normal 0.740
-THE Latam,International Students,2022,cdf (normal),1661,14.9691,0.639579,0.7226,,0,población mundial; R2 percentil 0.645 vs normal 0.723
-THE Latam,International Students,2023,cdf (normal),1798,16.4469,0.608733,0.6986,,0,población mundial; R2 percentil 0.603 vs normal 0.699
-THE Latam,International Students,2024,cdf (normal),1907,21.1583,0.575148,0.6661,,0,población mundial; R2 percentil 0.576 vs normal 0.666
-THE Latam,International Students,2025,cdf (normal),2092,21.4316,0.566001,0.6604,,0,población mundial; R2 percentil 0.568 vs normal 0.660
-THE Latam,International Students,2026,cdf (normal),2189,22.0999,0.548622,0.6552,,0,población mundial; R2 percentil 0.558 vs normal 0.655
 Scimago Latam,Excellence with Leadership,todas,identidad,338,0,1,,0.0,0,"338 de 338 coinciden dentro del 0,1 %"
 Scimago Latam,Female Scientific Pool,todas,identidad,338,0,1,,0.0,0,"338 de 338 coinciden dentro del 0,1 %"
 Scimago Latam,Innovative Knowledge,todas,identidad,340,0,1,,0.0,0,"340 de 340 coinciden dentro del 0,1 %"

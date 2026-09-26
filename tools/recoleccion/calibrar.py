@@ -429,13 +429,26 @@ def verificar_scimago(filas_salida) -> None:
 
     motor = create_engine(url)
     with motor.connect() as c:
-        filas = list(c.execute(text("""
-            select u.nombre_universidad, m.nombre_metrica, mu.anio_metrica, mu.valor_metrica
-            from metrica_universidad mu
-            join metrica m on m.id_metrica = mu.id_metrica
+        # Desde la migración 011 las cifras de Scimago viven en
+        # valor_real_universidad y metrica_universidad guarda sus percentiles. En
+        # una base anterior, las cifras siguen en metrica_universidad.
+        migrada = c.execute(text(
+            "select to_regclass('public.valor_real_universidad') is not null")).scalar() and \
+            c.execute(text("""select count(*) from valor_real_universidad v
+                              join metrica m on m.id_metrica = v.id_metrica
+                              join ranking r on r.id_ranking = m.id_ranking
+                              where r.nombre_ranking = 'Scimago Latam'""")).scalar() > 0
+        tabla, anio = (("valor_real_universidad", "anio_edicion") if migrada
+                       else ("metrica_universidad", "anio_metrica"))
+        valor = "valor" if migrada else "valor_metrica"
+        filas = list(c.execute(text(f"""
+            select u.nombre_universidad, m.nombre_metrica, x.{anio}, x.{valor}
+            from {tabla} x
+            join metrica m on m.id_metrica = x.id_metrica
             join ranking r on r.id_ranking = m.id_ranking
-            join universidad u on u.id_universidad = mu.id_universidad
+            join universidad u on u.id_universidad = x.id_universidad
             where r.nombre_ranking = 'Scimago Latam'""")))
+    print(f"  cifras leídas de {tabla}")
 
     print(f"  {len(filas)} valores de Scimago en la base\n")
     print(f"    {'métrica':32} {'pares':>6} {'iguales':>8} {'desvío mediano':>15}")
