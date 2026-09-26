@@ -41,7 +41,10 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `openalex.py` | T3.1 | Producción, colaboración internacional y socios recurrentes |
 | `scimago_ventana.py` | T1.3 | La edición nueva, por la exportación oficial tras Cloudflare |
 | `consolidar.py` | T5.1 | Une todo, señala conflictos y calcula el factor OpenAlex/Scopus |
+| `metricas_crudas.py` | T5.2 | Recalcula cada métrica con la fórmula de su ranking |
+| `calibrar.py` | T5.3 | La recta de QS, la hipótesis CDF de THE y la verificación de Scimago |
 | `tests/test_sies.py` | T2.1 | Valida la agregación contra cifras públicas y contra THE |
+| `tests/test_reversion.py` | T5.2-3 | Comprueba desfases, fórmulas y aritmética de la calibración |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del
 formato largo, mapa de nombres y, para las fuentes que lo necesiten, un navegador
@@ -58,7 +61,10 @@ python tools/recoleccion/anid.py
 python tools/recoleccion/openalex.py           # ~25 min; reanudable
 python tools/recoleccion/scimago_ventana.py    # abre una ventana de navegador
 python tools/recoleccion/consolidar.py
+python tools/recoleccion/metricas_crudas.py
+python tools/recoleccion/calibrar.py           # consulta la base para Scimago
 python tools/recoleccion/tests/test_sies.py
+python tools/recoleccion/tests/test_reversion.py
 python tools/recoleccion/the.py --solo-procesar # reprocesa sin descargar
 ```
 
@@ -174,12 +180,40 @@ universidades con volumen.
 
 | Tarea | Estado |
 |---|---|
-| T1.1 THE · T1.3 Scimago · T2.1 SIES · T2.4 ANID · T3.1 OpenAlex · T5.1 Consolidar | hechas |
+| T1.1 THE · T1.3 Scimago · T2.1 SIES · T2.4 ANID · T3.1 OpenAlex | hechas |
+| T5.1 Consolidar · T5.2 Recálculo · T5.3 Calibración | hechas |
 | T1.2 QS | puntajes sí; faltan los perfiles de topuniversities.com |
 | T1.4 Webometrics | el sitio no resuelve |
 | T2.2 CNED · T2.3 Estados financieros | sin empezar |
 | Fase 4 (Scopus, SciVal) | requiere la sesión institucional del usuario |
-| T5.2-T5.5 (recálculo, calibración, reporte) | sin empezar |
+| T5.4 Migraciones · T5.5 Reporte final | sin empezar (T5.4 exige preguntar antes) |
+
+### La reversión (T5.2 y T5.3)
+
+`metricas_crudas.py` no invierte la normalización: **recalcula** cada métrica con
+la fórmula que su ranking publica. Invertir exigiría conocer μ y σ de una
+población que los rankings no publican, y además la base solo guarda pilares, que
+son sumas de varias métricas ya normalizadas —una ecuación con cinco incógnitas—.
+
+Lo que sí hay que acertar es el año. La metodología WUR 2026 fija **dos** desfases
+distintos dentro del mismo ranking: los datos institucionales son «for the year
+ending in 2023» (tres años antes de la edición) y la bibliometría abarca «all
+indexed publications between 2020 and 2024» (los cinco años que terminan dos
+antes). Usar uno solo desalinea la mitad de las métricas. Para QS no hay
+declaración equivalente, así que `calibrar.py` lo mide probando cada desfase sobre
+una muestra idéntica; sale E−4.
+
+`calibrar.py` deja `calibracion.csv` y responde tres cosas distintas:
+
+| Ranking | Qué se comprueba | Resultado |
+|---|---|---|
+| THE | si el puntaje sigue el rango percentil o la normal Φ(z) | la normal, en 11 de 11 ediciones |
+| QS | la recta `puntaje = a + b·crudo` por indicador y edición | 4 de 10 indicadores utilizables |
+| Scimago | si la base coincide con la descarga nueva | 11 métricas, desvío 0,00 % |
+
+El detalle está en
+[docs/estudio-desnormalizacion-rankings.md](../../docs/estudio-desnormalizacion-rankings.md)
+§4.5.
 
 Dos variables que **ninguna fuente abierta entrega** y que habrá que pedir a las
 instituciones: los estudiantes extranjeros —la base de matrícula del SIES no trae

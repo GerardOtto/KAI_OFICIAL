@@ -220,27 +220,182 @@ estudiantes por académico, es una anomalía de THE y no se usa.)
 
 ---
 
+## 4.5 Reversión completa de las 58 universidades (T5.2 y T5.3)
+
+Lo de arriba se hizo para una institución y sin acceso web. Con la recolección
+terminada —25.944 datos de seis fuentes— la reversión se rehízo para todas, y
+cambió tres de sus conclusiones. Reproducible con:
+
+```bash
+python tools/recoleccion/metricas_crudas.py   # T5.2 -> metricas_crudas_chile.csv
+python tools/recoleccion/calibrar.py          # T5.3 -> calibracion.csv
+python tools/recoleccion/tests/test_reversion.py
+```
+
+### 4.5.1 El desfase, que no estaba considerado
+
+Ninguna métrica se puede recalcular sin saber de qué año son los datos que
+alimentan cada edición. La metodología WUR 2026 lo dice sin ambigüedad:
+
+> «‘WUR 2026’ (ranking year): means the World University Rankings 2026 published
+> in Autumn 2025 […] Provided true and accurate information for their institution
+> **for the year ending in 2023**»
+
+Tres años. Y la bibliometría va por otra ventana en el mismo documento: «all
+indexed publications **between 2020 and 2024**», los cinco años que terminan dos
+antes de la edición. Son dos desfases distintos dentro del mismo ranking.
+
+Esto coincide con lo que la comparación empírica con el SIES había encontrado por
+su cuenta antes de leer el PDF —desvío mediano del 3,0 % en matrícula con desfase
+3, contra 9,9 % sin desfase—, así que el dato está confirmado por dos vías.
+
+Para QS no hay una declaración equivalente, así que se midió: se ajusta la recta
+en cada desfase de 0 a 7 **sobre una muestra idéntica**, para que el R² no cambie
+por la composición de la muestra. Tres de los indicadores con R² sobre 0,6 tienen
+su máximo en el interior del rango, en **E−4**:
+
+| Indicador | E−0 | E−2 | **E−4** | E−6 |
+|---|---:|---:|---:|---:|
+| International Faculty Ratio | 0,43 | 0,53 | **0,70** | 0,65 |
+| Staff with PhD | 0,63 | 0,62 | **0,71** | 0,68 |
+| Papers per faculty | 0,59 | 0,62 | **0,66** | 0,53 |
+
+### 4.5.2 Las 17 métricas de THE, recalculadas
+
+13 de las 17 tienen ahora valor para las universidades con insumo. La PUCV en la
+**edición 2026**, que según la metodología se arma con el SIES 2023 y la ventana
+bibliométrica 2020-2024:
+
+| Métrica de THE | Fórmula aplicada | PUCV 2026 | Calidad |
+|---|---|---:|---|
+| Student Staff Ratio | estudiantes_total / academicos_jce | 24,76 | directa |
+| Doctorate Staff Ratio | graduados_doctorado / academicos_jce | 0,084 | directa |
+| Doctorate Bachelor Ratio | graduados_doctorado / titulados_pregrado_total | 0,021 | directa |
+| International Staff | academicos_jce_extranjeros / academicos_jce | 9,27 % | directa |
+| International Students | declarado a THE | 1 % | directa |
+| International Co-authorship | pct_colaboracion_internacional (OpenAlex) | 54,62 % | aproximada |
+| Research Income | montos_anid / academicos_jce | $16,5 M | parcial |
+| Industry Income | montos_anid_con_industria / academicos_jce | $2,5 M | parcial |
+
+El Student Staff Ratio recalculado, 24,76, queda a un 6,7 % del 23,2 que THE
+publica para la PUCV. Es la brecha esperable entre el JCE del SIES y el FTE que
+THE recibe, y es de las menores del país: la PUCV declara a THE prácticamente lo
+mismo que al Estado (razón 1,04 sobre nueve ediciones).
+
+**Las cinco métricas bibliométricas se detienen en la edición 2025.** Research
+Productivity, Citation Impact, Research Excellence, Research Influence y Patents
+salen todas de Scimago, y Scimago dejó de publicar indicadores crudos: de la
+ventana 2020-2024 solo hay posiciones. Para la edición 2026 en adelante esas
+cinco no tienen insumo abierto, y son 32 de los 100 puntos de peso.
+
+Dos precisiones que costaron releer la metodología y que es fácil equivocar:
+
+- **Doctorate Staff Ratio son doctorados *otorgados* por académico**, no la
+  proporción de académicos que tienen doctorado. Esa segunda es *Staff with PhD*,
+  y es de QS, no de THE.
+- **Patents, Research Excellence y Research Influence llevan divisor.** THE dice
+  «we also normalise this by the sum of academic and research staff». Sin el
+  divisor, la métrica premia el tamaño y no la calidad.
+
+### 4.5.3 La hipótesis CDF de THE, ahora verificada
+
+La §3.1 daba la normalización de THE por supuesta. Con los datos mundiales
+—3.731 instituciones, once ediciones— se puede probar. La pregunta que decide
+cómo cargar los valores: ¿el puntaje sigue el **rango percentil** del valor crudo,
+o la **normal ajustada** Φ((x−μ)/σ)? Para una variable sesgada las dos difieren
+mucho.
+
+| Edición | n | R² percentil | R² normal Φ(z) |
+|---:|---:|---:|---:|
+| 2016 | 800 | 0,742 | **0,763** |
+| 2020 | 1.395 | 0,692 | **0,751** |
+| 2023 | 1.798 | 0,603 | **0,699** |
+| 2026 | 2.189 | 0,558 | **0,655** |
+
+**La normal ajustada gana en las once ediciones.** Es la primera confirmación
+externa de lo que THE declara, y fija cómo debe transformarse un valor real al
+cargarlo: `s = 100 · Φ((x − μ) / σ)`, no un percentil.
+
+Hay una segunda prueba, independiente. Si una métrica se normaliza con una
+función acumulada, su puntaje se reparte uniforme entre 0 y 100. Los deciles de
+cada pilar en el mundo, edición 2026:
+
+| Pilar | d0 | d1 | d2 | d3 | d4 | d5 | d6 | d7 | d8 | d9 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Research Quality** | 2 | 9 | 12 | 12 | 12 | 13 | 13 | 12 | 11 | 5 |
+| International Outlook | 0 | 1 | 19 | 21 | 17 | 13 | 9 | 8 | 7 | 6 |
+| Teaching | 0 | 27 | 36 | 22 | 9 | 3 | 1 | 1 | 1 | 1 |
+| Research Environment | 13 | 45 | 19 | 12 | 6 | 2 | 1 | 1 | 0 | 1 |
+
+Research Quality es casi uniforme, y es **el único pilar sin encuesta de
+reputación entre sus hojas**. Teaching y Research Environment, donde la
+reputación pesa 15 de 29,5 y 18 de 29, se apilan en los deciles bajos. Encaja con
+la otra mitad de lo que THE declara: función acumulada para las métricas normales
+y «un componente exponencial» para reputación. Visto desde fuera, las dos mitades
+se distinguen.
+
+### 4.5.4 Las rectas de QS: cuáles sirven
+
+Ajuste `puntaje = a + b·crudo` por indicador y edición, excluyendo los puntajes de
+90 o más. El R² por sí solo engaña —hay indicadores con R² bajo y error de medio
+punto, porque los puntajes se apiñan cerca del piso—, así que el veredicto mira
+el error en puntos de puntaje:
+
+| Indicador | R² | Error mediano | Veredicto |
+|---|---:|---:|---|
+| Citations per Faculty (Global) | 0,75 | 0,8 | **sirve** |
+| Staff with PhD (Latam) | 0,72 | 6,1 | **sirve** |
+| International Faculty Ratio (Global) | 0,67 | 2,0 | **sirve** |
+| International Students Ratio (Global) | 0,54 | 0,7 | sirve con reparo |
+| Papers per faculty (Latam) | 0,68 | 10,2 | no: 10 puntos de error |
+| Citations per paper (Latam) | 0,50 | 12,3 | no |
+| Faculty student ratio (Latam) | 0,14 | 5,0 | no |
+| Faculty Student Ratio (Global) | 0,08 | 2,2 | no |
+| International research network | 0,02–0,41 | 9–11 | no |
+
+Cuatro de diez quedan utilizables. Los dos fracasos confirman lo que la §3.2 ya
+sospechaba: **Faculty Student Ratio no se puede reproducir** porque QS cuenta
+jornada completa más parcial dividida en tres, que no es el recuento de personas
+ni el JCE del SIES; e **International Research Network no es el número de países
+socios** —los interceptos ajustados, de −224 y −366, son la señal de que la
+métrica recalculada no es la que QS mide—.
+
+### 4.5.5 Scimago: verificado
+
+Las 11 métricas de Scimago de la base se compararon una a una contra la descarga
+nueva, 338 a 340 pares cada una. **Desvío 0,00 % en todas.** No hay nada que
+desnormalizar y tampoco nada que corregir. De paso, esto valida la tubería de
+recolección completa: resolución de nombres, lectura y mapeo de ventanas
+reproducen la base exactamente.
+
+---
+
 ## 5. Qué falta y por qué
+
+Actualizado tras T5.2 y T5.3. Lo tachado quedó resuelto.
 
 | Métrica | Ranking | Qué falta | Dónde está |
 |---|---|---|---|
-| Institutional income / académico | THE | Ingresos totales (PPP) | Estados financieros auditados PUCV; envío de datos a THE |
-| Research income / académico | THE | Ingresos de investigación por área | Envío de datos a THE; ANID; estados financieros |
-| Industry income / académico | THE | Ingresos de investigación desde la industria | Envío de datos a THE |
-| International staff | THE | Académicos FTE extranjeros | Envío de datos a THE; SIES (personal académico por nacionalidad) |
-| Doctorate/bachelor ratio | THE | Doctorados otorgados / licenciaturas otorgadas | SIES "Titulados" (mifuturo.cl) |
-| Doctorate/staff ratio | THE | Doctorados otorgados por área / personal por área | SIES + envío de datos a THE |
-| Research staff FTE | THE | Denominador exacto de productividad y excelencia | Envío de datos a THE |
-| Research strength, influence y FWCI exacto | THE | Percentil 75 del FWCI, influencia ponderada | SciVal (Elsevier) |
-| Faculty FT/PT, % con doctorado (definición QS) | QS | Números enviados a QS | Envío de datos a QS (QS Hub) |
-| International research network | QS | Socios con 3 o más papers en 5 años, por país | Scopus/SciVal (exportar coautorías por institución y país) |
-| Web impact | QS | Posición en Webometrics | webometrics.info |
-| Puntajes de sub-métricas THE | THE | Los 17 puntajes individuales | Portal institucional de THE (solo para la institución que envía los datos) |
+| Institutional income / académico | THE | Ingresos totales (PPP) | Estados financieros auditados; T2.3 en curso |
+| ~~Research income / académico~~ | THE | *Resuelto en parte:* ANID por académico, 1.280 datos. Falta el resto del ingreso de investigación | Estados financieros; envío a THE |
+| ~~Industry income / académico~~ | THE | *Resuelto en parte:* el aporte de industria vía ANID, 344 datos | Envío a THE para el total |
+| ~~International staff~~ | THE | **Resuelto.** El SIES publica académicos extranjeros en personas y en JCE, 49 universidades | `sies:academicos_jce_extranjeros` |
+| ~~Doctorate/bachelor ratio~~ | THE | **Resuelto.** 317 valores | `sies:graduados_doctorado / titulados_pregrado_total` |
+| ~~Doctorate/staff ratio~~ | THE | **Resuelto** sin ponderación por área. 313 valores | `sies:graduados_doctorado / academicos_jce` |
+| Research staff FTE | THE | El JCE del SIES no separa personal de investigación del docente | Envío de datos a THE |
+| Research strength | THE | Percentil 75 del FWCI trabajo a trabajo | SciVal (Elsevier) |
+| Research influence y FWCI exacto | THE | Sustituidos por Scimago; la equivalencia es de familia, no exacta | SciVal (Elsevier) |
+| Faculty FT/PT (definición QS) | QS | Confirmado que no se puede reproducir: R² 0,08–0,14 | Envío de datos a QS (QS Hub) |
+| International research network | QS | Confirmado que el número de países no es la métrica | Scopus/SciVal |
+| Web impact | QS | El dominio de Webometrics no resuelve | webometrics.info |
+| Puntajes de sub-métricas THE | THE | Los 17 puntajes individuales | Portal institucional de THE |
+| Reputación (4 métricas) | THE y QS | Encuestas propias; no se publican ni se venden | Ninguna fuente, a ningún precio |
 
-**Limitación de este estudio:** el contenedor donde se hizo no tenía acceso web a
-SIES, QS, THE ni PUCV (bloqueo del proxy de salida). Las cifras marcadas como
-"prensa PUCV", "cifras públicas" o "fuente web" vienen de resúmenes de búsqueda y
-**deben verificarse** en la fuente original antes de usarlas.
+**Limitación del estudio original:** el contenedor donde se hizo no tenía acceso
+web a SIES, QS, THE ni PUCV (bloqueo del proxy de salida), y sus cifras marcadas
+como "prensa PUCV" o "fuente web" venían de resúmenes de búsqueda. **Las secciones
+4.5 y siguientes no arrastran esa limitación:** se hicieron con acceso a las
+fuentes y cada dato lleva su URL en `KAI/Datos reales/valores_reales_chile.csv`.
 
 ---
 
