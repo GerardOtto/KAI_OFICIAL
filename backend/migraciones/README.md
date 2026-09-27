@@ -10,14 +10,14 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `002_motor_por_conversacion.sql` | Motor del asistente (Claude o Gemini) fijado por conversación | aplicada | aplicada (07-09-2026) |
 | `003_planes_por_tokens.sql` | Planes con cuota de tokens por motor, precio mensual y tope diario | aplicada | aplicada (07-09-2026) |
 | `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | pendiente | pendiente |
-| `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | pendiente |
-| `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | pendiente |
+| `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | aplicada |
+| `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | aplicada (26-09-2026) |
 | `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | pendiente | pendiente |
-| `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | pendiente | pendiente |
-| `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | pendiente | pendiente |
-| `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | pendiente | pendiente |
-| `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | pendiente | pendiente |
-| `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | pendiente | pendiente |
+| `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | aplicada (26-09-2026) | aplicada (26-09-2026) |
+| `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | aplicada (26-09-2026) | aplicada (26-09-2026) |
+| `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | aplicada (26-09-2026) | aplicada (26-09-2026) |
+| `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | aplicada (26-09-2026) | aplicada (26-09-2026) |
+| `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -78,6 +78,21 @@ transacción termina revertida sin que se note.
    ```bash
    pg_dump "postgresql://..." -f respaldo_antes_de_001.sql
    ```
+
+5. **Datos de la 009 en adelante.** Los cargadores (`cargar_ranking_kai.py`,
+   `cargar_valores_reales.py`) insertan fila por fila: contra la URL pública de
+   Railway tardan más de diez minutos y sostienen una transacción abierta todo
+   ese rato. Es más rápido generar el SQL y aplicarlo con `psql`, que lo manda
+   en un solo `INSERT`:
+
+   ```bash
+   python tools/recoleccion/cargar_ranking_kai.py --sql ranking_kai.sql
+   psql "postgresql://..." -v ON_ERROR_STOP=1 -f ranking_kai.sql
+   ```
+
+   Orden en una base nueva: 008, 009, 010, los dos cargadores, 011 y 012. La
+   011 copia las cifras de Scimago antes de convertirlas en percentiles, y la
+   012 verifica que cada puntaje de un ranking por percentil tenga su cifra.
 
 ---
 
