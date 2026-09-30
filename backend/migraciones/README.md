@@ -9,7 +9,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `001_usuarios_y_conversaciones.sql` | Autenticación, cuentas de Google, planes, conversaciones y consumo de tokens | aplicada | aplicada (07-09-2026) |
 | `002_motor_por_conversacion.sql` | Motor del asistente (Claude o Gemini) fijado por conversación | aplicada | aplicada (07-09-2026) |
 | `003_planes_por_tokens.sql` | Planes con cuota de tokens por motor, precio mensual y tope diario | aplicada | aplicada (07-09-2026) |
-| `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | pendiente | pendiente |
+| `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | aplicada (29-09-2026) | aplicada (29-09-2026) |
 | `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | aplicada |
 | `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | aplicada (26-09-2026) |
 | `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | aplicada (29-09-2026) | aplicada (29-09-2026) |
