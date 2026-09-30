@@ -105,6 +105,7 @@ CAMPOS_USUARIO = """
     u.plan_usuario, u.avatar_url, u.correo_verificado, u.fecha_creacion,
     (u.google_sub IS NOT NULL) AS con_google,
     (u.clave_usuario IS NOT NULL) AS con_clave,
+    institucion_por_correo(u.correo_usuario) AS institucion_del_correo,
     p.nombre_plan, p.mensajes_por_dia, p.precio_mensual_usd,
     p.tokens_claude_mes, p.tokens_gemini_mes, p.dias_entre_mensajes
 """

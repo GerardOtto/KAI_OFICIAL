@@ -237,6 +237,11 @@ def login_google(req: GoogleRequest):
     Borrar la contraseña cierra el secuestro previo de cuentas: como el registro
     local no verifica el correo, alguien pudo registrarse antes con un correo
     ajeno; al vincularlo su dueño real, esa contraseña deja de servir.
+
+    Si el dominio del correo es institucional (`dominio_institucion`), la
+    institución se fija aquí y no se pregunta: el correo ya viene verificado. Se
+    hace en cada entrada, no solo al crear la cuenta, para que una cuenta con
+    contraseña que se vincula tome la institución de su dominio.
     """
     datos = auth.verificar_token_google(req.credential)
 
@@ -267,6 +272,11 @@ def login_google(req: GoogleRequest):
                  WHERE id_usuario = :i
             """), {"g": datos["sub"], "a": datos["avatar"], "i": id_usuario})
 
+        db.execute(text("""
+            UPDATE usuario SET institucion_usuario = institucion_por_correo(correo_usuario)
+             WHERE id_usuario = :i AND institucion_por_correo(correo_usuario) IS NOT NULL
+        """), {"i": id_usuario})
+
         db.commit()
         return _sesion(db, auth.buscar_usuario_por_id(db, id_usuario))
     finally:
@@ -289,8 +299,15 @@ def fijar_institucion(req: InstitucionRequest, usuario: dict = Depends(auth.usua
 
     Existe por el acceso con Google: ese camino no pregunta nada al usuario, de
     modo que la institución —obligatoria desde ahora— se reclama después, en la
-    primera sesión. También sirve para corregirla.
+    primera sesión, si el correo no la identifica. También sirve para corregirla,
+    salvo cuando viene acreditada por el dominio: entonces es un hecho y no una
+    elección, y cambiarla le quitaría el valor que tiene.
     """
+    if acceso.institucion_acreditada(usuario):
+        raise HTTPException(
+            status_code=409,
+            detail=(f"Tu institución ({usuario['institucion_del_correo']}) viene de tu correo "
+                    "institucional y no se puede cambiar."))
     db = SessionLocal()
     try:
         institucion = _validar_institucion(db, req.institucion)

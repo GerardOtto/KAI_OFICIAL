@@ -40,6 +40,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados, descargas contadas y asistente por dominio |
+| `dominios` | Catálogo de dominios institucionales, institución asignada al entrar con Google y no editable, correos parecidos que no se confunden y el asistente cerrado a las cuentas con contraseña |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `ranking-kai` | Ranking KAI: pesos parejos que suman 100, las diez métricas en cada universidad y año, percentiles reproducibles desde el valor medido y abierto al plan gratuito |
 | `valores-reales` | Modo numérico: cobertura por componentes y no por pilares, calidades, solo ediciones publicadas y universidades clasificadas, Scimago idéntico a su tabla, THE y QS reservados |
@@ -132,9 +133,9 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 012
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 013
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
-instituciones, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
+instituciones y 60 dominios de correo de 50 de ellas, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,
 mensajes, notificaciones ni descargas. Al regenerarlo hay que conservar esas
 exclusiones, y hacerlo desde una base con **todas** las migraciones aplicadas —si

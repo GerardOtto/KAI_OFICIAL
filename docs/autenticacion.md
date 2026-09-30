@@ -113,6 +113,40 @@ sobreviviera a la vinculación, ese tercero seguiría entrando a la cuenta del
 dueño real. Las cuentas vinculadas antes de este cambio se corrigen con la
 migración `004_solo_google_tras_vincular.sql`.
 
+### Institución por el dominio del correo
+
+Quien entra con Google con un correo de una universidad del catálogo
+(`ana@pucv.cl`, `ana@mail.pucv.cl`, `ana@miuandes.cl`…) recibe su institución
+automáticamente y no ve el selector. Se decide con la tabla
+`dominio_institucion` y la función `institucion_por_correo` (migración 013): el
+dominio exacto o cualquiera de sus subdominios, nunca uno parecido
+(`fakepucv.cl` no es `pucv.cl`).
+
+- **Solo con Google.** Google entrega el correo verificado; el registro con
+  contraseña no lo verifica, así que ahí la institución se sigue eligiendo en el
+  selector aunque el correo sea institucional.
+- **No se puede cambiar.** Una institución acreditada por el dominio es un hecho,
+  no una elección: `PATCH /auth/institucion` responde 409. Las capacidades de la
+  sesión lo informan en `institucion_acreditada`.
+- **Se aplica en cada entrada**, de modo que una cuenta con contraseña que se
+  vincula a Google toma la institución de su dominio.
+- **Gmail y otros correos personales** siguen pasando por el selector en la
+  primera sesión.
+
+El catálogo cubre 50 de las 58 universidades. Quedan fuera las cerradas cuyo
+dominio ya no les pertenece —un correo verificado en un dominio revendido no
+acredita nada—; el detalle está en la cabecera de la migración 013.
+
+### El asistente exige Google
+
+El asistente está reservado a las cuentas de la PUCV, y el dominio solo acredita
+la afiliación si el correo está verificado. Por eso exige, además del dominio,
+que la cuenta entre con Google: con contraseña cualquiera podía registrarse con
+un correo @pucv.cl ajeno y consumir un servicio que se paga por consulta. Quien
+tenga una cuenta con contraseña y un correo de la PUCV solo tiene que entrar con
+Google usando ese mismo correo: la cuenta se vincula y conserva sus
+conversaciones.
+
 ---
 
 ## 3. Conversaciones
@@ -195,6 +229,7 @@ Pendiente:
   entrar por esa vía.
 - **Tokens de refresco.** Al expirar el JWT hay que volver a iniciar sesión.
 - **Verificación de correo en el registro local.** Las cuentas de Google llegan
-  con el correo ya verificado; las locales no se verifican.
+  con el correo ya verificado; las locales no se verifican. Por eso no reciben
+  la institución por su dominio ni pueden usar el asistente.
 - **Revocación de sesiones.** No hay lista de tokens revocados; el único
   mecanismo es rotar `JWT_SECRET`.

@@ -58,15 +58,16 @@ import uuid
 CORREO = f"prueba-convivencia-{uuid.uuid4().hex[:8]}@pucv.cl"
 
 db = main.SessionLocal()
+# Vinculada a Google, como exige el asistente.
 ID_USUARIO = db.execute(text("""
-    INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
+    INSERT INTO usuario (nombre_usuario, correo_usuario, google_sub,
                          institucion_usuario, plan_usuario)
-    VALUES ('Prueba Convivencia', :c, :k, 'Pontificia Universidad Catolica de Valparaiso',
+    VALUES ('Prueba Convivencia', :c, :g, 'Pontificia Universidad Catolica de Valparaiso',
             (SELECT codigo_plan FROM plan
               WHERE tokens_claude_mes IS NULL OR tokens_claude_mes > 0
               ORDER BY orden DESC LIMIT 1))
     RETURNING id_usuario
-"""), {"c": CORREO, "k": auth.hashear_clave("Prueba12345!")}).scalar()
+"""), {"c": CORREO, "g": f"prueba-{CORREO}"}).scalar()
 db.commit()
 db.close()
 

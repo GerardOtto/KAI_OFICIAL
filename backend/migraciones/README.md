@@ -18,6 +18,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | aplicada (26-09-2026) | aplicada (26-09-2026) |
+| `013_dominios_institucionales.sql` | Tabla `dominio_institucion` (60 dominios de 50 universidades) y función `institucion_por_correo`: quien entra con Google con un correo institucional recibe su institución sin elegirla. **Aplicarla antes de desplegar el backend que la usa** | aplicada (29-09-2026) | pendiente |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -36,6 +37,15 @@ La 006 **no** declara obligatoria la institución en la base, aunque lo sea al
 registrarse: las cuentas anteriores —y todas las creadas con Google— no la
 tienen, y una restricción `NOT NULL` les impediría entrar a completarla. La
 obligación se aplica en el registro y se reclama en la primera sesión.
+
+La 013 es la primera de la que depende el backend para autenticar: cada consulta
+del usuario llama a `institucion_por_correo`, así que un backend desplegado sobre
+una base sin la 013 no deja entrar a nadie. El orden es base primero, código
+después: el código anterior convive sin problemas con la base nueva. Al aplicarla fija la institución de las cuentas de Google ya
+existentes cuyo dominio reconoce, y lo informa en un aviso. Para agregar un
+dominio basta un `INSERT` en `dominio_institucion` (en minúsculas y sin `@`):
+cubre sus subdominios, y la batería `dominios` vigila que un subdominio no
+apunte a otra universidad que su dominio.
 
 ---
 

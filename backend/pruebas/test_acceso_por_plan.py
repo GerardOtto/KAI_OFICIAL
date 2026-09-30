@@ -40,15 +40,20 @@ motores.responder = lambda motor, mensajes: resultado(
 cliente = TestClient(main.app)
 
 
-def crear_usuario(plan="free", dominio="pucv.cl", institucion=INSTITUCION):
-    """Usuario directamente en la base: aquí se prueban los permisos, no el alta."""
+def crear_usuario(plan="free", dominio="pucv.cl", institucion=INSTITUCION, google=True):
+    """Usuario directamente en la base: aquí se prueban los permisos, no el alta.
+
+    Por defecto, vinculado a Google (correo verificado); con `google=False`, una
+    cuenta de contraseña, cuyo correo nadie verificó.
+    """
     correo = f"acceso-{uuid.uuid4().hex[:8]}@{dominio}"
     db = main.SessionLocal()
     uid = db.execute(text("""
-        INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
+        INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario, google_sub,
                              institucion_usuario, plan_usuario)
-        VALUES ('Prueba acceso', :c, 'x', :i, :p) RETURNING id_usuario
-    """), {"c": correo, "i": institucion, "p": plan}).scalar()
+        VALUES ('Prueba acceso', :c, :k, :g, :i, :p) RETURNING id_usuario
+    """), {"c": correo, "k": None if google else "x", "g": f"prueba-{correo}" if google else None,
+           "i": institucion, "p": plan}).scalar()
     db.commit()
     db.close()
     usuarios.append(uid)
@@ -126,8 +131,8 @@ if alta.status_code == 200:
     comprobar("la sesión ya trae las capacidades del plan",
               "capacidades" in alta.json() and alta.json()["capacidades"]["gratuito"] is True)
 
-print("\n=== 4. Completar la institución después (camino de Google) ===")
-_, sin_inst = crear_usuario(institucion=None)
+print("\n=== 4. Completar la institución después (Google con un correo no institucional) ===")
+_, sin_inst = crear_usuario(dominio="gmail.com", institucion=None)
 yo = cliente.get("/auth/yo", headers=sin_inst).json()
 comprobar("la cuenta sin institución queda marcada",
           yo["capacidades"]["institucion_pendiente"] is True, yo["capacidades"])
@@ -257,6 +262,15 @@ _, propio = crear_usuario("institucional")
 comprobar("una cuenta de la institución sí consulta",
           cliente.post("/chat", json={"mensaje": "Hola", "motor": "gemini"},
                        headers=propio).status_code == 200)
+
+# El registro con contraseña no verifica el correo: cualquiera podía darse de
+# alta con un @pucv.cl ajeno. Sin Google, el dominio no acredita nada.
+_, con_clave = crear_usuario("institucional", google=False)
+r = cliente.post("/chat", json={"mensaje": "Hola", "motor": "gemini"}, headers=con_clave)
+comprobar("una cuenta @pucv.cl con contraseña no consulta", r.status_code == 403, r.status_code)
+comprobar("y se le indica entrar con Google", "Google" in r.json()["detail"], r.json()["detail"][:140])
+comprobar("el catálogo de motores también lo refleja",
+          cliente.get("/motores", headers=con_clave).json()["permitido"] is False)
 
 _, admin_ajeno = crear_usuario("admin", dominio="gmail.com")
 comprobar("el administrador no depende del dominio",

@@ -116,10 +116,12 @@ try:
                       {"c": correo}).fetchone()
     id_usuario = fila.id_usuario if fila else None
     # Sin plan, un usuario nuevo solo puede usar Gemini; se le da el plan gratuito
-    # para que el turno llegue al motor y se pueda probar el ciclo completo.
+    # para que el turno llegue al motor y se pueda probar el ciclo completo. Y se
+    # vincula a Google, que el asistente exige: sin un ID token real que
+    # presentar, se marca directamente en la base.
     db.execute(text("UPDATE usuario SET plan_usuario = (SELECT codigo_plan FROM plan "
-                    "WHERE publico ORDER BY orden LIMIT 1) WHERE id_usuario = :u"),
-               {"u": id_usuario})
+                    "WHERE publico ORDER BY orden LIMIT 1), google_sub = :g WHERE id_usuario = :u"),
+               {"u": id_usuario, "g": f"prueba-{uuid.uuid4().hex}"})
     db.commit()
     db.close()
 

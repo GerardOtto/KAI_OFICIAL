@@ -5,9 +5,11 @@ import SelectorInstitucion from "./SelectorInstitucion";
 /** Reclama la institución a quien entró sin elegirla.
  *
  * El acceso con Google no pregunta nada: crea la cuenta con lo que Google
- * entrega. Como la institución es obligatoria desde ahora, se pide en la primera
- * sesión y no se puede posponer —de ahí que no haya botón de cerrar—, porque es
- * el dato con el que la plataforma agrupa a las personas por institución.
+ * entrega. Si el correo es de un dominio institucional, el servidor ya fijó la
+ * institución y este aviso no aparece; llega aquí quien entra con un correo que
+ * no la identifica (Gmail y otros). Como la institución es obligatoria, se pide
+ * en la primera sesión y no se puede posponer —de ahí que no haya botón de
+ * cerrar—, porque es el dato con el que la plataforma agrupa a las personas.
  *
  * No se cierra la sesión mientras tanto: la cuenta ya existe y es válida; lo que
  * falta es completarla.
@@ -40,8 +42,9 @@ export default function InstitucionPendiente() {
           </h2>
           <p className="font-body text-[12.5px] text-[#8a8a8a] leading-relaxed">
             {usuario?.nombre ? `${usuario.nombre.split(" ")[0]}, ` : ""}
-            entraste con Google y no llegamos a preguntarte a qué institución perteneces.
-            Es un dato obligatorio para usar la plataforma.
+            tu correo no es de un dominio institucional que reconozcamos, así que no
+            podemos deducir a qué institución perteneces. Es un dato obligatorio para usar
+            la plataforma.
           </p>
         </div>
 

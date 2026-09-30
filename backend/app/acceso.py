@@ -30,8 +30,8 @@ FAMILIAS_RESERVADAS = ("THE", "QS")
 
 # El asistente consume un servicio de pago por cada consulta, así que de momento
 # se limita a la institución que financia el proyecto. Se comprueba por el
-# dominio del correo: es lo que acredita la afiliación, mientras que la
-# institución del perfil la elige el propio usuario.
+# dominio del correo, verificado por Google (ver `puede_usar_asistente`): la
+# institución del perfil puede venir del selector, y esa no acredita nada.
 DOMINIOS_DEL_ASISTENTE = tuple(
     d.strip().lower() for d in os.getenv("KAI_DOMINIOS_ASISTENTE", "pucv.cl,mail.pucv.cl").split(",")
     if d.strip()
@@ -104,6 +104,20 @@ def motivo_ranking(db, ranking_id: int) -> str:
             "los rankings cargados; para consultar THE y QS hay que cambiar de plan.")
 
 
+# --- Institución ------------------------------------------------------------
+
+def institucion_acreditada(usuario: dict | None) -> bool:
+    """Si la institución de la cuenta sale de su correo y no del selector.
+
+    Hacen falta las dos cosas: que la cuenta entre con Google, que garantiza que
+    el correo es de quien lo usa, y que su dominio figure en
+    `dominio_institucion` (migración 013). Una cuenta con contraseña no la
+    acredita aunque su correo sea institucional, porque el registro no verifica
+    el correo. `institucion_del_correo` viene calculada en `auth.CAMPOS_USUARIO`.
+    """
+    return bool(usuario) and bool(usuario.get("con_google")) and bool(usuario.get("institucion_del_correo"))
+
+
 # --- Asistente --------------------------------------------------------------
 
 def dominio(correo: str | None) -> str:
@@ -111,18 +125,30 @@ def dominio(correo: str | None) -> str:
 
 
 def puede_usar_asistente(usuario: dict | None) -> tuple[bool, str | None]:
-    """Si la cuenta tiene acceso al asistente, y por qué no si no lo tiene."""
+    """Si la cuenta tiene acceso al asistente, y por qué no si no lo tiene.
+
+    El dominio solo acredita la afiliación si el correo está verificado, y el
+    único camino que lo verifica es Google: con el registro por contraseña
+    cualquiera podía darse de alta con un correo @pucv.cl ajeno y consumir el
+    asistente, que se paga por consulta.
+    """
     if es_admin(usuario):
         return True, None
     if usuario is None:
         return False, "El asistente exige una sesión iniciada."
-    if dominio(usuario.get("correo_usuario")) in DOMINIOS_DEL_ASISTENTE:
-        return True, None
-    return False, (
-        "El asistente está disponible por ahora solo para cuentas de la PUCV "
-        f"({', '.join('@' + d for d in DOMINIOS_DEL_ASISTENTE)}). El resto de los módulos "
-        "no tiene esa restricción."
-    )
+    correos = ", ".join("@" + d for d in DOMINIOS_DEL_ASISTENTE)
+    if dominio(usuario.get("correo_usuario")) not in DOMINIOS_DEL_ASISTENTE:
+        return False, (
+            f"El asistente está disponible por ahora solo para cuentas de la PUCV ({correos}). "
+            "El resto de los módulos no tiene esa restricción."
+        )
+    if not usuario.get("con_google"):
+        return False, (
+            "El asistente exige entrar con tu cuenta de Google de la PUCV, que es lo que "
+            "confirma que el correo es tuyo. Cierra sesión y usa «Continuar con Google» con "
+            "este mismo correo: tu cuenta y tus conversaciones se conservan."
+        )
+    return True, None
 
 
 # --- Descargas de informes --------------------------------------------------
@@ -191,4 +217,5 @@ def capacidades(db, usuario: dict) -> dict:
             "usadas": descargas_usadas(db, usuario["id_usuario"]),
         },
         "institucion_pendiente": not (usuario.get("institucion_usuario") or "").strip(),
+        "institucion_acreditada": institucion_acreditada(usuario),
     }

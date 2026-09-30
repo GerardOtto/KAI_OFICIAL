@@ -103,6 +103,10 @@ export default function AuthModal({ onClose, onExito }) {
                   onChange={(v) => setForm((f) => ({ ...f, institucion: v }))}
                   disabled={enviando}
                 />
+                <p className="text-[10px] text-outlineSoft mt-1.5 leading-relaxed">
+                  ¿Tienes correo universitario? Entra con Google y tu institución se asigna
+                  sola. El asistente de la PUCV también exige entrar con Google.
+                </p>
               </div>
             </>
           )}

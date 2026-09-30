@@ -92,8 +92,10 @@ try:
                           precio_mensual_usd, tokens_claude_mes, tokens_gemini_mes, publico, orden)
         VALUES (:c, 'Prueba concurrencia', :tope, 'plan temporal de prueba', 0, 0, 10000000, false, 99)
     """), {"c": codigo_plan, "tope": TOPE_DIARIO})
-    db.execute(text("UPDATE usuario SET plan_usuario = :c WHERE id_usuario = :u"),
-               {"c": codigo_plan, "u": id_usuario})
+    # Vinculada a Google, como exige el asistente: aquí no hay un ID token real
+    # que presentar, así que se marca directamente en la base.
+    db.execute(text("UPDATE usuario SET plan_usuario = :c, google_sub = :g WHERE id_usuario = :u"),
+               {"c": codigo_plan, "g": f"prueba-{uuid.uuid4().hex}", "u": id_usuario})
     db.commit()
     db.close()
 

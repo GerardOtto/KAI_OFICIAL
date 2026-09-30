@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict C6L3cJsiGe8mpoFLTu4EB5Kv5VEFScKR7ZCZHeqlhWgH3fOnJDUW1vEQZt2BbxK
+\restrict 2NuW6BdAMzQUAzweY0TwYZcfUGTUm6mWO2Cp88ZkYV5q47AeBMit6W5TlPlGWjk
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -18,6 +18,23 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: institucion_por_correo(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.institucion_por_correo(correo text) RETURNS text
+    LANGUAGE sql STABLE
+    AS $_$
+    SELECT u.nombre_universidad
+      FROM dominio_institucion d
+      JOIN universidad u USING (id_universidad)
+     WHERE lower(trim(substring(correo FROM '@([^@]+)$'))) = d.dominio
+        OR lower(trim(substring(correo FROM '@([^@]+)$'))) LIKE '%.' || d.dominio
+     ORDER BY length(d.dominio) DESC
+     LIMIT 1
+$_$;
+
 
 --
 -- Name: notify_new_notification(); Type: FUNCTION; Schema: public; Owner: -
@@ -176,6 +193,27 @@ CREATE SEQUENCE public.descarga_id_descarga_seq
 --
 
 ALTER SEQUENCE public.descarga_id_descarga_seq OWNED BY public.descarga.id_descarga;
+
+
+--
+-- Name: dominio_institucion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.dominio_institucion (
+    dominio text NOT NULL,
+    id_universidad integer NOT NULL,
+    uso text NOT NULL,
+    verificado_en date DEFAULT CURRENT_DATE NOT NULL,
+    CONSTRAINT dominio_institucion_dominio_check CHECK (((dominio = lower(dominio)) AND (dominio ~ '^[a-z0-9-]+(\.[a-z0-9-]+)+$'::text))),
+    CONSTRAINT dominio_institucion_uso_check CHECK ((uso = ANY (ARRAY['institucional'::text, 'estudiantes'::text])))
+);
+
+
+--
+-- Name: TABLE dominio_institucion; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.dominio_institucion IS 'Dominios de correo que acreditan la institución de una cuenta de Google. Cubren sus subdominios.';
 
 
 --
@@ -15881,6 +15919,74 @@ COPY public.cientifico_topico (id_cientifico, topico, fuente, anio_datos, autor_
 
 
 --
+-- Data for Name: dominio_institucion; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.dominio_institucion (dominio, id_universidad, uso, verificado_en) FROM stdin;
+uc.cl	1	institucional	2026-09-29
+pucv.cl	2	institucional	2026-09-29
+academia.cl	3	institucional	2026-09-29
+uai.cl	4	institucional	2026-09-29
+unach.cl	5	institucional	2026-09-29
+uahurtado.cl	6	institucional	2026-09-29
+unab.cl	51	institucional	2026-09-29
+uandresbello.edu	51	estudiantes	2026-09-29
+unap.cl	7	institucional	2026-09-29
+uach.cl	8	institucional	2026-09-29
+uautonoma.cl	9	institucional	2026-09-29
+ubo.cl	10	institucional	2026-09-29
+ubolivariana.cl	11	institucional	2026-09-29
+ucsh.cl	12	institucional	2026-09-29
+miucsh.cl	12	estudiantes	2026-09-29
+ucsc.cl	13	institucional	2026-09-29
+uct.cl	14	institucional	2026-09-29
+ucm.cl	15	institucional	2026-09-29
+ucn.cl	16	institucional	2026-09-29
+ucentral.cl	17	institucional	2026-09-29
+uantof.cl	18	institucional	2026-09-29
+ua.cl	18	institucional	2026-09-29
+uniacc.cl	58	institucional	2026-09-29
+uniacc.edu	58	estudiantes	2026-09-29
+uda.cl	21	institucional	2026-09-29
+uchile.cl	22	institucional	2026-09-29
+udec.cl	24	institucional	2026-09-29
+ufrontera.cl	25	institucional	2026-09-29
+userena.cl	26	institucional	2026-09-29
+udla.cl	27	institucional	2026-09-29
+uandes.cl	28	institucional	2026-09-29
+miuandes.cl	28	estudiantes	2026-09-29
+ulagos.cl	29	institucional	2026-09-29
+umag.cl	30	institucional	2026-09-29
+upla.cl	31	institucional	2026-09-29
+usach.cl	32	institucional	2026-09-29
+utalca.cl	33	institucional	2026-09-29
+uta.cl	34	institucional	2026-09-29
+uv.cl	35	institucional	2026-09-29
+uvm.cl	36	institucional	2026-09-29
+ubiobio.cl	37	institucional	2026-09-29
+udd.cl	38	institucional	2026-09-29
+udp.cl	41	institucional	2026-09-29
+uft.cl	42	institucional	2026-09-29
+uft.edu	42	estudiantes	2026-09-29
+ugm.cl	43	institucional	2026-09-29
+usek.cl	45	institucional	2026-09-29
+umayor.cl	48	institucional	2026-09-29
+mayor.cl	48	estudiantes	2026-09-29
+umce.cl	49	institucional	2026-09-29
+umcervantes.cl	50	institucional	2026-09-29
+udalba.cl	52	institucional	2026-09-29
+upv.cl	52	institucional	2026-09-29
+uss.cl	53	institucional	2026-09-29
+santotomas.cl	54	institucional	2026-09-29
+usm.cl	55	institucional	2026-09-29
+utfsm.cl	55	institucional	2026-09-29
+inacap.cl	56	institucional	2026-09-29
+inacapmail.cl	56	estudiantes	2026-09-29
+utem.cl	57	institucional	2026-09-29
+\.
+
+
+--
 -- Data for Name: metrica; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -16342,6 +16448,8 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 1248	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Mathematics Post 2024	Reputacion	20	Mathematics	\N	t	\N	\N
 1249	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Physics Post 2024	Reputacion	20	Physics	\N	t	\N	\N
 1250	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Chemistry Post 2024	Reputacion	0	Chemistry	\N	t	\N	\N
+1867	7	Employer Reputation	\N	Investigacion	30	Geophysics	\N	t	\N	\N
+1868	7	Citations per Paper	\N	Investigacion	10	Geophysics	\N	t	\N	\N
 1251	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Earth Sciences Post 2024	Reputacion	10	Earth Sciences	\N	t	\N	\N
 1252	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Geography Post 2024	Reputacion	10	Geography	\N	t	\N	\N
 1253	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en Ecology Post 2024	Reputacion	0	Ecology	\N	t	\N	\N
@@ -16410,6 +16518,8 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 1156	4	TJ	TJ en Nanoscience Post 2024	Articulos	100	Nanoscience	\N	t	\N	\N
 1157	4	TJ	TJ en Energy Post 2024	Articulos	100	Energy	\N	t	\N	\N
 1421	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Mechanical Engineering Post 2024	Academicos	40	Mechanical Engineering	\N	t	\N	\N
+1869	7	H-index Citations	\N	Investigacion	10	Geophysics	\N	t	\N	\N
+1870	7	International Research Network	\N	Investigacion	0	Geophysics	\N	t	\N	\N
 1422	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Electrical Engineering Post 2024	Academicos	40	Electrical Engineering	\N	t	\N	\N
 2013	7	International Research Network	\N	Investigacion	5	Environmental Sciences	\N	t	\N	\N
 2014	7	Academic Reputation	\N	Investigacion	30	Geology	\N	t	\N	\N
@@ -16539,6 +16649,8 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 2016	7	Citations per Paper	\N	Investigacion	25	Geology	\N	t	\N	\N
 2017	7	H-index Citations	\N	Investigacion	25	Geology	\N	t	\N	\N
 1300	4	Leadership	Número de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados en PublNúmero de investigadores que han ganado premios académicos internacionales de prestigio y aquellos reconocidos como investigadores altamente citados Administration Post 2024	Reputacion	0	Public Administration	\N	t	\N	\N
+1871	7	Academic Reputation	\N	Investigacion	40	Materials Science	\N	t	\N	\N
+1872	7	Employer Reputation	\N	Investigacion	30	Materials Science	\N	t	\N	\N
 1465	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en PublNúmero de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica Administration Post 2024	Academicos	40	Public Administration	\N	t	\N	\N
 1466	4	Laureate	Número de docentes de tiempo completo de una universidad que han ganado premios académicos internacionales de alto prestigio en una materia específica en Hospitality & Tourism Management Post 2024	Academicos	40	Hospitality & Tourism Management	\N	t	\N	\N
 1753	7	Employer Reputation	\N	Investigacion	30	Engineering & Technology	\N	t	\N	\N
@@ -16655,6 +16767,7 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 2018	7	International Research Network	\N	Investigacion	10	Geology	\N	t	\N	\N
 2019	7	Academic Reputation	\N	Investigacion	30	Geophysics	\N	t	\N	\N
 1539	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Chemical Engineering Post 2024	Academicos	40	Chemical Engineering	\N	t	\N	\N
+1873	7	Citations per Paper	\N	Investigacion	10	Materials Science	\N	t	\N	\N
 1540	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Materials Science Post 2024	Academicos	60	Materials Science	\N	t	\N	\N
 1541	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Nanoscience Post 2024	Academicos	40	Nanoscience	\N	t	\N	\N
 1542	4	Editor	Número de académicos de una universidad que actúan como editores en jefe (Chief Editors) de revistas académicas internacionales de alto prestigio en Energy Post 2024	Academicos	60	Energy	\N	t	\N	\N
@@ -16791,6 +16904,8 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 1810	7	Academic Reputation	\N	Investigacion	30	Dentistry	\N	t	\N	\N
 1640	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en AtmospherEvalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  Science Post 2024	Reputacion	100	Atmospheric Science	\N	t	\N	\N
 2022	7	H-index Citations	\N	Investigacion	25	Geophysics	\N	t	\N	\N
+1874	7	H-index Citations	\N	Investigacion	10	Materials Science	\N	t	\N	\N
+1875	7	International Research Network	\N	Investigacion	0	Materials Science	\N	t	\N	\N
 1641	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Mechanical Engineering Post 2024	Reputacion	100	Mechanical Engineering	\N	t	\N	\N
 1642	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Electrical Engineering Post 2024	Reputacion	100	Electrical Engineering	\N	t	\N	\N
 1643	4	World-Class Faculty	Evalúa la calidad de la plantilla mediante cuatro indicadores objetivos: investigadores altamente citados (HCR), ganadores de premios académicos internacionales (Laureate), editores en jefe de revistas académicas y liderazgo en organizaciones académicas  en Automation Post 2024	Reputacion	100	Automation	\N	t	\N	\N
@@ -16897,15 +17012,6 @@ COPY public.metrica (id_metrica, id_ranking, nombre_metrica, descripcion_metrica
 1864	7	H-index Citations	\N	Investigacion	10	Geology	\N	t	\N	\N
 1865	7	International Research Network	\N	Investigacion	0	Geology	\N	t	\N	\N
 1866	7	Academic Reputation	\N	Investigacion	40	Geophysics	\N	t	\N	\N
-1867	7	Employer Reputation	\N	Investigacion	30	Geophysics	\N	t	\N	\N
-1868	7	Citations per Paper	\N	Investigacion	10	Geophysics	\N	t	\N	\N
-1869	7	H-index Citations	\N	Investigacion	10	Geophysics	\N	t	\N	\N
-1870	7	International Research Network	\N	Investigacion	0	Geophysics	\N	t	\N	\N
-1871	7	Academic Reputation	\N	Investigacion	40	Materials Science	\N	t	\N	\N
-1872	7	Employer Reputation	\N	Investigacion	30	Materials Science	\N	t	\N	\N
-1873	7	Citations per Paper	\N	Investigacion	10	Materials Science	\N	t	\N	\N
-1874	7	H-index Citations	\N	Investigacion	10	Materials Science	\N	t	\N	\N
-1875	7	International Research Network	\N	Investigacion	0	Materials Science	\N	t	\N	\N
 1876	7	Academic Reputation	\N	Investigacion	40	Mathematics	\N	t	\N	\N
 1877	7	Employer Reputation	\N	Investigacion	30	Mathematics	\N	t	\N	\N
 1878	7	Citations per Paper	\N	Investigacion	10	Mathematics	\N	t	\N	\N
@@ -53701,6 +53807,14 @@ ALTER TABLE ONLY public.descarga
 
 
 --
+-- Name: dominio_institucion dominio_institucion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dominio_institucion
+    ADD CONSTRAINT dominio_institucion_pkey PRIMARY KEY (dominio);
+
+
+--
 -- Name: mensaje mensaje_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -53919,6 +54033,14 @@ ALTER TABLE ONLY public.descarga
 
 
 --
+-- Name: dominio_institucion dominio_institucion_id_universidad_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dominio_institucion
+    ADD CONSTRAINT dominio_institucion_id_universidad_fkey FOREIGN KEY (id_universidad) REFERENCES public.universidad(id_universidad) ON DELETE CASCADE;
+
+
+--
 -- Name: mensaje mensaje_id_conversacion_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -53994,5 +54116,5 @@ ALTER TABLE ONLY public.valor_real_universidad
 -- PostgreSQL database dump complete
 --
 
-\unrestrict C6L3cJsiGe8mpoFLTu4EB5Kv5VEFScKR7ZCZHeqlhWgH3fOnJDUW1vEQZt2BbxK
+\unrestrict 2NuW6BdAMzQUAzweY0TwYZcfUGTUm6mWO2Cp88ZkYV5q47AeBMit6W5TlPlGWjk
 

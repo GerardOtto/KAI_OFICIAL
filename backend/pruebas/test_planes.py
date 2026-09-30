@@ -48,12 +48,13 @@ cliente = TestClient(main.app)
 def crear_usuario(plan):
     db = main.SessionLocal()
     correo = f"plan_{plan}_{os.getpid()}_{len(usuarios)}@pucv.cl"
+    # Vinculada a Google, como exige el asistente.
     uid = db.execute(text("""
-        INSERT INTO usuario (nombre_usuario, correo_usuario, clave_usuario,
+        INSERT INTO usuario (nombre_usuario, correo_usuario, google_sub,
                              institucion_usuario, plan_usuario)
-        VALUES ('Prueba planes', :c, 'x', 'Pontificia Universidad Catolica de Valparaiso', :p)
+        VALUES ('Prueba planes', :c, :g, 'Pontificia Universidad Catolica de Valparaiso', :p)
         RETURNING id_usuario
-    """), {"c": correo, "p": plan}).scalar()
+    """), {"c": correo, "g": f"prueba-{correo}", "p": plan}).scalar()
     db.commit()
     db.close()
     usuarios.append(uid)
