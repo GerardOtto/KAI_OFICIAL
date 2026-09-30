@@ -285,8 +285,14 @@ Todo está en la tabla `plan`; no hay valores repetidos en el código:
 -- Subir la cuota de Claude del plan Investigador
 UPDATE plan SET tokens_claude_mes = 800000 WHERE codigo_plan = 'investigador';
 
--- Cambiar un precio
-UPDATE plan SET precio_mensual_usd = 35 WHERE codigo_plan = 'investigador';
+-- Cambiar un precio. La portada muestra el de pesos (migración 014), que es
+-- como compran las universidades; el de dólares sostiene la cuenta del margen.
+UPDATE plan SET precio_mensual_clp = 32900, precio_mensual_usd = 35 WHERE codigo_plan = 'investigador';
+
+-- Terminar el descuento de lanzamiento: sin precio de lista, la portada deja de
+-- mostrar el tachado. Mientras exista, la Ley 19.496 exige que sea un precio que
+-- efectivamente se vaya a cobrar.
+UPDATE plan SET precio_lista_clp = NULL;
 
 -- Asignar un plan a alguien
 UPDATE usuario SET plan_usuario = 'institucional' WHERE correo_usuario = 'alguien@pucv.cl';
@@ -303,8 +309,8 @@ aborta si algún plan de pago queda por debajo de 3× sobre el costo de su cuota
 
 ## 6. Pendiente
 
-**No hay cobro implementado.** Los botones «Contratar» de la portada llevan a
-crear cuenta o al asistente; no hay pasarela de pago, ni facturación, ni cambio
+**No hay cobro implementado.** Los botones «Contratar ahora» de la portada
+llevan a crear cuenta y de ahí al asistente; no hay pasarela de pago, ni facturación, ni cambio
 de plan automático. Hoy el plan se asigna con SQL. Integrar una pasarela
 (Stripe, Flow, Transbank) y registrar el estado de la suscripción es el paso
 siguiente, y afecta solo a cómo se escribe `usuario.plan_usuario`: el resto del

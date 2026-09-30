@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../auth/AuthContext";
@@ -70,17 +70,30 @@ function MenuUsuario() {
   const [abierto, setAbierto] = useState(false);
   const [modal, setModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Desde la portada, entrar lleva al asistente; desde un módulo, se queda en
+  // él, que es donde la persona quería estar. No sirve el `onExito` del modal:
+  // al aparecer la sesión, este componente cambia de rama y desmonta el modal
+  // antes de que su efecto llegue a ejecutarse.
+  const desdePortada = useRef(false);
+  useEffect(() => {
+    if (usuario && desdePortada.current) {
+      desdePortada.current = false;
+      navigate("/asistente");
+    }
+  }, [usuario, navigate]);
 
   if (!usuario) {
     return (
       <>
         <button
-          onClick={() => setModal(true)}
+          onClick={() => { desdePortada.current = location.pathname === "/"; setModal(true); }}
           className="px-3.5 py-2 border border-white/20 text-[10px] uppercase tracking-widest text-[#c4c4c4] hover:bg-white hover:text-black hover:border-white transition-colors"
         >
           Iniciar sesión
         </button>
-        {modal && <AuthModal onClose={() => setModal(false)} />}
+        {modal && <AuthModal onClose={() => { desdePortada.current = false; setModal(false); }} />}
       </>
     );
   }

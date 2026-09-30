@@ -483,8 +483,9 @@ def listar_planes():
     db = SessionLocal()
     try:
         filas = db.execute(text("""
-            SELECT codigo_plan, nombre_plan, descripcion, precio_mensual_usd,
-                   tokens_claude_mes, tokens_gemini_mes, mensajes_por_dia
+            SELECT codigo_plan, nombre_plan, descripcion, precio_mensual_usd, precio_mensual_clp,
+                   precio_lista_clp,
+                   tokens_claude_mes, tokens_gemini_mes, mensajes_por_dia, dias_entre_mensajes
             FROM plan WHERE publico ORDER BY orden
         """))
         return [

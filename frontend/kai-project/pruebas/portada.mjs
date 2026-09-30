@@ -1,9 +1,12 @@
-// Sonda CDP de la portada convertida en chat: estructura, fondo, planes y que
-// nada desborde en pantallas pequeñas.
+// Sonda CDP de la portada: una página que se lee de arriba abajo, con los planes
+// en pesos y botones de contratación evidentes, y que al entrar lleva al asistente.
+//
+// Necesita KAI_API_URL (el backend al que apunta la aplicación compilada) para
+// crear la cuenta desechable con la que se prueba el inicio de sesión.
 import fs from "fs";
+import { crearSesion } from "./sesion.mjs";
+
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
-// Las capturas van junto a la sonda, no a una carpeta temporal de una
-// maquina concreta. Se crea si no existe.
 const SALIDA = new URL("./capturas/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 fs.mkdirSync(SALIDA, { recursive: true });
 
@@ -48,137 +51,174 @@ ws.addEventListener("message", (e) => {
 });
 
 async function ir(url, ancho = 1440, alto = 900) {
-  await cdp("Emulation.setDeviceMetricsOverride", { width: ancho, height: alto, deviceScaleFactor: 2, mobile: false });
+  await cdp("Emulation.setDeviceMetricsOverride", { width: ancho, height: alto, deviceScaleFactor: 1, mobile: false });
   await cdp("Page.navigate", { url });
-  await esperar(2200);
+  await esperar(2500);
 }
 async function capturar(nombre) {
   const r = await cdp("Page.captureScreenshot", { format: "png" });
   fs.writeFileSync(`${SALIDA}/${nombre}.png`, Buffer.from(r.result.data, "base64"));
 }
-const clicTexto = (texto, sel = "button") => evaluar(`
-  const b = [...document.querySelectorAll(${JSON.stringify(sel)})]
-    .find(e => e.innerText.trim().toLowerCase().includes(${JSON.stringify(texto.toLowerCase())}));
-  if (!b) return false; b.click(); return true;
-`);
+// textContent y no innerText: el CSS pone algunos rótulos en mayúsculas.
+const botones = (texto) => `[...document.querySelectorAll('button')]
+  .filter(b => b.textContent.trim().toLowerCase().includes(${JSON.stringify(texto.toLowerCase())}))`;
 
+// Sin sesión previa en el navegador: la portada se mide como la ve alguien nuevo.
+await ir(APP);
+await evaluar(`localStorage.removeItem("kai_token");`);
 await ir(APP);
 
-console.log("=== 1. El recuadro de chat y su fondo ===");
-const marco = await evaluar(`
-  const ill = [...document.querySelectorAll('div')].find(d => /La_scuola_di_Atene/.test(getComputedStyle(d).backgroundImage));
-  const hilo = document.querySelector('[data-lenis-prevent]');
-  const caja = hilo ? hilo.parentElement : null;
+console.log("=== 1. Se lee de arriba abajo, sin chat ===");
+const estructura = await evaluar(`
   return {
-    fondoIlustracion: !!ill,
-    fondoFijo: ill ? getComputedStyle(ill).position : null,
-    hayHilo: !!hilo,
-    hiloDesplazable: hilo ? getComputedStyle(hilo).overflowY : null,
-    cajaConBorde: caja ? getComputedStyle(caja).borderTopWidth : null,
-    desenfoque: caja ? getComputedStyle(caja).backdropFilter : null,
+    h1: document.querySelector('h1')?.textContent.trim(),
+    chat: !!document.querySelector('[data-lenis-prevent]') || /KAI_PROMPT_/.test(document.body.textContent),
+    secciones: [...document.querySelectorAll('main section')].map(s => s.id || '(presentación)'),
+    planesDebajo: (() => { const h = document.querySelector('h1'), p = document.getElementById('planes');
+                           return !!(h && p) && h.getBoundingClientRect().top < p.getBoundingClientRect().top; })(),
+    pie: /Todos los derechos reservados/.test(document.body.textContent),
   };
 `);
-comprobar("la ilustración de la portada sigue de fondo", marco.fondoIlustracion, JSON.stringify(marco));
-comprobar("y queda fija tras el chat", marco.fondoFijo === "fixed", marco.fondoFijo);
-comprobar("hay un hilo de conversación con desplazamiento propio",
-  marco.hayHilo && marco.hiloDesplazable === "auto", JSON.stringify(marco));
-comprobar("el recuadro tiene marco visible", marco.cajaConBorde !== "0px", marco.cajaConBorde);
-
-console.log("\n=== 2. Contenido de la portada anterior, ya como mensajes ===");
-const inicio = await evaluar(`return document.body.innerText;`);
-comprobar("conserva el titular", /Evolución\s+dato a dato/i.test(inicio), inicio.slice(0, 160));
-comprobar("conserva la bajada", /ciencia de datos/i.test(inicio));
-comprobar("conserva el rótulo de bibliometría", /Bibliometría digital de academia/i.test(inicio));
-comprobar("ofrece las tres preguntas",
-  /Qué puedo consultar/i.test(inicio) && /De dónde salen los datos/i.test(inicio) && /Cuánto cuesta/i.test(inicio));
-comprobar("el compositor invita a entrar", /KAI_PROMPT_/.test(inicio));
-comprobar("conserva el pie legal", /Todos los derechos reservados/i.test(inicio));
+comprobar("el titular dice qué es KAI", /rankings/i.test(estructura.h1 || ""), estructura.h1);
+comprobar("ya no hay chat interactivo", !estructura.chat);
+comprobar("la presentación va antes que los planes", estructura.planesDebajo, JSON.stringify(estructura.secciones));
+comprobar("hay secciones de planes, cómo empezar y datos",
+  ["planes", "empezar", "datos"].every((s) => estructura.secciones.includes(s)), JSON.stringify(estructura.secciones));
+comprobar("conserva el pie legal", estructura.pie);
 await capturar("landing-1-inicio");
 
-console.log("\n=== 3. Las preguntas abren turnos ===");
-await clicTexto("¿Qué puedo consultar aquí?");
-await esperar(700);
-const t1 = await evaluar(`return document.body.innerText;`);
-comprobar("responde con los módulos",
-  /Rankings/.test(t1) && /Tendencias/.test(t1) && /Simulación/.test(t1) && /Investigadores/.test(t1));
-comprobar("esa pregunta ya no se ofrece de nuevo",
-  (t1.match(/¿Qué puedo consultar aquí\?/g) || []).length === 1,
-  (t1.match(/¿Qué puedo consultar aquí\?/g) || []).length);
-
-await clicTexto("¿De dónde salen los datos?");
-await esperar(700);
-const t2 = await evaluar(`return document.body.innerText;`);
-comprobar("conserva los dos fundamentos",
-  /Datos confiables/.test(t2) && /Muestreo y análisis avanzado/.test(t2));
-comprobar("conserva la cita de Kurosawa", /Una piedra se esconde entre las piedras/.test(t2));
-const hayMuestra = await evaluar(`return !!document.querySelector('img[alt*="Muestra"]');`);
-comprobar("conserva la imagen de muestra", hayMuestra);
-
-console.log("\n=== 4. Planes por tokens ===");
-await clicTexto("¿Cuánto cuesta?");
-await esperar(900);
+console.log("\n=== 2. Planes en pesos, con botones de contratación ===");
 const planes = await evaluar(`
-  const t = document.body.innerText;
-  const tarjetas = [...document.querySelectorAll('#planes [class*="border"]')]
-      .filter(e => /US\\$|Gratis/.test(e.innerText) && e.querySelector('button'));
-  return { texto: t, tarjetas: tarjetas.length,
-           precios: (t.match(/US\\$ [\\d.,]+/g) || []) };
+  const sec = document.getElementById('planes');
+  const texto = sec.textContent;
+  return {
+    tarjetas: sec.querySelectorAll('article').length,
+    precios: (texto.match(/\\$\\d{1,3}(\\.\\d{3})+/g) || []),
+    tachados: [...sec.querySelectorAll('.line-through')].map(e => e.textContent.trim()),
+    descuentos: (texto.match(/Descuento de lanzamiento/gi) || []).length,
+    recomendada: (() => { const a = [...sec.querySelectorAll('article')].find(x => /Recomendado/i.test(x.textContent));
+                          if (!a) return null; const b = a.querySelector('button');
+                          return { fondo: getComputedStyle(a).backgroundColor, letra: getComputedStyle(a).color,
+                                   boton: getComputedStyle(b).backgroundColor }; })(),
+    dolares: /US\\$/.test(texto),
+    gratis: /Gratis/.test(texto),
+    iva: /\\+ IVA/.test(texto),
+    contratar: ${botones("Contratar ahora")}.length,
+    crearGratis: ${botones("Crear cuenta gratis")}.length,
+    recomendado: /Recomendado/i.test(texto),
+    theQs: /incluidos THE y QS/.test(texto) && /Sin rankings THE y QS/.test(texto),
+    espera: /una consulta cada \\d+ días/.test(texto),
+    consultas: /≈ [\\d.]+ consultas al mes/.test(texto),
+    pucv: /disponible para cuentas de la PUCV/.test(texto),
+    boton: (() => { const b = ${botones("Contratar ahora")}[0]; if (!b) return null;
+                    const r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+                    return { alto: Math.round(r.height), fondo: cs.backgroundColor, letra: cs.fontSize }; })(),
+  };
 `);
 comprobar("aparecen los cuatro planes", planes.tarjetas === 4, planes.tarjetas);
-comprobar("el gratuito se anuncia como gratis", /Gratis/.test(planes.texto));
-comprobar("hay precios mensuales", planes.precios.length >= 3, JSON.stringify(planes.precios));
-comprobar("se explica el cobro por tokens", /consumo de tokens/i.test(planes.texto));
-comprobar("se muestran las cuotas de cada motor",
-  /Gemini · respuestas rápidas/.test(planes.texto) && /Claude · razonamiento profundo/.test(planes.texto));
-// El CSS pone este renglón en mayúsculas: la comparación va sin distinguirlas.
-comprobar("se traducen a consultas aproximadas", /≈ [\d.]+ consultas/i.test(planes.texto),
-  (planes.texto.match(/≈[^\n]*/i) || ["no aparece"])[0]);
-comprobar("se indican los topes diarios", /consultas al día/.test(planes.texto));
-comprobar("el gratuito marca Claude como no incluido", /No incluido/.test(planes.texto));
-comprobar("se explica que sin plan queda el gratuito",
-  /sin plan contratado quedas en el plan gratuito/i.test(planes.texto));
-comprobar("se advierte que Claude es de pago",
-  /Claude solo se incluye en los planes\s+de pago/i.test(planes.texto.replace(/\s+/g, " "))
-  || /Claude solo se incluye en los planes de pago/i.test(planes.texto.replace(/\s+/g, " ")));
+comprobar("los tres de pago tienen precio en pesos y su precio de lista",
+  planes.precios.length === 6, JSON.stringify(planes.precios));
+comprobar("el de lista va tachado", planes.tachados.length === 3, JSON.stringify(planes.tachados));
+comprobar("y el tachado es mayor que el vigente",
+  planes.tachados.every((t) => { const n = (s) => Number(s.replace(/\D/g, ""));
+    const i = planes.precios.indexOf(t); return i > 0 && n(t) > n(planes.precios[i - 1]); }),
+  JSON.stringify(planes.precios));
+comprobar("cada descuento se rotula «Descuento de lanzamiento»", planes.descuentos === 3, planes.descuentos);
+comprobar("la tarjeta recomendada va invertida: fondo blanco, letra negra y botón negro",
+  planes.recomendada?.fondo === "rgb(255, 255, 255)" && planes.recomendada?.letra === "rgb(0, 0, 0)"
+    && planes.recomendada?.boton === "rgb(0, 0, 0)", JSON.stringify(planes.recomendada));
+comprobar("sin precios en dólares", !planes.dolares);
+comprobar("se aclara que es más IVA", planes.iva);
+comprobar("el gratuito se anuncia como gratis", planes.gratis);
+comprobar("cada plan de pago tiene «Contratar ahora»", planes.contratar === 3, planes.contratar);
+comprobar("y el gratuito, «Crear cuenta gratis»", planes.crearGratis === 1, planes.crearGratis);
+comprobar("el botón es grande y relleno",
+  planes.boton && planes.boton.alto >= 44 && !/rgba\(0, 0, 0, 0\)|transparent/.test(planes.boton.fondo),
+  JSON.stringify(planes.boton));
+comprobar("hay un plan recomendado", planes.recomendado);
+comprobar("se dice quién ve THE y QS", planes.theQs);
+comprobar("el gratuito dice su espera entre consultas", planes.espera);
+comprobar("las cuotas se traducen a consultas", planes.consultas);
+comprobar("se avisa que el asistente es por ahora de la PUCV", planes.pucv);
+await evaluar(`document.getElementById('planes').scrollIntoView();`);
+await esperar(400);
 await capturar("landing-2-planes");
 
+console.log("\n=== 3. «Contratar ahora» abre el registro ===");
+await evaluar(`${botones("Contratar ahora")}[0].click();`);
+await esperar(600);
+const modal = await evaluar(`
+  const activa = [...document.querySelectorAll('button')].find(b => /border-b-2/.test(b.className));
+  return { abierto: !!document.getElementById('correo'), pestana: activa?.textContent.trim(),
+           nombre: !!document.getElementById('nombre') };
+`);
+comprobar("se abre el formulario", modal.abierto, JSON.stringify(modal));
+comprobar("en la pestaña de registro", /Registrarse/i.test(modal.pestana || "") && modal.nombre, JSON.stringify(modal));
+await capturar("landing-3-registro");
+
+console.log("\n=== 4. Entrar desde la portada lleva al asistente ===");
+if (!process.env.KAI_API_URL) {
+  console.log("  (omitida: define KAI_API_URL para crear la cuenta de prueba)");
+} else {
+  const cuenta = await crearSesion();
+  await ir(APP);
+  await evaluar(`${botones("Ya tengo cuenta")}[0].click();`);
+  await esperar(600);
+  // Los campos son controlados por React: se escribe con el setter nativo y un
+  // evento de entrada, que es lo que React escucha.
+  await evaluar(`
+    const poner = (id, v) => { const e = document.getElementById(id);
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, v);
+      e.dispatchEvent(new Event('input', { bubbles: true })); };
+    poner('correo', ${JSON.stringify(cuenta.correo)});
+    poner('clave', 'Prueba12345!');
+    document.querySelector('form button[type="submit"]').click();
+  `);
+  await esperar(2500);
+  const destino = await evaluar(`return location.pathname;`);
+  comprobar("tras iniciar sesión se llega al asistente", destino === "/asistente", destino);
+  await evaluar(`localStorage.removeItem("kai_token");`);
+
+  // El mismo destino si se entra con el botón del encabezado estando en la portada.
+  await ir(APP);
+  await evaluar(`document.querySelector('header') && [...document.querySelectorAll('header button')]
+    .find(b => /iniciar sesión/i.test(b.textContent)).click();`);
+  await esperar(600);
+  await evaluar(`
+    const poner = (id, v) => { const e = document.getElementById(id);
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, v);
+      e.dispatchEvent(new Event('input', { bubbles: true })); };
+    poner('correo', ${JSON.stringify(cuenta.correo)});
+    poner('clave', 'Prueba12345!');
+    document.querySelector('form button[type="submit"]').click();
+  `);
+  await esperar(2500);
+  const desdeHeader = await evaluar(`return location.pathname;`);
+  comprobar("y también entrando desde el encabezado", desdeHeader === "/asistente", desdeHeader);
+  await evaluar(`localStorage.removeItem("kai_token");`);
+}
+
 console.log("\n=== 5. Nada desborda ===");
-// Entre ~710 y ~900 px el <nav> del Header mide 985 px fijos y desborda la
-// página. Es un defecto preexistente del Header, común a todas las vistas, no
-// de esta portada: por eso se mide aquí el contenido propio, y aparte se
-// comprueba que el desborde que quede sea atribuible al Header.
-for (const ancho of [1440, 1024, 768, 420]) {
-  await cdp("Emulation.setDeviceMetricsOverride", { width: ancho, height: 900, deviceScaleFactor: 1, mobile: false });
+await ir(APP);
+for (const ancho of [1440, 1024, 768, 390]) {
+  await cdp("Emulation.setDeviceMetricsOverride", { width: ancho, height: 900, deviceScaleFactor: 1, mobile: ancho < 500 });
   await esperar(500);
   const d = await evaluar(`
     const vw = document.documentElement.clientWidth;
-    const fuera = [...document.querySelectorAll('main *, footer *')]
-      .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > vw + 1; })
-      .slice(0, 3).map(e => e.tagName + '.' + String(e.className).split(' ')[0]);
-    return {
-      contenidoFuera: fuera,
-      hilo: (() => { const h = document.querySelector('[data-lenis-prevent]');
-                     return h ? h.scrollWidth > h.clientWidth : null; })(),
-      paginaDesborda: document.documentElement.scrollWidth > vw,
-      culpableEsHeader: [...document.querySelectorAll('header *, nav')]
-        .some(e => e.getBoundingClientRect().right > vw + 1),
-    };
+    return { desborda: document.documentElement.scrollWidth > vw,
+             fuera: [...document.querySelectorAll('main *, footer *')]
+               .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > vw + 1; })
+               .slice(0, 3).map(e => e.tagName + '.' + String(e.className).split(' ')[0]) };
   `);
-  comprobar(`a ${ancho}px el contenido de la portada cabe`,
-    d.contenidoFuera.length === 0 && !d.hilo, JSON.stringify(d));
-  if (d.paginaDesborda) {
-    comprobar(`a ${ancho}px el desborde restante es del Header (preexistente)`,
-      d.culpableEsHeader, JSON.stringify(d));
-  }
+  comprobar(`a ${ancho}px la portada cabe`, !d.desborda && d.fuera.length === 0, JSON.stringify(d));
 }
-await cdp("Emulation.setDeviceMetricsOverride", { width: 420, height: 800, deviceScaleFactor: 2, mobile: false });
-await esperar(500);
-await capturar("landing-3-movil");
+await capturar("landing-4-movil");
 
-console.log("\n=== 6. El enlace directo a planes los abre solo ===");
+console.log("\n=== 6. El enlace directo a planes baja hasta ellos ===");
 await ir(`${APP}/#planes`);
-const directo = await evaluar(`return document.body.innerText;`);
-comprobar("entrando por /#planes ya se ven", /consumo de tokens/i.test(directo), directo.slice(0, 200));
+await esperar(1500);
+const bajo = await evaluar(`return Math.abs(document.getElementById('planes').getBoundingClientRect().top) < 200;`);
+comprobar("entrando por /#planes se ven los planes", bajo);
 
 console.log("\n=== 7. Sin errores de JavaScript ===");
 const relevantes = errores.filter((t) => !/favicon|DevTools/i.test(t));

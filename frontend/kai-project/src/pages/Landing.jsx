@@ -1,331 +1,231 @@
-import { useState, useRef, useEffect, Fragment } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import logo from "../assets/logo.png";
 import bgImage from "../assets/La_scuola_di_Atene.jpg";
 import muestra from "../assets/muestra.jpg";
 import AuthModal from "../components/AuthModal";
 import Header from "../components/Header";
-import PlanesChat from "../components/landing/PlanesChat";
+import Planes from "../components/landing/Planes";
 import { usePlanes } from "../hooks/useConversaciones";
 import { useAuth } from "../auth/AuthContext";
 
-const SparkleIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" />
-  </svg>
-);
+// La portada fue un chat interactivo, y en las pruebas con usuarios nuevos nadie
+// sabía qué se podía pulsar. Ahora es una página que se lee de arriba abajo: qué
+// es KAI, cuánto cuesta y cómo se empieza, con botones que parecen botones.
 
-const SendIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M2 21 23 12 2 3v7l15 2-15 2z" />
-  </svg>
+const icono = (d) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+       aria-hidden="true">{d}</svg>
 );
-
-const ESCUDO = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-
-const BRUJULA = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" />
-    <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" /><line x1="17.66" y1="17.66" x2="19.78" y2="19.78" />
-    <line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" />
-    <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" /><line x1="17.66" y1="6.34" x2="19.78" y2="4.22" />
-  </svg>
-);
-
-/** Las tres preguntas que organizan la portada. Cada una es un turno de la
- *  conversación: al pulsarla se añade la pregunta y su respuesta, en vez de
- *  desplazar la página a una sección. */
-const PREGUNTAS = [
-  { id: "que", texto: "¿Qué puedo consultar aquí?" },
-  { id: "datos", texto: "¿De dónde salen los datos?" },
-  { id: "precio", texto: "¿Cuánto cuesta?" },
-];
 
 const CAPACIDADES = [
-  ["Rankings", "Posiciones y puntajes de THE, QS, Scimago y Shanghai, año a año."],
-  ["Tendencias", "La evolución de una métrica y la comparación entre instituciones."],
-  ["Simulación", "Qué pasaría con el puntaje si una métrica cambiara."],
-  ["Investigadores", "Producción y campos de estudio del cuerpo académico."],
+  {
+    titulo: "Rankings en un solo lugar",
+    texto: "THE, QS, Scimago, Shanghai y el Ranking KAI, año a año.",
+    icono: icono(<><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></>),
+  },
+  {
+    titulo: "Tendencias y comparaciones",
+    texto: "Cómo evoluciona cada indicador y cómo te comparas con otras universidades.",
+    icono: icono(<><path d="M3 17l6-6 4 4 8-8" /><path d="M14 7h7v7" /></>),
+  },
+  {
+    titulo: "Simulación",
+    texto: "Qué pasaría con tu puntaje si mejoras un indicador.",
+    icono: icono(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>),
+  },
+  {
+    titulo: "Asistente con IA",
+    texto: "Pregunta en palabras simples y responde con los datos de la plataforma.",
+    icono: icono(<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />),
+  },
+];
+
+const PASOS = [
+  ["Elige un plan", "Puedes empezar gratis y cambiar de plan cuando quieras."],
+  ["Crea tu cuenta", "Con Google es un clic. Si usas tu correo universitario, reconocemos tu institución."],
+  ["Pregunta al asistente", "Al entrar llegas directo al asistente: escríbele lo que necesitas saber."],
 ];
 
 const FUNDAMENTOS = [
   {
-    icono: ESCUDO,
-    titulo: "Datos confiables y metodología de vanguardia",
-    texto: "Todas las fuentes del repositorio KAI son oficiales o investigadas de primera mano, asegurando una fidelidad a los datos públicos del 99.9%.",
-    relleno: true,
+    titulo: "Fuentes oficiales",
+    texto: "Los rankings THE, QS, Scimago y Shanghai, y los datos que las universidades informan al " +
+      "Estado (SIES y ANID). Cuando una cifra es una estimación, la plataforma lo indica.",
   },
   {
-    icono: BRUJULA,
-    titulo: "Muestreo y análisis avanzado",
-    texto: "Descubre conexiones entre distintos campos de estudio para que puedas trabajar en tus puntos fuertes y débiles de manera transversal.",
-    relleno: false,
+    titulo: "Análisis que cruza fuentes",
+    texto: "Relaciona indicadores de distintos rankings para ver en qué es fuerte tu institución y " +
+      "dónde tiene más margen de mejora.",
   },
 ];
 
-/** Burbuja del asistente. `ancha` la deja ocupar todo el ancho disponible, que
- *  es lo que necesitan los planes para caber en dos columnas. */
-function Respuesta({ children, ancha = false }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
-      className="flex items-start gap-3"
-    >
-      <div className="w-7 h-7 shrink-0 flex items-center justify-center border border-white/25 bg-black/50 text-white mt-0.5">
-        <SparkleIcon />
-      </div>
-      <div className={`min-w-0 ${ancha ? "flex-1" : "max-w-2xl"}`}>{children}</div>
-    </motion.div>
-  );
+/** Desplaza hasta una sección, con el desplazamiento suave de la página si está. */
+function irA(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (window.lenis) window.lenis.scrollTo(el, { offset: -72 });
+  else el.scrollIntoView({ behavior: "smooth" });
 }
 
-function Pregunta({ children }) {
+function Seccion({ id, eyebrow, titulo, bajada, children, className = "" }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="flex justify-end"
-    >
-      <div className="max-w-xl bg-white/10 border border-white/20 backdrop-blur-sm px-5 py-3">
-        <p className="text-[13px] text-white">{children}</p>
+    <section id={id} className={`px-4 sm:px-8 py-16 sm:py-24 ${className}`}>
+      <div className="max-w-6xl mx-auto">
+        <p className="text-[12px] uppercase tracking-[0.2em] text-outlineSoft mb-3">{eyebrow}</p>
+        <h2 className="font-headline text-3xl sm:text-4xl font-bold text-white">{titulo}</h2>
+        {bajada && <p className="mt-3 text-[16px] text-white/70 max-w-2xl leading-relaxed">{bajada}</p>}
+        <div className="mt-10">{children}</div>
       </div>
-    </motion.div>
+    </section>
   );
 }
 
 export default function Landing() {
-  const [mostrarAuth, setMostrarAuth] = useState(false);
+  const [auth, setAuth] = useState(null); // null | "login" | "register"
   const [mostrarCita, setMostrarCita] = useState(false);
-  const [turnos, setTurnos] = useState([]);
   const planes = usePlanes();
   const { usuario } = useAuth();
   const navigate = useNavigate();
-  const hiloRef = useRef(null);
-
-  useEffect(() => {
-    hiloRef.current?.scrollTo({ top: hiloRef.current.scrollHeight, behavior: "smooth" });
-  }, [turnos]);
 
   // Quien llega desde «Ver planes» (por ejemplo, desde el selector de motor del
-  // asistente) espera encontrarlos, no una pregunta que aún hay que pulsar.
+  // asistente) espera encontrarlos, no la parte de arriba de la página.
   useEffect(() => {
-    if (window.location.hash === "#planes") setTurnos(["precio"]);
-  }, []);
+    if (window.location.hash === "#planes" && planes.length) irA("planes");
+  }, [planes.length]);
 
-  const preguntar = (id) => setTurnos((prev) => (prev.includes(id) ? prev : [...prev, id]));
-
-  /** Entrar al asistente: si ya hay sesión se va directo; si no, se pide. */
-  const entrar = () => (usuario ? navigate("/asistente") : setMostrarAuth(true));
-
-  const pendientes = PREGUNTAS.filter((p) => !turnos.includes(p.id));
-
-  /** El contenido de cada respuesta, indexado por la pregunta que la abre.
-   *
-   *  Va en un mapa y no en el orden del JSX porque los turnos se pintan en el
-   *  orden en que el usuario pulsó, no en el que están escritos aquí. */
-  const RESPUESTAS = {
-    que: {
-      contenido: (
-        <>
-          <p className="text-[13px] text-white/85 leading-relaxed mb-3">
-            Cuatro módulos sobre la misma base de datos, y un asistente que la consulta por ti:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {CAPACIDADES.map(([titulo, texto]) => (
-              <div key={titulo} className="border-l-2 border-white/30 pl-3 py-1">
-                <p className="text-[12px] font-semibold text-white">{titulo}</p>
-                <p className="text-[11px] text-white/70 leading-relaxed">{texto}</p>
-              </div>
-            ))}
-          </div>
-        </>
-      ),
-    },
-
-    datos: {
-      contenido: (
-        <div className="flex flex-col sm:flex-row gap-5">
-          <div className="shrink-0">
-            <img src={muestra} alt="Muestra de datos KAI"
-                 className="grayscale w-full sm:w-40 border border-white/15" />
-            <button
-              onClick={() => setMostrarCita(true)}
-              className="mt-2 block text-left w-full sm:w-40 border-l-2 border-white pl-2 py-1 group"
-            >
-              <p className="font-headline text-[11px] italic text-white/80 leading-snug group-hover:text-white transition-colors">
-                "Una piedra se esconde entre las piedras, y un hombre entre los hombres."
-              </p>
-              <span className="font-mono text-[8px] uppercase tracking-widest text-outlineSoft">
-                Qué significa
-              </span>
-            </button>
-          </div>
-          <div className="flex flex-col gap-4 min-w-0">
-            {FUNDAMENTOS.map(({ icono, titulo, texto, relleno }) => (
-              <div key={titulo} className="flex gap-3">
-                <div className={`h-9 w-9 flex items-center justify-center shrink-0 ${
-                  relleno ? "bg-white text-black" : "border border-white/30 text-white"
-                }`}>
-                  {icono}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-[13px] text-white mb-1">{titulo}</p>
-                  <p className="text-[11.5px] text-white/75 leading-relaxed">{texto}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
-    },
-
-    precio: {
-      ancha: true,
-      contenido: (
-        <div id="planes">
-          <PlanesChat planes={planes} onElegir={entrar} />
-        </div>
-      ),
-    },
-  };
+  /** Con sesión se va directo al asistente; sin ella, se pide y después se va. */
+  const entrar = (pestana = "login") => (usuario ? navigate("/asistente") : setAuth(pestana));
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[#0e0e0e] font-body">
-      {/* La ilustración de la portada anterior, ahora como fondo del chat. */}
-      <div
-        className="fixed inset-0 bg-cover bg-center grayscale contrast-110 brightness-[0.8]"
-        style={{ backgroundImage: `url(${bgImage})` }}
-      />
-      {/* El velo se mantiene bajo: la ilustración tiene que verse, y el contraste
-          del texto lo aporta el propio recuadro, que va sobre fondo opaco. */}
-      <div className="fixed inset-0 bg-black/25" />
-      <div className="fixed inset-0 bg-gradient-to-b from-black/50 via-black/20 to-[#0e0e0e]" />
+    <div className="min-h-screen flex flex-col bg-[#0e0e0e] font-body text-white">
+      <Header />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <Header />
+      <main className="flex-1">
+        {/* Presentación: qué es KAI en una frase, y los dos caminos posibles. */}
+        <section className="relative overflow-hidden px-4 sm:px-8 pt-14 pb-10 sm:pt-20 sm:pb-12">
+          <div className="absolute inset-0 bg-cover bg-center grayscale contrast-110 brightness-[0.55]"
+               style={{ backgroundImage: `url(${bgImage})` }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-[#0e0e0e]" />
 
-        <main className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8">
-          <div className="w-full max-w-4xl flex flex-col border border-white/15 bg-black/60 backdrop-blur-md shadow-2xl"
-               style={{ height: "min(78vh, 780px)" }}>
+          <div className="relative max-w-6xl mx-auto">
+            <p className="text-[12px] uppercase tracking-[0.25em] text-white/70 mb-5">
+              Evolución dato a dato
+            </p>
+            <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] max-w-3xl">
+              Entiende y mejora la posición de tu universidad en los rankings
+            </h1>
+            <p className="mt-6 text-[17px] sm:text-lg text-white/85 max-w-2xl leading-relaxed">
+              KAI reúne los principales rankings universitarios y los datos oficiales de las
+              universidades chilenas en una sola plataforma. Consulta, compara, simula y pregúntale
+              a un asistente con inteligencia artificial.
+            </p>
 
-            {/* Barra del recuadro de chat */}
-            <div className="flex items-center justify-between gap-4 px-5 py-3 border-b border-white/10 shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <img src={logo} alt="KAI" style={{ height: "18px", filter: "invert(1)" }} />
-                <div className="min-w-0">
-                  <p className="font-label text-[11px] uppercase tracking-[0.2em] text-white truncate">
-                    Inteligencia académica
-                  </p>
-                  <p className="font-mono text-[9px] uppercase tracking-widest text-outlineSoft truncate">
-                    Bibliometría digital de academia
-                  </p>
-                </div>
-              </div>
-              <span className="hidden sm:flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-outlineSoft shrink-0">
-                <span className="w-1.5 h-1.5 bg-positive rounded-full" /> En línea
-              </span>
-            </div>
-
-            {/* Hilo. data-lenis-prevent evita que el desplazamiento suave de la
-                página se coma el de este panel. */}
-            <div ref={hiloRef} data-lenis-prevent
-                 className="flex-1 overflow-y-auto px-5 sm:px-7 py-6">
-              {/* `min-h-full` + `justify-end` asientan la conversación abajo
-                  mientras es corta —como en un chat recién abierto— y la dejan
-                  crecer con normalidad cuando desborda. Poner `justify-end` en
-                  el propio contenedor con scroll recortaría el principio del
-                  contenido al desbordar. */}
-              <div className="min-h-full flex flex-col justify-end gap-6">
-
-              <Respuesta>
-                <h1 className="font-headline text-4xl sm:text-5xl font-bold tracking-tighter text-white leading-[0.95] mb-3">
-                  Evolución
-                  <span className="block text-white/80">dato a dato</span>
-                </h1>
-                <p className="text-[13px] sm:text-sm text-white/85 leading-relaxed">
-                  Accede a insights construidos a través de ciencia de datos y visualiza las tendencias y
-                  patrones ocultos en la medición global de desempeño académico.
-                </p>
-              </Respuesta>
-
-              {/* Los turnos se pintan recorriendo `turnos`, que guarda el orden
-                  en que se pulsaron las preguntas. Pintarlos con tres bloques
-                  fijos los dejaba siempre en el orden del código: pulsar la
-                  tercera y luego la primera colocaba la primera por encima. */}
-              {turnos.map((id) => {
-                const pregunta = PREGUNTAS.find((p) => p.id === id);
-                const respuesta = RESPUESTAS[id];
-                if (!pregunta || !respuesta) return null;
-                return (
-                  <Fragment key={id}>
-                    <Pregunta>{pregunta.texto}</Pregunta>
-                    <Respuesta ancha={respuesta.ancha}>{respuesta.contenido}</Respuesta>
-                  </Fragment>
-                );
-              })}
-
-              {/* Sugerencias pendientes: son la navegación de la portada. */}
-              {pendientes.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-end pt-1">
-                  {pendientes.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => preguntar(p.id)}
-                      className="px-4 py-2 border border-white/25 bg-black/30 text-[12px] text-white/85 hover:bg-white hover:text-black hover:border-white transition-colors"
-                    >
-                      {p.texto}
-                    </button>
-                  ))}
-                </div>
-              )}
-              </div>
-            </div>
-
-            {/* Compositor: no envía nada, lleva al asistente de verdad. */}
-            <div className="shrink-0 border-t border-white/10 px-5 sm:px-7 py-4">
+            <div className="mt-9 flex flex-col sm:flex-row gap-3">
               <button
-                onClick={entrar}
-                className="w-full flex items-center gap-3 bg-black/40 border border-white/20 px-4 py-3 text-left hover:border-white/50 transition-colors group"
+                onClick={() => irA("planes")}
+                className="px-7 py-4 bg-white text-black text-[15px] font-bold hover:bg-white/85 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
-                <span className="font-mono text-[10px] text-outlineSoft shrink-0">KAI_PROMPT_</span>
-                <span className="flex-1 text-[13px] text-white/50 truncate">
-                  {usuario ? "Continuar al asistente…" : "Inicia sesión para empezar a consultar…"}
+                Ver planes y precios
+              </button>
+              <button
+                onClick={() => entrar("login")}
+                className="px-7 py-4 border-2 border-white/60 text-white text-[15px] font-bold hover:bg-white hover:text-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {usuario ? "Ir al asistente" : "Ya tengo cuenta"}
+              </button>
+            </div>
+
+            <ul className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {CAPACIDADES.map(({ titulo, texto, icono: ic }) => (
+                <li key={titulo} className="flex gap-3 bg-black/45 border border-white/10 backdrop-blur-sm p-4">
+                  <span className="text-accent shrink-0 mt-0.5">{ic}</span>
+                  <span>
+                    <span className="block text-[15px] font-semibold">{titulo}</span>
+                    <span className="block mt-1 text-[13.5px] text-white/70 leading-snug">{texto}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <Seccion
+          id="planes"
+          eyebrow="Planes"
+          titulo="Elige tu plan"
+          bajada="Precios mensuales en pesos chilenos, más IVA. Puedes empezar gratis y cambiar de plan cuando quieras."
+          className="pt-8 sm:pt-12"
+        >
+          <Planes planes={planes} onElegir={() => entrar("register")} />
+          <p className="mt-6 text-[13px] text-outlineSoft max-w-3xl leading-relaxed">
+            Las consultas al asistente son aproximadas: cada plan trae una cuota mensual y se descuenta
+            lo que realmente se usa. Por ahora, el asistente está disponible para cuentas de la PUCV.
+          </p>
+        </Seccion>
+
+        <Seccion id="empezar" eyebrow="Cómo empezar" titulo="Tres pasos" className="bg-panel">
+          <ol className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {PASOS.map(([titulo, texto], i) => (
+              <li key={titulo} className="flex gap-4">
+                <span className="shrink-0 w-10 h-10 flex items-center justify-center border-2 border-white/60 font-headline text-lg">
+                  {i + 1}
                 </span>
-                <span className="text-white/60 group-hover:text-white transition-colors shrink-0">
-                  <SendIcon />
+                <span>
+                  <span className="block text-[16px] font-semibold">{titulo}</span>
+                  <span className="block mt-1 text-[14px] text-white/70 leading-relaxed">{texto}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <button
+            onClick={() => (usuario ? navigate("/asistente") : irA("planes"))}
+            className="mt-10 px-7 py-4 bg-white text-black text-[15px] font-bold hover:bg-white/85 transition-colors"
+          >
+            {usuario ? "Ir al asistente" : "Elegir un plan"}
+          </button>
+        </Seccion>
+
+        <Seccion id="datos" eyebrow="Los datos" titulo="¿De dónde salen los datos?">
+          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-8 items-start">
+            <div>
+              <img src={muestra} alt="Muestra de datos KAI" className="grayscale w-full border border-white/15" />
+              <button onClick={() => setMostrarCita(true)} className="mt-3 text-left border-l-2 border-white pl-3 group">
+                <span className="block font-headline text-[14px] italic text-white/80 leading-snug group-hover:text-white">
+                  "Una piedra se esconde entre las piedras, y un hombre entre los hombres."
+                </span>
+                <span className="block mt-1 text-[12px] text-outlineSoft underline underline-offset-2">
+                  Leer qué significa
                 </span>
               </button>
-              <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-outlineSoft">
-                Consulta la base de datos real · No inventa cifras
-              </p>
+            </div>
+            <div className="flex flex-col gap-7">
+              {FUNDAMENTOS.map(({ titulo, texto }) => (
+                <div key={titulo}>
+                  <h3 className="text-[17px] font-bold">{titulo}</h3>
+                  <p className="mt-2 text-[15px] text-white/75 leading-relaxed max-w-2xl">{texto}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </main>
+        </Seccion>
+      </main>
 
-        <footer className="shrink-0 border-t border-white/5 bg-black/40 backdrop-blur-sm flex flex-col md:flex-row justify-between items-center px-6 sm:px-12 py-5 gap-4">
-          <p className="text-[10px] uppercase tracking-widest text-outline">
-            © 2025 KAI. Todos los derechos reservados.
-          </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            {["Privacidad", "Términos de uso", "Propiedad intelectual", "Contacto y soporte"].map((item) => (
-              <a key={item} href="#" className="text-[10px] uppercase tracking-widest text-outline hover:text-white transition-colors">
-                {item}
-              </a>
-            ))}
-          </div>
-        </footer>
-      </div>
+      <footer className="border-t border-white/10 flex flex-col md:flex-row justify-between items-center px-6 sm:px-12 py-6 gap-4">
+        <p className="text-[12px] text-outlineSoft">© 2026 KAI. Todos los derechos reservados.</p>
+        <div className="flex flex-wrap justify-center gap-6">
+          {["Privacidad", "Términos de uso", "Propiedad intelectual", "Contacto y soporte"].map((item) => (
+            <a key={item} href="#" className="text-[12px] text-outlineSoft hover:text-white transition-colors">
+              {item}
+            </a>
+          ))}
+        </div>
+      </footer>
 
-      {mostrarAuth && <AuthModal onClose={() => setMostrarAuth(false)} />}
+      {auth && (
+        <AuthModal inicial={auth} onClose={() => setAuth(null)} onExito={() => navigate("/asistente")} />
+      )}
 
       <AnimatePresence>
         {mostrarCita && (

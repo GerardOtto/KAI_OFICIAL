@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2NuW6BdAMzQUAzweY0TwYZcfUGTUm6mWO2Cp88ZkYV5q47AeBMit6W5TlPlGWjk
+\restrict virVadOmoODmUcUjH8OHVPZL8fDuxGygJqkDsV81CxvolasogIJVOCW2szHH5PS
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -388,7 +388,10 @@ CREATE TABLE public.plan (
     tokens_gemini_mes bigint,
     publico boolean DEFAULT true NOT NULL,
     orden integer DEFAULT 0 NOT NULL,
-    dias_entre_mensajes integer
+    dias_entre_mensajes integer,
+    precio_mensual_clp integer DEFAULT 0 NOT NULL,
+    precio_lista_clp integer,
+    CONSTRAINT plan_precio_mensual_clp_check CHECK ((precio_mensual_clp >= 0))
 );
 
 
@@ -37893,13 +37896,13 @@ COPY public.metrica_universidad (id_metrica, id_universidad, valor_metrica, anio
 -- Data for Name: plan; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.plan (codigo_plan, nombre_plan, mensajes_por_dia, descripcion, precio_mensual_usd, tokens_claude_mes, tokens_gemini_mes, publico, orden, dias_entre_mensajes) FROM stdin;
-ilimitado	Sin límite	\N	Cortesía interna. Sin topes.	0.00	\N	\N	f	98	\N
-admin	Administrador	\N	Acceso completo a todos los motores y sin topes.	0.00	\N	\N	f	99	\N
-free	Gratuito	1	Para probar la herramienta. Solo el motor rápido.	0.00	0	300000	t	1	3
-investigador	Investigador	40	Para una persona que consulta a diario y necesita análisis profundo.	29.00	600000	5000000	t	2	\N
-departamento	Departamento	150	Para un equipo o unidad académica que comparte el seguimiento.	99.00	2000000	15000000	t	3	\N
-institucional	Institucional	\N	Para la oficina de análisis institucional, sin tope de consultas diarias.	490.00	10000000	60000000	t	4	\N
+COPY public.plan (codigo_plan, nombre_plan, mensajes_por_dia, descripcion, precio_mensual_usd, tokens_claude_mes, tokens_gemini_mes, publico, orden, dias_entre_mensajes, precio_mensual_clp, precio_lista_clp) FROM stdin;
+ilimitado	Sin límite	\N	Cortesía interna. Sin topes.	0.00	\N	\N	f	98	\N	0	\N
+admin	Administrador	\N	Acceso completo a todos los motores y sin topes.	0.00	\N	\N	f	99	\N	0	\N
+free	Gratuito	1	Para probar la herramienta. Solo el motor rápido.	0.00	0	300000	t	1	3	0	\N
+investigador	Investigador	40	Para una persona que consulta a diario y necesita análisis profundo.	29.00	600000	5000000	t	2	\N	27400	30000
+departamento	Departamento	150	Para un equipo o unidad académica que comparte el seguimiento.	99.00	2000000	15000000	t	3	\N	93700	100000
+institucional	Institucional	\N	Para la oficina de análisis institucional, sin tope de consultas diarias.	490.00	10000000	60000000	t	4	\N	463500	500000
 \.
 
 
@@ -54116,5 +54119,5 @@ ALTER TABLE ONLY public.valor_real_universidad
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2NuW6BdAMzQUAzweY0TwYZcfUGTUm6mWO2Cp88ZkYV5q47AeBMit6W5TlPlGWjk
+\unrestrict virVadOmoODmUcUjH8OHVPZL8fDuxGygJqkDsV81CxvolasogIJVOCW2szHH5PS
 

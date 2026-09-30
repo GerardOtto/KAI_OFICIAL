@@ -8,8 +8,8 @@ const campo =
 const etiqueta =
   "text-[10px] uppercase tracking-widest text-outlineSoft mb-2 block";
 
-export default function AuthModal({ onClose, onExito }) {
-  const [tab, setTab] = useState("login"); // "login" | "register"
+export default function AuthModal({ onClose, onExito, inicial = "login" }) {
+  const [tab, setTab] = useState(inicial); // "login" | "register"
   const [form, setForm] = useState({ nombre: "", correo: "", clave: "", institucion: "" });
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);

@@ -90,7 +90,7 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `encabezado` | Sin desborde horizontal y con navegación en catorce anchos |
 | `tendencias` | Orden de las vistas y vista predeterminada |
 | `glosario` | Exclusión de un ranking, agregación multidisciplinaria, jerarquía de métricas y globo informativo |
-| `portada` | Estructura, planes y orden de los turnos |
+| `portada` | Página de arriba abajo, planes en pesos, «Contratar ahora» que abre el registro y entrada que lleva al asistente |
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
 | `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
@@ -133,7 +133,7 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 013
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 014
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
 instituciones y 60 dominios de correo de 50 de ellas, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,
