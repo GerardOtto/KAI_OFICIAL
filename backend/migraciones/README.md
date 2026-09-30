@@ -12,7 +12,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | pendiente | pendiente |
 | `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | aplicada |
 | `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | aplicada (26-09-2026) |
-| `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | pendiente | pendiente |
+| `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | aplicada (29-09-2026) | aplicada (29-09-2026) |
 | `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | aplicada (26-09-2026) | aplicada (26-09-2026) |
