@@ -18,7 +18,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `010_valores_crudos_de_la_fuente.sql` | Marca los rankings cuya fuente publica valores crudos (Scimago) y da unidad a sus métricas, para el modo numérico | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | aplicada (26-09-2026) | aplicada (26-09-2026) |
-| `013_dominios_institucionales.sql` | Tabla `dominio_institucion` (60 dominios de 50 universidades) y función `institucion_por_correo`: quien entra con Google con un correo institucional recibe su institución sin elegirla. **Aplicarla antes de desplegar el backend que la usa** | aplicada (29-09-2026) | pendiente |
+| `013_dominios_institucionales.sql` | Tabla `dominio_institucion` (60 dominios de 50 universidades) y función `institucion_por_correo`: quien entra con Google con un correo institucional recibe su institución sin elegirla. **Aplicarla antes de desplegar el backend que la usa** | aplicada (29-09-2026) | aplicada (29-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
