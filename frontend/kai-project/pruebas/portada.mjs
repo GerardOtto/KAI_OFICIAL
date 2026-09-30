@@ -144,19 +144,63 @@ await evaluar(`document.getElementById('planes').scrollIntoView();`);
 await esperar(400);
 await capturar("landing-2-planes");
 
-console.log("\n=== 3. «Contratar ahora» abre el registro ===");
-await evaluar(`${botones("Contratar ahora")}[0].click();`);
-await esperar(600);
-const modal = await evaluar(`
-  const activa = [...document.querySelectorAll('button')].find(b => /border-b-2/.test(b.className));
-  return { abierto: !!document.getElementById('correo'), pestana: activa?.textContent.trim(),
-           nombre: !!document.getElementById('nombre') };
+console.log("\n=== 3. Los botones van en mayúsculas ===");
+const mayusculas = await evaluar(`
+  return ["Contratar ahora", "Ya tengo cuenta", "Elegir un plan", "Ver planes y precios", "Crear cuenta gratis"]
+    .map(t => {
+      const b = [...document.querySelectorAll('main button')]
+        .find(x => x.textContent.trim().toLowerCase().includes(t.toLowerCase()));
+      return [t, b ? getComputedStyle(b).textTransform : 'no está'];
+    });
 `);
-comprobar("se abre el formulario", modal.abierto, JSON.stringify(modal));
-comprobar("en la pestaña de registro", /Registrarse/i.test(modal.pestana || "") && modal.nombre, JSON.stringify(modal));
-await capturar("landing-3-registro");
+comprobar("«Contratar ahora», «Ya tengo cuenta», «Elegir un plan» y los demás, en mayúsculas",
+  mayusculas.every(([, tt]) => tt === "uppercase"), JSON.stringify(mayusculas));
 
-console.log("\n=== 4. Entrar desde la portada lleva al asistente ===");
+console.log("\n=== 4. «Contratar ahora» abre el formulario de contacto ===");
+// Se pulsa el del plan Institucional: el formulario debe traerlo elegido.
+await evaluar(`
+  const tarjeta = [...document.querySelectorAll('#planes article')].find(a => /Institucional/.test(a.textContent));
+  [...tarjeta.querySelectorAll('button')].find(b => /contratar ahora/i.test(b.textContent)).click();
+`);
+await esperar(600);
+const contacto = await evaluar(`
+  const d = document.querySelector('[role="dialog"]');
+  return { abierto: !!d, titulo: d?.querySelector('h2')?.textContent,
+           campos: ['c-nombre','c-correo','c-institucion','c-cargo','c-telefono','c-plan','c-mensaje']
+             .filter(id => document.getElementById(id)).length,
+           plan: document.getElementById('c-plan')?.selectedOptions[0]?.textContent,
+           obligatorios: ['c-nombre','c-correo','c-institucion'].every(id => document.getElementById(id)?.required),
+           trampaOculta: (() => { const t = document.getElementById('c-sitio'); if (!t) return false;
+                                  const r = t.getBoundingClientRect(); return r.right < 0 || r.width <= 1; })(),
+           noEsRegistro: !document.getElementById('clave') };
+`);
+comprobar("se abre un formulario de contacto, no el registro",
+  contacto.abierto && contacto.noEsRegistro && /Contratar/i.test(contacto.titulo || ""), JSON.stringify(contacto));
+comprobar("con nombre, correo, institución, cargo, teléfono, plan y mensaje", contacto.campos === 7, contacto.campos);
+comprobar("con el plan pulsado ya elegido", contacto.plan === "Institucional", contacto.plan);
+comprobar("nombre, correo e institución son obligatorios", contacto.obligatorios);
+comprobar("la trampa para robots no se ve", contacto.trampaOculta);
+const vacio = await evaluar(`
+  document.querySelector('[role="dialog"] button[type="submit"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  return { sigueAbierto: !!document.getElementById('c-nombre'), invalido: !document.getElementById('c-nombre').checkValidity() };
+`);
+comprobar("vacío, no se envía", vacio.sigueAbierto && vacio.invalido, JSON.stringify(vacio));
+await capturar("landing-3-contacto");
+await evaluar(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));`);
+await esperar(300);
+
+await evaluar(`${botones("Crear cuenta gratis")}[0].click();`);
+await esperar(600);
+const registro = await evaluar(`
+  const activa = [...document.querySelectorAll('button')].find(b => /border-b-2/.test(b.className));
+  return { pestana: activa?.textContent.trim(), nombre: !!document.getElementById('nombre') };
+`);
+comprobar("«Crear cuenta gratis» abre el registro", /Registrarse/i.test(registro.pestana || "") && registro.nombre,
+  JSON.stringify(registro));
+await evaluar(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));`);
+
+console.log("\n=== 5. Entrar desde la portada lleva al asistente ===");
 if (!process.env.KAI_API_URL) {
   console.log("  (omitida: define KAI_API_URL para crear la cuenta de prueba)");
 } else {
@@ -198,7 +242,7 @@ if (!process.env.KAI_API_URL) {
   await evaluar(`localStorage.removeItem("kai_token");`);
 }
 
-console.log("\n=== 5. Nada desborda ===");
+console.log("\n=== 6. Nada desborda ===");
 await ir(APP);
 for (const ancho of [1440, 1024, 768, 390]) {
   await cdp("Emulation.setDeviceMetricsOverride", { width: ancho, height: 900, deviceScaleFactor: 1, mobile: ancho < 500 });
@@ -214,13 +258,13 @@ for (const ancho of [1440, 1024, 768, 390]) {
 }
 await capturar("landing-4-movil");
 
-console.log("\n=== 6. El enlace directo a planes baja hasta ellos ===");
+console.log("\n=== 7. El enlace directo a planes baja hasta ellos ===");
 await ir(`${APP}/#planes`);
 await esperar(1500);
 const bajo = await evaluar(`return Math.abs(document.getElementById('planes').getBoundingClientRect().top) < 200;`);
 comprobar("entrando por /#planes se ven los planes", bajo);
 
-console.log("\n=== 7. Sin errores de JavaScript ===");
+console.log("\n=== 8. Sin errores de JavaScript ===");
 const relevantes = errores.filter((t) => !/favicon|DevTools/i.test(t));
 comprobar("la consola no registró errores", relevantes.length === 0, JSON.stringify(relevantes).slice(0, 400));
 

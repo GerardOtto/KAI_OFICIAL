@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware # 1. Importa el middleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-from . import acceso, auth, conversaciones as conv, herramientas, motores
+from . import acceso, auth, contacto, conversaciones as conv, herramientas, motores
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -494,6 +494,70 @@ def listar_planes():
         ]
     finally:
         db.close()
+
+
+class ContactoRequest(BaseModel):
+    nombre: str
+    correo: str
+    institucion: str
+    cargo: str | None = None
+    telefono: str | None = None
+    plan: str | None = None
+    mensaje: str | None = None
+    # Trampa para robots: el formulario la esconde, así que una persona la deja
+    # vacía y un programa que rellena todo, no.
+    sitio_web: str | None = None
+
+
+def _linea(valor: str | None, maximo: int) -> str:
+    """Una sola línea, sin espacios sobrantes: nada de saltos que se cuelen en
+    las cabeceras del correo."""
+    return " ".join((valor or "").split())[:maximo]
+
+
+def _ip(request: Request) -> str:
+    # Detrás del proxy de Railway, la IP del cliente viene en X-Forwarded-For.
+    reenviada = request.headers.get("x-forwarded-for", "")
+    return reenviada.split(",")[0].strip() or (request.client.host if request.client else "?")
+
+
+@app.post("/contacto")
+def solicitar_contacto(req: ContactoRequest, request: Request, tareas: BackgroundTasks):
+    """Solicitud de contratación desde la portada. Público y sin sesión.
+
+    Se guarda y responde de inmediato; el correo al equipo sale en segundo
+    plano (ver `app/contacto.py`), así que un fallo del correo no pierde la
+    solicitud ni hace esperar a quien la envía.
+    """
+    if (req.sitio_web or "").strip():
+        return {"ok": True}  # un robot: se le responde igual y no se guarda nada
+
+    nombre, institucion = _linea(req.nombre, 120), _linea(req.institucion, 200)
+    correo = _linea(req.correo, 200).lower()
+    if not nombre or not institucion:
+        raise HTTPException(status_code=400, detail="Indica tu nombre y tu institución.")
+    if not auth.CORREO_RE.match(correo):
+        raise HTTPException(status_code=400, detail="El correo electrónico no tiene un formato válido.")
+    if not contacto.permitir(_ip(request)):
+        raise HTTPException(status_code=429,
+                            detail="Recibimos varias solicitudes desde tu conexión. Inténtalo en una hora.")
+
+    db = SessionLocal()
+    try:
+        plan = db.execute(text("SELECT codigo_plan FROM plan WHERE publico AND codigo_plan = :p"),
+                          {"p": req.plan or ""}).scalar()
+        id_solicitud = db.execute(text("""
+            INSERT INTO solicitud_contacto (nombre, correo, institucion, cargo, telefono, codigo_plan, mensaje)
+            VALUES (:n, :c, :i, :cargo, :t, :p, :m) RETURNING id_solicitud
+        """), {"n": nombre, "c": correo, "i": institucion,
+               "cargo": _linea(req.cargo, 120) or None, "t": _linea(req.telefono, 40) or None,
+               "p": plan, "m": (req.mensaje or "").strip()[:2000] or None}).scalar()
+        db.commit()
+    finally:
+        db.close()
+
+    tareas.add_task(contacto.enviar_solicitud, id_solicitud)
+    return {"ok": True}
 
 
 @app.get("/motores")

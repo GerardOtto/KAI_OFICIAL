@@ -40,6 +40,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados, descargas contadas y asistente por dominio |
+| `contacto` | Formulario «Contratar ahora»: se guarda y se envía (con el correo sustituido por un doble), no se pierde si el correo falla, valida, frena robots y abusos, y el asistente no lo lee |
 | `dominios` | Catálogo de dominios institucionales, institución asignada al entrar con Google y no editable, correos parecidos que no se confunden y el asistente cerrado a las cuentas con contraseña |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `ranking-kai` | Ranking KAI: pesos parejos que suman 100, las diez métricas en cada universidad y año, percentiles reproducibles desde el valor medido y abierto al plan gratuito |
@@ -133,11 +134,11 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 014
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 015
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
 instituciones y 60 dominios de correo de 50 de ellas, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,
-mensajes, notificaciones ni descargas. Al regenerarlo hay que conservar esas
+mensajes, notificaciones, descargas ni solicitudes de contacto. Al regenerarlo hay que conservar esas
 exclusiones, y hacerlo desde una base con **todas** las migraciones aplicadas —si
 la local no las tiene, desde una copia suya—. El volcado anterior venía de una base
 sin la 006 y con la 007, al revés que la local, y a ninguna de las dos le cuadraba
@@ -147,7 +148,7 @@ del todo la suite:
 pg_dump -U postgres -d KAI-PROJECT --no-owner --no-privileges \
   --exclude-table-data=usuario --exclude-table-data=mensaje \
   --exclude-table-data=conversacion --exclude-table-data=notificacion \
-  --exclude-table-data=descarga \
+  --exclude-table-data=descarga --exclude-table-data=solicitud_contacto \
   -f backend/pruebas/datos_de_prueba.sql
 ```
 

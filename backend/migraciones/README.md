@@ -19,7 +19,8 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `011_scimago_en_dos_modos.sql` | Scimago en dos modos: sus cifras pasan a `valor_real_universidad` y `metrica_universidad` guarda sus percentiles; columna `ranking.origen_valores`. Requiere la 010 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `012_normalizacion_por_ranking.sql` | Declara cómo sale el puntaje de la cifra en cada ranking (`percentil` o `propia`), para el switch global. Requiere la 011 | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `013_dominios_institucionales.sql` | Tabla `dominio_institucion` (60 dominios de 50 universidades) y función `institucion_por_correo`: quien entra con Google con un correo institucional recibe su institución sin elegirla. **Aplicarla antes de desplegar el backend que la usa** | aplicada (29-09-2026) | aplicada (29-09-2026) |
-| `014_precios_en_pesos.sql` | Columnas `plan.precio_mensual_clp` —el precio en pesos que muestra la portada: $ 27.400 / 93.700 / 463.500, netos— y `plan.precio_lista_clp`, el de referencia que se muestra tachado con «Descuento de lanzamiento» ($ 30.000 / 100.000 / 500.000; NULL lo quita). **Aplicarla antes de desplegar el backend**: `/planes` las lee | aplicada (30-09-2026) | pendiente |
+| `014_precios_en_pesos.sql` | Columnas `plan.precio_mensual_clp` —el precio en pesos que muestra la portada: $ 27.400 / 93.700 / 463.500, netos— y `plan.precio_lista_clp`, el de referencia que se muestra tachado con «Descuento de lanzamiento» ($ 30.000 / 100.000 / 500.000; NULL lo quita). **Aplicarla antes de desplegar el backend**: `/planes` las lee | aplicada (30-09-2026) | aplicada (30-09-2026) |
+| `015_solicitudes_de_contacto.sql` | Tabla `solicitud_contacto`: cada solicitud del formulario «Contratar ahora», guardada antes de enviarse por correo, con `enviado` y `error_envio`. Datos personales: vetada al asistente y sin filas en el volcado de pruebas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -146,6 +147,14 @@ Además de la migración, el servicio de backend necesita estas variables
 | `GOOGLE_CLIENT_ID` | no | Sin ella el botón de Google no aparece |
 | `GEMINI_API_KEY` | no | Sin ella el motor Gemini se muestra deshabilitado. Ver `docs/asistente-motores.md` |
 | `GEMINI_MODEL` | no | Por defecto `gemini-3.5-flash-lite` |
+| `CONTACTO_DESTINO` | sí, para «Contratar ahora» | A quién llegan las solicitudes del formulario de contacto |
+| `SMTP_USUARIO` | sí, para «Contratar ahora» | La cuenta que envía esos correos |
+| `SMTP_CLAVE` | sí, para «Contratar ahora» | Su contraseña de aplicación (en Gmail: Cuenta de Google → Seguridad → Contraseñas de aplicaciones). Nunca en el repositorio |
+| `SMTP_HOST`, `SMTP_PORT` | no | Por defecto `smtp.gmail.com` y `587` |
+
+Sin las tres de contacto, las solicitudes se guardan igual en `solicitud_contacto`
+con `enviado = FALSE` y el motivo en `error_envio`: se pueden revisar con
+`SELECT * FROM solicitud_contacto WHERE NOT enviado ORDER BY fecha DESC;`.
 
 Para generar un secreto:
 

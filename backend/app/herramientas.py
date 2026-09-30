@@ -918,7 +918,8 @@ TABLAS_PUBLICAS = {
 # la lista blanca porque son el motivo mismo de que exista este guardián: si una
 # forma de escribir la consulta se escapara del análisis de relaciones, este
 # filtro por palabra la detiene igual.
-TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan", "descarga"}
+TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan", "descarga",
+                  "solicitud_contacto"}
 
 _COMENTARIOS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 # Identificadores en posición de tabla: lo que sigue a FROM, JOIN, INTO o UPDATE.

@@ -171,7 +171,7 @@ export default function Planes({ planes, onElegir }) {
 
             <button
               onClick={() => onElegir(p)}
-              className={`group mt-6 w-full flex items-center justify-center gap-2 py-3.5 text-[14px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.foco} ${
+              className={`group mt-6 w-full flex items-center justify-center gap-2 py-3.5 text-[14px] font-bold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.foco} ${
                 gratis
                   ? "border-2 border-white/60 text-white hover:bg-white hover:text-black"
                   : destacado

@@ -310,7 +310,8 @@ aborta si algún plan de pago queda por debajo de 3× sobre el costo de su cuota
 ## 6. Pendiente
 
 **No hay cobro implementado.** Los botones «Contratar ahora» de la portada
-llevan a crear cuenta y de ahí al asistente; no hay pasarela de pago, ni facturación, ni cambio
+abren un formulario de contacto que llega por correo al equipo
+(`backend/app/contacto.py`, migración 015), y el contrato se cierra por fuera; no hay pasarela de pago, ni facturación, ni cambio
 de plan automático. Hoy el plan se asigna con SQL. Integrar una pasarela
 (Stripe, Flow, Transbank) y registrar el estado de la suscripción es el paso
 siguiente, y afecta solo a cómo se escribe `usuario.plan_usuario`: el resto del

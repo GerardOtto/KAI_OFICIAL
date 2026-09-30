@@ -37,6 +37,8 @@ BATERIAS = [
      "Institución obligatoria, módulos con sesión, rankings reservados y descargas", False, False),
     ("dominios", "test_dominios.py",
      "Institución acreditada por el correo y asistente exigiendo Google", False, False),
+    ("contacto", "test_contacto.py",
+     "Formulario «Contratar ahora»: se guarda, se envía y no se pierde", False, False),
     ("entrada", "test_consumo_de_entrada.py",
      "Presupuesto del bloque fijo, tope de filas y recorte del historial", False, False),
     ("motor-gemini", "test_motor_gemini.py",

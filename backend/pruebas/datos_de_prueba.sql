@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict virVadOmoODmUcUjH8OHVPZL8fDuxGygJqkDsV81CxvolasogIJVOCW2szHH5PS
+\restrict tkGmiGbxjcI4r8giavtL4616Xec1063QTdT5yiE60n5f0swmWMmD9df1oAHCukL
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -472,6 +472,51 @@ ALTER SEQUENCE public.ranking_id_ranking_seq OWNED BY public.ranking.id_ranking;
 
 
 --
+-- Name: solicitud_contacto; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.solicitud_contacto (
+    id_solicitud integer NOT NULL,
+    fecha timestamp with time zone DEFAULT now() NOT NULL,
+    nombre text NOT NULL,
+    correo text NOT NULL,
+    institucion text NOT NULL,
+    cargo text,
+    telefono text,
+    codigo_plan text,
+    mensaje text,
+    enviado boolean DEFAULT false NOT NULL,
+    error_envio text,
+    CONSTRAINT solicitud_contacto_cargo_check CHECK ((length(cargo) <= 120)),
+    CONSTRAINT solicitud_contacto_correo_check CHECK (((length(correo) >= 3) AND (length(correo) <= 200))),
+    CONSTRAINT solicitud_contacto_institucion_check CHECK (((length(institucion) >= 1) AND (length(institucion) <= 200))),
+    CONSTRAINT solicitud_contacto_mensaje_check CHECK ((length(mensaje) <= 2000)),
+    CONSTRAINT solicitud_contacto_nombre_check CHECK (((length(nombre) >= 1) AND (length(nombre) <= 120))),
+    CONSTRAINT solicitud_contacto_telefono_check CHECK ((length(telefono) <= 40))
+);
+
+
+--
+-- Name: solicitud_contacto_id_solicitud_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.solicitud_contacto_id_solicitud_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: solicitud_contacto_id_solicitud_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.solicitud_contacto_id_solicitud_seq OWNED BY public.solicitud_contacto.id_solicitud;
+
+
+--
 -- Name: universidad; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -633,6 +678,13 @@ ALTER TABLE ONLY public.notificacion ALTER COLUMN id_notificacion SET DEFAULT ne
 --
 
 ALTER TABLE ONLY public.ranking ALTER COLUMN id_ranking SET DEFAULT nextval('public.ranking_id_ranking_seq'::regclass);
+
+
+--
+-- Name: solicitud_contacto id_solicitud; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.solicitud_contacto ALTER COLUMN id_solicitud SET DEFAULT nextval('public.solicitud_contacto_id_solicitud_seq'::regclass);
 
 
 --
@@ -53756,6 +53808,13 @@ SELECT pg_catalog.setval('public.ranking_id_ranking_seq', 8, true);
 
 
 --
+-- Name: solicitud_contacto_id_solicitud_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.solicitud_contacto_id_solicitud_seq', 1, false);
+
+
+--
 -- Name: universidad_id_universidad_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -53863,6 +53922,14 @@ ALTER TABLE ONLY public.plan
 
 ALTER TABLE ONLY public.ranking
     ADD CONSTRAINT ranking_pkey PRIMARY KEY (id_ranking);
+
+
+--
+-- Name: solicitud_contacto solicitud_contacto_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.solicitud_contacto
+    ADD CONSTRAINT solicitud_contacto_pkey PRIMARY KEY (id_solicitud);
 
 
 --
@@ -53982,6 +54049,13 @@ CREATE INDEX idx_valor_real_universidad_anio ON public.valor_real_universidad US
 
 
 --
+-- Name: solicitud_contacto_pendientes; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX solicitud_contacto_pendientes ON public.solicitud_contacto USING btree (fecha) WHERE (NOT enviado);
+
+
+--
 -- Name: usuario_google_sub_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -54092,6 +54166,14 @@ ALTER TABLE ONLY public.notificacion
 
 
 --
+-- Name: solicitud_contacto solicitud_contacto_codigo_plan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.solicitud_contacto
+    ADD CONSTRAINT solicitud_contacto_codigo_plan_fkey FOREIGN KEY (codigo_plan) REFERENCES public.plan(codigo_plan) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: usuario usuario_plan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -54119,5 +54201,5 @@ ALTER TABLE ONLY public.valor_real_universidad
 -- PostgreSQL database dump complete
 --
 
-\unrestrict virVadOmoODmUcUjH8OHVPZL8fDuxGygJqkDsV81CxvolasogIJVOCW2szHH5PS
+\unrestrict tkGmiGbxjcI4r8giavtL4616Xec1063QTdT5yiE60n5f0swmWMmD9df1oAHCukL
 

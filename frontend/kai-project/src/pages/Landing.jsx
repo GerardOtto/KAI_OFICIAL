@@ -6,6 +6,7 @@ import bgImage from "../assets/La_scuola_di_Atene.jpg";
 import muestra from "../assets/muestra.jpg";
 import AuthModal from "../components/AuthModal";
 import Header from "../components/Header";
+import ContactoModal from "../components/landing/ContactoModal";
 import Planes from "../components/landing/Planes";
 import { usePlanes } from "../hooks/useConversaciones";
 import { useAuth } from "../auth/AuthContext";
@@ -84,6 +85,7 @@ function Seccion({ id, eyebrow, titulo, bajada, children, className = "" }) {
 
 export default function Landing() {
   const [auth, setAuth] = useState(null); // null | "login" | "register"
+  const [contacto, setContacto] = useState(null); // plan elegido, o "" sin plan
   const [mostrarCita, setMostrarCita] = useState(false);
   const planes = usePlanes();
   const { usuario } = useAuth();
@@ -97,6 +99,13 @@ export default function Landing() {
 
   /** Con sesión se va directo al asistente; sin ella, se pide y después se va. */
   const entrar = (pestana = "login") => (usuario ? navigate("/asistente") : setAuth(pestana));
+
+  /** Un plan de pago se contrata por contacto —aún no hay cobro en línea—; el
+   *  gratuito, creando la cuenta. */
+  const elegir = (plan) => (plan.precio_mensual_usd > 0 ? setContacto(plan.codigo_plan) : entrar("register"));
+
+  const boton = "px-7 py-4 text-[15px] font-bold uppercase tracking-wider transition-colors " +
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0e0e0e] font-body text-white">
@@ -123,16 +132,11 @@ export default function Landing() {
             </p>
 
             <div className="mt-9 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => irA("planes")}
-                className="px-7 py-4 bg-white text-black text-[15px] font-bold hover:bg-white/85 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              >
+              <button onClick={() => irA("planes")} className={`${boton} bg-white text-black hover:bg-white/85`}>
                 Ver planes y precios
               </button>
-              <button
-                onClick={() => entrar("login")}
-                className="px-7 py-4 border-2 border-white/60 text-white text-[15px] font-bold hover:bg-white hover:text-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
+              <button onClick={() => entrar("login")}
+                      className={`${boton} border-2 border-white/60 text-white hover:bg-white hover:text-black`}>
                 {usuario ? "Ir al asistente" : "Ya tengo cuenta"}
               </button>
             </div>
@@ -158,7 +162,7 @@ export default function Landing() {
           bajada="Precios mensuales en pesos chilenos, más IVA. Puedes empezar gratis y cambiar de plan cuando quieras."
           className="pt-8 sm:pt-12"
         >
-          <Planes planes={planes} onElegir={() => entrar("register")} />
+          <Planes planes={planes} onElegir={elegir} />
           <p className="mt-6 text-[13px] text-outlineSoft max-w-3xl leading-relaxed">
             Las consultas al asistente son aproximadas: cada plan trae una cuota mensual y se descuenta
             lo que realmente se usa. Por ahora, el asistente está disponible para cuentas de la PUCV.
@@ -181,7 +185,7 @@ export default function Landing() {
           </ol>
           <button
             onClick={() => (usuario ? navigate("/asistente") : irA("planes"))}
-            className="mt-10 px-7 py-4 bg-white text-black text-[15px] font-bold hover:bg-white/85 transition-colors"
+            className={`mt-10 ${boton} bg-white text-black hover:bg-white/85`}
           >
             {usuario ? "Ir al asistente" : "Elegir un plan"}
           </button>
@@ -225,6 +229,9 @@ export default function Landing() {
 
       {auth && (
         <AuthModal inicial={auth} onClose={() => setAuth(null)} onExito={() => navigate("/asistente")} />
+      )}
+      {contacto !== null && (
+        <ContactoModal planes={planes} planInicial={contacto} onClose={() => setContacto(null)} />
       )}
 
       <AnimatePresence>
