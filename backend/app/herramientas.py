@@ -14,6 +14,8 @@ científicos— y a nada más. Las tablas de cuentas, conversaciones, mensajes,
 notificaciones y planes quedan fuera por diseño, tanto de las consultas escritas
 a mano como de la herramienta de SQL libre, que las rechaza (ver `TABLAS_PUBLICAS`).
 """
+import contextlib
+import contextvars
 import functools
 import os
 import re
@@ -160,6 +162,36 @@ def system_prompt() -> str:
 
 # Se conserva el nombre antiguo por compatibilidad con lo que ya lo importaba.
 SYSTEM_PROMPT = BASE_SYSTEM_PROMPT
+
+
+# --- Rankings que la cuenta del turno no puede consultar -------------------
+
+# El plan gratuito no incluye THE ni QS, y la interfaz lo respeta; el asistente,
+# que consulta la base por su cuenta, también tiene que respetarlo. Las
+# herramientas no reciben al usuario —su firma es lo que ve el modelo—, así que
+# /chat fija los rankings vedados en esta variable antes de llamar al motor. Los
+# dos motores ejecutan las herramientas en el mismo hilo que los llama, que es lo
+# que hace llegar el valor. Sin fijar, no hay restricción: es el caso de las
+# pruebas que llaman a las herramientas directamente.
+_vedados: contextvars.ContextVar[frozenset[int]] = contextvars.ContextVar(
+    "rankings_vedados", default=frozenset())
+
+VEDADO = ("RESERVADO: ese ranking es de los planes de pago y el plan de esta cuenta no lo "
+          "incluye. Díselo al usuario; no lo consultes por otra vía.")
+
+
+@contextlib.contextmanager
+def con_rankings_vedados(ids):
+    """Durante el bloque, las herramientas no entregan datos de esos rankings."""
+    marca = _vedados.set(frozenset(int(i) for i in ids))
+    try:
+        yield
+    finally:
+        _vedados.reset(marca)
+
+
+def _vedado(ranking_id) -> bool:
+    return int(ranking_id) in _vedados.get()
 
 
 # --- Utilidades de las herramientas ----------------------------------------
@@ -344,6 +376,8 @@ def detalle_ranking(ranking_id: int) -> str:
     Args:
         ranking_id: ID del ranking (ver listar_rankings).
     """
+    if _vedado(ranking_id):
+        return VEDADO
     db = SessionLocal()
     try:
         r = db.execute(
@@ -397,11 +431,21 @@ def buscar_metricas(ranking_id: int, texto: str = "", disciplina: str = "") -> s
         texto: Fragmento del nombre o la descripción. Vacío = sin filtro.
         disciplina: Disciplina exacta o fragmento (ej. "Physics"). Vacío = todas.
     """
+    if _vedado(ranking_id):
+        return VEDADO
+    # Un indicador sin puntaje puede tener cifra medida (los de THE Latam): cuenta
+    # como consultable, y se marca para que el modelo sepa que no trae puntaje.
+    solo_cifra = ("""(SELECT string_agg(DISTINCT v.anio_edicion::text, ', ' ORDER BY v.anio_edicion::text)
+                         || ' (solo cifra medida)'
+                        FROM valor_real_universidad v WHERE v.id_metrica = m.id_metrica)"""
+                  if _hay_valores_medidos() else "NULL")
     filas = _filas(
         f"""
         SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.tipo_metrica, m.peso_metrica,
                m.pondera, p.nombre_metrica AS parte_de,
-               string_agg(DISTINCT mu.anio_metrica::text, ', ' ORDER BY mu.anio_metrica::text) AS anios_con_datos,
+               CASE WHEN count(mu.anio_metrica) > 0
+                    THEN string_agg(DISTINCT mu.anio_metrica::text, ', ' ORDER BY mu.anio_metrica::text)
+                    ELSE {solo_cifra} END AS anios_con_datos,
                left(coalesce(m.descripcion_metrica, ''), 120) AS descripcion
         FROM metrica m
         LEFT JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
@@ -480,14 +524,41 @@ def _hay_valores_medidos() -> bool:
             "SELECT to_regclass('public.valor_real_universidad') IS NOT NULL")).scalar())
 
 
+# Columnas de la cifra medida. En la unidad va el sentido cuando es el inverso
+# («estudiantes por académico»): cuesta tres palabras en las filas de esa métrica
+# y ninguna en la instrucción de sistema, que se reenvía en cada vuelta.
+_COLUMNAS_MEDIDO = ("round(v.valor::numeric, 4) AS valor_medido, "
+                    "v.unidad || CASE WHEN m.sentido = 'menor' THEN ', menor es mejor' ELSE '' END "
+                    "AS unidad, v.calidad")
+
+
 def _medido(alias_mu: str) -> tuple[str, str]:
     """Columnas y JOIN para acompañar cada puntaje con su cifra medida."""
     if not _hay_valores_medidos():
         return "NULL AS valor_medido, NULL AS unidad, NULL AS calidad", ""
-    return ("round(v.valor::numeric, 4) AS valor_medido, v.unidad, v.calidad",
+    return (_COLUMNAS_MEDIDO,
             f"""LEFT JOIN valor_real_universidad v ON v.id_metrica = {alias_mu}.id_metrica
                  AND v.id_universidad = {alias_mu}.id_universidad
                  AND v.anio_edicion = {alias_mu}.anio_metrica""")
+
+
+def _solo_cifra(columnas: str, filtros: str) -> str:
+    """Cifras medidas sin puntaje al lado: las filas que el JOIN de `_medido` no ve.
+
+    Son los indicadores de THE Latam —el ranking publica el pilar, y la cifra de
+    cada indicador la reconstruyó KAI— y las universidades que un ranking mide
+    pero no puntúa en esa métrica. `columnas` y `filtros` son SQL sobre `v`, `m`
+    y `u`.
+    """
+    return f"""
+        SELECT {columnas}
+        FROM valor_real_universidad v
+        JOIN metrica m ON m.id_metrica = v.id_metrica
+        JOIN universidad u ON u.id_universidad = v.id_universidad
+        WHERE {filtros}
+          AND NOT EXISTS (SELECT 1 FROM metrica_universidad mu
+                           WHERE mu.id_metrica = v.id_metrica AND mu.id_universidad = v.id_universidad
+                             AND mu.anio_metrica = v.anio_edicion)"""
 
 
 def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
@@ -501,8 +572,14 @@ def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
         metrica_ids: IDs de métricas separados por coma. Vacío = todas.
         disciplina: Disciplina exacta o fragmento. Vacío = todas.
     """
+    if _vedado(ranking_id):
+        return VEDADO
+    universidades, metricas = _ids(universidad_ids), _ids(metrica_ids)
+    params = {"rid": ranking_id, "anio": anio, "dis": disciplina or "",
+              "uids": universidades or [0], "sin_u": not universidades,
+              "mids": metricas or [0], "sin_m": not metricas}
     columnas_medido, join_medido = _medido("mu")
-    return _consulta(
+    filas = _filas(
         f"""
         SELECT u.nombre_universidad, m.nombre_metrica, m.disciplina, m.peso_metrica, mu.valor_metrica,
                {columnas_medido}
@@ -515,14 +592,22 @@ def consultar_valores(ranking_id: int, anio: int, universidad_ids: str = "",
           AND (:sin_m OR mu.id_metrica = ANY(:mids))
           AND {_contiene('m.disciplina', 'dis')}
         ORDER BY u.nombre_universidad, m.disciplina, m.nombre_metrica
-        """,
-        {"rid": ranking_id, "anio": anio, "dis": disciplina or "",
-         "uids": _ids(universidad_ids) or [0], "sin_u": not _ids(universidad_ids),
-         "mids": _ids(metrica_ids) or [0], "sin_m": not _ids(metrica_ids)},
+        """, params)
+    # Las cifras sin puntaje, solo si se piden métricas concretas: sin ese filtro,
+    # los trece indicadores de THE triplicarían una tabla que casi siempre se pide
+    # por los puntajes. `comparar_universidades` avisa de cuáles hay.
+    if metricas and _hay_valores_medidos():
+        filas += _filas(_solo_cifra(
+            f"u.nombre_universidad, m.nombre_metrica, m.disciplina, m.peso_metrica, "
+            f"NULL AS valor, {_COLUMNAS_MEDIDO}",
+            "m.id_ranking = :rid AND v.anio_edicion = :anio AND v.id_metrica = ANY(:mids) "
+            "AND (:sin_u OR v.id_universidad = ANY(:uids))"), params)
+        filas.sort(key=lambda f: (f[0], f[2] or "", f[1]))
+    return _tabla(
+        filas,
         ["universidad", "metrica", "disciplina", "peso_%", "valor", "valor_medido", "unidad", "calidad"],
-        lambda: f"No hay valores para el año {anio} en esa combinación. "
-                + _metricas_con_datos(ranking_id, _ids(universidad_ids)),
-    )
+        f"No hay valores para el año {anio} en esa combinación. "
+        + _metricas_con_datos(ranking_id, universidades) if not filas else "")
 
 
 def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str = "") -> str:
@@ -533,9 +618,27 @@ def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str =
         metrica_id: ID de la métrica (ver buscar_metricas).
         universidad_ids: IDs separados por coma (ej. "1,22"). Vacío = todas.
     """
+    if _vedado(ranking_id):
+        return VEDADO
     universidades = _ids(universidad_ids)
+    params = {"rid": ranking_id, "mid": metrica_id,
+              "uids": universidades or [0], "sin_u": not universidades}
 
     def sin_datos() -> str:
+        # Sin puntaje puede haber cifra medida: los indicadores de THE no tienen
+        # puntaje propio, pero sí la cifra que KAI reconstruyó. Va antes que el
+        # pilar, porque responde a lo que se preguntó.
+        if _hay_valores_medidos():
+            cifras = _filas(_solo_cifra(
+                f"u.nombre_universidad, v.anio_edicion, {_COLUMNAS_MEDIDO}",
+                "m.id_ranking = :rid AND v.id_metrica = :mid "
+                "AND (:sin_u OR v.id_universidad = ANY(:uids))") + " ORDER BY 1, 2", params)
+            if cifras:
+                pilar = _pilar_con_datos(metrica_id, universidades)
+                nota = (f"\nSin puntaje propio: el ranking puntúa su pilar, `{pilar[0]}` {pilar[1]}."
+                        if pilar else "\nSin puntaje propio: solo la cifra medida.")
+                return _tabla(cifras, ["universidad", "anio", "valor_medido", "unidad", "calidad"],
+                              "") + nota
         # Antes de rendirse, el nivel agregado: es donde varios rankings cargan
         # de verdad los valores del indicador que se está pidiendo.
         pilar = _pilar_con_datos(metrica_id, universidades)
@@ -561,8 +664,7 @@ def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str =
           AND (:sin_u OR mu.id_universidad = ANY(:uids))
         ORDER BY u.nombre_universidad, mu.anio_metrica
         """,
-        {"rid": ranking_id, "mid": metrica_id,
-         "uids": universidades or [0], "sin_u": not universidades},
+        params,
         ["universidad", "anio", "valor", "valor_medido", "unidad", "calidad"],
         sin_datos,
     )
@@ -576,6 +678,8 @@ def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") 
         anio: Año a consultar.
         disciplina: Disciplina exacta o fragmento. Obligatoria en multidisciplinarios.
     """
+    if _vedado(ranking_id):
+        return VEDADO
     return _consulta(
         f"""
         SELECT u.nombre_universidad,
@@ -609,6 +713,8 @@ def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "
         anios: Años separados por coma (ej. "2019,2024"). Vacío = el más reciente.
         disciplina: Disciplina exacta o fragmento. Obligatoria en multidisciplinarios.
     """
+    if _vedado(ranking_id):
+        return VEDADO
     universidades = _ids(universidad_ids)[:6]
     if not universidades:
         return ("Hace falta al menos un identificador de universidad. Los de las chilenas "
@@ -688,6 +794,17 @@ def comparar_universidades(ranking_id: int, universidad_ids: str, anios: str = "
                     "~ aproximada, ½ parcial).")
     faltan = [str(u) for u in universidades if u not in nombres]
     aviso = f"\nSin datos en este ranking: {', '.join(faltan)}." if faltan else ""
+    # Las cifras sin puntaje (los indicadores de THE) no van en la tabla: casi
+    # triplicarían cada comparación de THE, se usen o no. Una línea con sus ids
+    # basta para pedirlas, en la misma vuelta que otra consulta si hace falta.
+    if _hay_valores_medidos():
+        sin_puntaje = [str(f[0]) for f in _filas(_solo_cifra(
+            "DISTINCT v.id_metrica",
+            "m.id_ranking = :rid AND v.id_universidad = ANY(:uids) AND v.anio_edicion = ANY(:anios)")
+            + " ORDER BY 1", {"rid": ranking_id, "uids": universidades, "anios": años})]
+        if sin_puntaje:
+            aviso += (f"\nHay cifras medidas sin puntaje en las métricas {', '.join(sin_puntaje)}: "
+                      "pídelas con consultar_valores y metrica_ids.")
     return f"{leyenda}\n{cabecera}\n" + "\n".join(cuerpo) + aviso
 
 
@@ -860,6 +977,32 @@ def _revisar_sql(sql: str) -> str | None:
     return None
 
 
+def _sin_vedados(sql: str) -> str | None:
+    """La misma consulta, pero sin ver los rankings vedados de la cuenta.
+
+    Antepone CTE con los nombres de las tablas académicas que filtran esos
+    rankings: en PostgreSQL un CTE tapa a la tabla del mismo nombre, así que la
+    consulta del modelo lee las versiones filtradas sin saberlo. Si ya empieza
+    por WITH, los CTE propios se suman a los suyos. Una tabla escrita con esquema
+    (`public.metrica`) esquivaría el CTE, así que en ese caso no se ejecuta.
+    """
+    if re.search(r'\bpublic"?\s*\.', _COMENTARIOS.sub(" ", sql), re.I):
+        return None
+    ids = ", ".join(str(i) for i in sorted(_vedados.get()))
+    propios = (
+        f"ranking AS (SELECT * FROM public.ranking WHERE id_ranking NOT IN ({ids})), "
+        f"metrica AS (SELECT * FROM public.metrica WHERE id_ranking NOT IN ({ids})), "
+        "metrica_universidad AS (SELECT mu.* FROM public.metrica_universidad mu "
+        f"JOIN public.metrica m USING (id_metrica) WHERE m.id_ranking NOT IN ({ids}))")
+    if _hay_valores_medidos():
+        propios += (", valor_real_universidad AS (SELECT v.* FROM public.valor_real_universidad v "
+                    f"JOIN public.metrica m USING (id_metrica) WHERE m.id_ranking NOT IN ({ids}))")
+    con_with = re.match(r"^\s*with\s+(recursive\s+)?", sql, re.I)
+    if con_with:
+        return f"WITH {con_with.group(1) or ''}{propios}, {sql[con_with.end():]}"
+    return f"WITH {propios} {sql}"
+
+
 def consulta_sql(sql: str) -> str:
     """SQL de solo lectura (PostgreSQL) sobre las tablas académicas, para cruces o agregaciones que las demás herramientas no cubren. Una sola sentencia SELECT o WITH, sin punto y coma, siempre con LIMIT.
 
@@ -882,6 +1025,11 @@ def consulta_sql(sql: str) -> str:
     motivo = _revisar_sql(sql)
     if motivo:
         return f"ERROR: {motivo}"
+    sql = sql.strip().rstrip(";")
+    if _vedados.get():
+        sql = _sin_vedados(sql)
+        if sql is None:
+            return "ERROR: escribe los nombres de las tablas sin esquema delante."
 
     db = SessionLocal()
     try:
@@ -890,7 +1038,7 @@ def consulta_sql(sql: str) -> str:
         # fallaría. El timeout evita que una consulta mal planteada bloquee el turno.
         db.execute(text("SET TRANSACTION READ ONLY"))
         db.execute(text("SET LOCAL statement_timeout = '8s'"))
-        resultado_sql = db.execute(text(sql.strip().rstrip(";")))
+        resultado_sql = db.execute(text(sql))
         filas = resultado_sql.fetchall()
         return _tabla(filas, list(resultado_sql.keys()), "La consulta no devolvió filas.")
     except Exception as e:

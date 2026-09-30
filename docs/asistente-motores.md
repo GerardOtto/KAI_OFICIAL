@@ -75,7 +75,7 @@ cifras).
 ### Lo que no puede ver
 
 Las herramientas alcanzan el dominio académico completo y nada más. Las tablas
-`usuario`, `conversacion`, `mensaje`, `notificacion` y `plan` quedan fuera por
+`usuario`, `conversacion`, `mensaje`, `notificacion`, `plan` y `descarga` quedan fuera por
 diseño, y la herramienta de SQL libre rechaza la consulta entera si las menciona
 —escritas como sea, entre comillas o dentro de una subconsulta—. Si se le
 pregunta por datos de usuarios, responde que quedan fuera de su alcance.
@@ -113,9 +113,34 @@ resultado vacío trae la salida:
 - Una búsqueda de métricas sin coincidencias devuelve **las métricas que sí
   tienen valores**, con su identificador, sus años y de qué se componen.
 - Si lo que se pedía existe en la metodología pero sus valores están cargados en
-  el pilar que lo agrupa —THE Latam publica «Citation impact», pero los datos
+  el pilar que lo agrupa —THE Latam publica «Research strength», pero los datos
   están en «Research Quality»—, se nombra el pilar y `consultar_tendencia`
   **devuelve directamente su serie**, avisando de que la cifra es la del pilar.
+- Si el indicador no tiene puntaje pero sí **cifra medida** —los trece
+  indicadores de THE que KAI reconstruyó, como «Citation impact»—, la tendencia
+  devuelve esa cifra y nombra el pilar que el ranking puntúa; `buscar_metricas`
+  lo marca «solo cifra medida».
+
+### Cifras sin puntaje, sin engordar las respuestas
+
+Los valores medidos viajan junto a cada puntaje (`valor_medido`, `unidad`,
+`calidad`). Los que no tienen puntaje al lado no entran en las tablas por
+defecto: meter los trece indicadores de THE en cada comparación casi la
+triplicaba (de 477 a ~1.400 caracteres), se usaran o no. En su lugar,
+`comparar_universidades` añade una línea con los ids de esas métricas, y
+`consultar_valores` las entrega cuando se piden con `metrica_ids`. La unidad
+lleva «menor es mejor» en las métricas de sentido inverso. Nada de esto toca la
+instrucción de sistema ni las descripciones de las herramientas.
+
+### Lo que el plan no incluye
+
+Las herramientas no reciben al usuario —su firma es lo que ve el modelo—, así
+que `/chat` fija los rankings vedados de la cuenta (THE y QS para el plan
+gratuito) en una variable de contexto antes de llamar al motor. Las herramientas
+con `ranking_id` responden «RESERVADO» y `consulta_sql` antepone CTE con los
+nombres de las tablas académicas que filtran esos rankings; como un CTE tapa a
+la tabla del mismo nombre, la consulta del modelo no los ve. Una tabla escrita
+con esquema (`public.metrica`) esquivaría el CTE, así que se rechaza.
 - Un resultado recortado por el tope de filas no dice «hay más», sino que empuja
   a filtrar, que es lo que de verdad ahorra.
 

@@ -91,6 +91,13 @@ def ids_restringidos(db) -> set[int]:
     return {r["id_ranking"] for r in rankings_restringidos(db)}
 
 
+def ids_vedados(db, usuario: dict | None) -> set[int]:
+    """Los rankings que esta cuenta no puede consultar (vacío para los de pago)."""
+    if not es_gratuito(usuario) or es_admin(usuario):
+        return set()
+    return ids_restringidos(db)
+
+
 def puede_ver_ranking(db, usuario: dict | None, ranking_id: int | None) -> bool:
     if ranking_id is None or not es_gratuito(usuario) or es_admin(usuario):
         return True

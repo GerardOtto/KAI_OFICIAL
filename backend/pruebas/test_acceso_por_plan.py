@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from app import acceso, auth, main, motores
+from app import herramientas as h
 from app.herramientas import resultado
 
 fallos = []
@@ -281,6 +282,44 @@ cap_ajeno = cliente.get("/auth/yo", headers=ajeno).json()["capacidades"]
 comprobar("las capacidades avisan del bloqueo del asistente",
           cap_ajeno["asistente"]["permitido"] is False and cap_ajeno["asistente"]["motivo"],
           cap_ajeno["asistente"])
+
+print("\n=== 10. Lo que el plan no incluye, tampoco por el asistente ===")
+# El motor de prueba llama a las herramientas de verdad, dentro de /chat, y
+# devuelve lo que entregan: así se comprueba que la restricción viaja del
+# endpoint a las herramientas, que no reciben al usuario.
+CONTEO = ("SELECT count(DISTINCT m.id_ranking) AS rankings FROM metrica_universidad mu "
+          "JOIN metrica m USING (id_metrica) WHERE m.id_ranking = ANY(ARRAY[{}])")
+
+
+def motor_que_consulta(motor, mensajes):
+    salidas = [
+        h.comparar_universidades(RESERVADO, "2"),
+        h.consultar_valores(RESERVADO, 2024, "2"),
+        h.consulta_sql(CONTEO.format(f"{RESERVADO}, {LIBRE}")),
+        h.consulta_sql(f"SELECT count(*) AS n FROM public.metrica WHERE id_ranking = {RESERVADO}"),
+        h.comparar_universidades(LIBRE, "2"),
+    ]
+    return resultado("\n@@\n".join(salidas), "modelo-de-prueba", motor, 100, 10, ok=True)
+
+
+motores.responder = motor_que_consulta
+_, gratis_chat = crear_usuario("free")
+partes = cliente.post("/chat", json={"mensaje": "Hola", "motor": "gemini"},
+                      headers=gratis_chat).json()["content"].split("\n@@\n")
+comprobar("el plan gratuito no obtiene la comparación de un ranking reservado",
+          partes[0].startswith("RESERVADO"), partes[0][:100])
+comprobar("ni sus valores", partes[1].startswith("RESERVADO"), partes[1][:100])
+comprobar("el SQL libre no ve sus filas", partes[2].splitlines()[-1].strip() == "1", partes[2])
+comprobar("ni puede esquivarlo escribiendo el esquema", partes[3].startswith("ERROR"), partes[3][:100])
+comprobar("un ranking incluido responde con normalidad", "SCORE PONDERADO" in partes[4], partes[4][:100])
+
+_, pago_chat = crear_usuario("institucional")
+partes = cliente.post("/chat", json={"mensaje": "Hola", "motor": "gemini"},
+                      headers=pago_chat).json()["content"].split("\n@@\n")
+comprobar("un plan de pago sí obtiene el ranking reservado", "SCORE PONDERADO" in partes[0], partes[0][:100])
+comprobar("y el SQL libre ve los dos rankings", partes[2].splitlines()[-1].strip() == "2", partes[2])
+comprobar("fuera de /chat la restricción no queda pegada",
+          not h.comparar_universidades(RESERVADO, "2").startswith("RESERVADO"))
 
 # --- Limpieza ---------------------------------------------------------------
 db = main.SessionLocal()

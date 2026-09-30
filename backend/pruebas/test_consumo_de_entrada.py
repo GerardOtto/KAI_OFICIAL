@@ -158,7 +158,7 @@ comprobar("una búsqueda sin coincidencias sugiere las métricas con datos",
           "con valores cargados son" in sin_coincidencias, sin_coincidencias[:120])
 comprobar("y las sugiere con su identificador", "`" in sin_coincidencias)
 
-solo_vacias = h.buscar_metricas(1, "cita")
+solo_vacias = h.buscar_metricas(1, "reputation")
 comprobar("si lo que coincide no tiene valores, también lo dice",
           "no tiene valores cargados" in solo_vacias or "con valores cargados son" in solo_vacias,
           solo_vacias[:120])
@@ -186,17 +186,17 @@ comprobar("un año sin valores dice el año y sugiere alternativas",
           "1800" in valores and "valores cargados" in valores, valores[:120])
 
 print("\n=== 7. El nivel agregado, cuando el indicador fino no tiene valores ===")
-# THE Latam publica «Citation impact» en su metodología, pero los valores están
-# cargados en el pilar «Research Quality», que lo agrupa. Sugerir alternativas no
-# bastaba: el modelo seguía probando sinónimos —cuatro búsquedas seguidas en la
-# traza—, así que ahora se le nombra el pilar y se le devuelve su serie.
-busqueda = h.buscar_metricas(1, "Citation")
+# THE Latam publica «Research strength» en su metodología, pero sin puntaje ni
+# cifra propios: lo que hay es el pilar «Research Quality», que lo agrupa.
+# Sugerir alternativas no bastaba: el modelo seguía probando sinónimos —cuatro
+# búsquedas seguidas en la traza—, así que se le nombra el pilar y su serie.
+busqueda = h.buscar_metricas(1, "strength")
 comprobar("la búsqueda nombra el pilar que sí tiene los datos",
           "Research Quality" in busqueda and "1694" in busqueda, busqueda[:120])
 comprobar("y explica por qué el indicador pedido está vacío",
           "no tiene valores cargados" in busqueda)
 
-serie = h.consultar_tendencia(1, 9, "2")
+serie = h.consultar_tendencia(1, 10, "2")
 comprobar("pedir la serie del indicador vacío devuelve la del pilar",
           "Research Quality" in serie and "2019" in serie, serie[:120])
 comprobar("con el aviso de que la cifra es la del pilar",
@@ -218,8 +218,10 @@ comprobar("la leyenda nombra las universidades comparadas",
           "u2 = " in lineas[0] and "u55 = " in lineas[0], lineas[0][:80])
 comprobar("hay una columna por universidad y año",
           all(c in lineas[1] for c in ("u2·2019", "u2·2024", "u55·2019", "u55·2024")), lineas[1])
+filas_metricas = [l for l in lineas[2:] if " | " in l and not l.startswith("SCORE")]
 comprobar("las métricas van por peso descendente",
-          float(lineas[2].split(" | ")[1]) >= float(lineas[-2].split(" | ")[1]), lineas[2][:60])
+          float(filas_metricas[0].split(" | ")[1]) >= float(filas_metricas[-1].split(" | ")[1]),
+          filas_metricas[0][:60])
 comprobar("incluye el score ponderado, que es lo que responde «quién está mejor»",
           "SCORE PONDERADO" in comparacion)
 comprobar("y solo suma las métricas que ponderan", "solo métricas que ponderan" in comparacion)
@@ -232,6 +234,36 @@ comprobar("sin identificadores se explica cómo obtenerlos",
           "identificador" in h.comparar_universidades(1, ""))
 comprobar("una universidad sin datos no revienta la tabla",
           "No hay valores" in h.comparar_universidades(1, "999"))
+
+print("\n=== 9. Las cifras sin puntaje, alcanzables sin engordar lo habitual ===")
+# Los indicadores de THE no tienen puntaje, pero sí la cifra que KAI reconstruyó.
+# Meterlos en cada comparación casi la triplicaba; en su lugar, una línea con sus
+# ids, y las cifras llegan cuando se piden por métrica.
+comprobar("la comparación avisa de qué métricas tienen cifra sin puntaje",
+          "cifras medidas sin puntaje en las métricas" in comparacion and " 9," in comparacion,
+          comparacion.splitlines()[-1])
+comprobar("sin meter sus filas en la tabla", "Citation impact" not in comparacion)
+comprobar("una comparación sin esas cifras no lleva el aviso",
+          "sin puntaje" not in h.comparar_universidades(8, "2", "2025"))
+
+marcada = h.buscar_metricas(1, "Citation")
+comprobar("la búsqueda marca el indicador que solo tiene cifra",
+          "Citation impact" in marcada and "solo cifra medida" in marcada, marcada[:160])
+
+cifras = h.consultar_tendencia(1, 9, "2")
+comprobar("su tendencia devuelve la cifra medida, no el pilar",
+          "valor_medido" in cifras.splitlines()[0] and "2024" in cifras, cifras[:120])
+comprobar("y dice que el puntaje es el del pilar", "Research Quality" in cifras, cifras[-120:])
+
+con_metrica = h.consultar_valores(1, 2024, "2", "9")
+comprobar("pedida por métrica, la cifra sin puntaje aparece",
+          "Citation impact" in con_metrica, con_metrica[:160])
+comprobar("sin pedir métricas no se arrastra",
+          "Citation impact" not in h.consultar_valores(1, 2024, "2"))
+
+kai = h.comparar_universidades(8, "2", "2025")
+comprobar("la unidad dice cuándo menor es mejor",
+          "menor es mejor" in next(l for l in kai.splitlines() if l.startswith("Estudiantes")))
 
 print("\n" + "=" * 60)
 print(f"FALLOS: {len(fallos)}" + (f" -> {fallos}" if fallos else "  (todo correcto)"))

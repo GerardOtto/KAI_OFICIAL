@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-from . import acceso, auth, conversaciones as conv, motores
+from . import acceso, auth, conversaciones as conv, herramientas, motores
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -606,9 +606,14 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
 
         id_mensaje_usuario = conv.guardar_mensaje(db, id_conversacion, "user", texto)
         historial = conv.historial_para_modelo(db, id_conversacion)
+        vedados = acceso.ids_vedados(db, usuario)
         db.commit()
 
-        resultado = motores.responder(motor, historial)
+        # Las herramientas del asistente leen la base por su cuenta: sin esto, el
+        # plan gratuito obtendría por el chat los datos de THE y QS que la
+        # interfaz le niega.
+        with herramientas.con_rankings_vedados(vedados):
+            resultado = motores.responder(motor, historial)
 
         era_nueva = req.id_conversacion is None
         if resultado["ok"]:
