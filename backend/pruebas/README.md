@@ -48,9 +48,9 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
-| `planes` | Cuotas por motor, tope diario, margen comercial y rol de administrador |
+| `planes` | Cuotas por motor, las 3 consultas de por vida del gratuito, tope diario, margen comercial y rol de administrador |
 | `chat` | Recorrido completo de `/chat` con sesión y base reales |
-| `concurrencia` | El tope diario bajo peticiones simultáneas del mismo usuario |
+| `concurrencia` | El tope diario y las consultas de por vida bajo peticiones simultáneas del mismo usuario |
 | `autenticacion` | Registro, sesión y propiedad de las conversaciones (necesita el backend en marcha) |
 | `en-vivo` | El motor real contra la API real del proveedor |
 
@@ -91,10 +91,11 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `encabezado` | Sin desborde horizontal y con navegación en catorce anchos |
 | `tendencias` | Orden de las vistas y vista predeterminada |
 | `glosario` | Exclusión de un ranking, agregación multidisciplinaria, jerarquía de métricas y globo informativo |
-| `portada` | Página de arriba abajo, planes en pesos, «Contratar ahora» que abre el registro y entrada que lleva al asistente |
+| `portada` | Página de arriba abajo, planes en pesos, botones en mayúsculas y en IBM Plex Sans, íconos en blanco y negro, «Contratar ahora» que abre el formulario de contacto, entrada que lleva al asistente y módulos que sin sesión se piden con un aviso sobre la portada |
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
 | `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
+| `informes` | Informes PDF de Tendencias, Simulación, Glosario y Resumen: cifras clave y lectura, tablas acotadas, proyecciones dentro de la escala y ningún carácter fuera de la fuente del PDF |
 | `revelado` | Aparición progresiva de la respuesta e indicador de espera |
 
 Desde que ningún módulo es público, las sondas que abren uno crean una cuenta
@@ -106,7 +107,7 @@ miden la versión recortada de las vistas, que es la que verá la mayoría.
 además un backend con el proveedor sustituido por un doble, con la aplicación
 compilada apuntando a él. Se omiten si no se define `KAI_API_URL`.
 
-`reporte` y `revelado` son la excepción a todo lo anterior: no miran la
+`reporte`, `informes` y `revelado` son la excepción a todo lo anterior: no miran la
 aplicación compilada, sino que importan los módulos de origen y montan los
 componentes sueltos —para componer PDF, dibujar gráficos o cronometrar la
 aparición del texto— sin atravesar la interfaz. Necesitan el servidor de
@@ -134,7 +135,7 @@ KAI_DEV_URL=http://localhost:5198 node pruebas/ejecutar.mjs
 cada solicitud de incorporación, sobre un PostgreSQL de servicio cargado con
 `datos_de_prueba.sql`.
 
-`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 015
+`datos_de_prueba.sql` contiene el esquema completo, con las migraciones 001 a 016
 aplicadas, y los datos académicos —siete rankings externos y el Ranking KAI, 58
 instituciones y 60 dominios de correo de 50 de ellas, 1.249 métricas, 20.638 observaciones, 15.710 valores medidos y 4.245
 investigadores— y **ninguna fila** de las tablas de cuentas, conversaciones,

@@ -30,6 +30,7 @@ const SONDAS = {
   respuestas_markdown: "Énfasis, tablas, listas y desbordamiento",
   motores: "Selector de motores y derivación",
   reporte: "Composición del PDF y dibujo del bloque de gráfico",
+  informes: "Informes PDF de Tendencias, Simulación, Glosario y Resumen",
   revelado: "Aparición progresiva de la respuesta e indicador de espera",
   ponderado: "Reponderado del Ranking KAI en el cliente",
   valores_medidos: "Formato, orden y exportación del modo numérico",
@@ -43,7 +44,7 @@ const SONDAS = {
 // servidor de desarrollo y no la aplicación compilada:
 //   npx vite --port 5198 --strictPort
 // Sin KAI_DEV_URL se omiten, igual que las del asistente.
-const REQUIERE_DEV = new Set(["reporte", "revelado"]);
+const REQUIERE_DEV = new Set(["reporte", "informes", "revelado"]);
 const hayServidorDeDesarrollo = Boolean(process.env.KAI_DEV_URL);
 
 // Estas dos ejercitan la interfaz del asistente, así que además de la aplicación

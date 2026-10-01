@@ -79,14 +79,73 @@ barra más larga significaría lo contrario.
 Un bloque mal formado —sin cifras, o con un solo dato— se muestra como bloque de
 código, tanto en el chat como en el PDF. El contenido nunca se pierde.
 
+## Los informes de los módulos
+
+Tendencias, Simulación, Glosario y Resumen emiten su propio PDF con el mismo
+estilo: comparten con este reporte el lienzo, la portada, la marca de agua y el
+pie (`reportes/documento.js`). Antes eran otra cosa —una captura oscura de la
+pantalla seguida de todas las filas, o listados de cientos de métricas— y
+palidecían al lado del reporte del asistente.
+
+Todos siguen el mismo orden, que es el de un análisis y no el de un volcado:
+
+1. **Cifras clave** de la institución de quien emite el informe (la de su
+   perfil), o del líder si no figura entre los datos.
+2. **Lectura**: frases que dicen lo que un analista vería en el gráfico —quién
+   lidera, cuánto se movió la institución propia, el mayor alza y la mayor caída—.
+3. **Un gráfico** dibujado en vectores: líneas con proyección punteada en
+   Tendencias, barras en los demás.
+4. **Una tabla acotada**. El detalle completo va a la exportación XLSX o CSV, y
+   el informe lo dice.
+
+| Módulo | Qué deja fuera, a propósito |
+|---|---|
+| Tendencias · evolución | El año a año de cada institución: la tabla trae una fila por institución (primer y último dato, variación, tendencia y proyección) |
+| Tendencias · comparación anual | Más de seis métricas |
+| Simulación | Las métricas que no se movieron: solo los ajustes, su efecto y las cinco métricas donde mejorar rinde más puntos. En la comparada, la matriz entera |
+| Glosario | Las métricas una por una (más de mil): queda la matriz de dimensiones por rankings, con el peso y un mapa de calor |
+| Resumen | De la fila 26 en adelante, salvo la institución propia. En el Ranking KAI añade los pesos con que se calculó el orden |
+
+Las proyecciones de un puntaje se acotan a 0–100: una recta no puede sacar un
+puntaje normalizado de su escala.
+
+**El ranking, por su logotipo.** Los informes de un solo ranking llevan su
+logotipo en la esquina superior derecha de la portada, frente al de KAI y bajo el
+rótulo «Ranking usado:». El Glosario, que abarca todos, no lo lleva. Los archivos
+están en `src/assets/rankings/`, en PNG transparente de 240 px de alto:
+
+| Archivo | Rankings | Origen |
+|---|---|---|
+| `the.png` | THE Latam | Wikimedia Commons, `Times_Higher_Education_logo.svg` |
+| `qs.png` | QS Latam, QS Global, QS por Disciplina (uno para todos) | qs.com, logotipo de la cabecera |
+| `scimago.png` | Scimago Latam | scimagoir.com, «SCImago Institutions Rankings» |
+| `shanghairanking.png` | Shanghai GRAS y ARWU (los publica la misma consultora) | shanghairanking.com, logotipo de la cabecera |
+| — | Ranking KAI | el logotipo propio, `src/assets/logo.png` |
+
+Los de SCImago y ShanghaiRanking venían con el texto en blanco, para las
+cabeceras oscuras de sus sitios. Para el papel, ese texto se pasó a casi negro
+(`#1A1A1A`) sin tocar el blanco de los íconos. Son marcas de terceros, y se usan
+solo para identificar la fuente de los datos. La correspondencia entre nombre y
+logotipo está en `logoDeRanking` (`documento.js`); un ranking nuevo sin logotipo
+muestra su nombre en texto.
+
+**Caracteres fuera de la fuente.** Las fuentes estándar del PDF solo traen la
+codificación WinAnsi. El signo menos, las flechas o la delta griega salían como
+basura y descuadraban la línea entera. `documento.js` sustituye cada carácter por
+su equivalente más cercano (− por –, → por », Δ por «Var.») antes de escribir o
+medir, y omite lo que no tiene equivalente, como los emojis. Esto también protege
+al reporte del asistente de lo que escriba el modelo.
+
 ## Dónde vive
 
 | Archivo | Papel |
 |---|---|
-| `frontend/kai-project/src/reportes/reporteEjecutivo.js` | Compone el PDF |
+| `frontend/kai-project/src/reportes/reporteEjecutivo.js` | Compone el PDF del asistente |
+| `frontend/kai-project/src/reportes/documento.js` | Lienzo, portada, pie y bloques comunes a todos los informes |
+| `frontend/kai-project/src/reportes/informeTendencias.js` · `informeSimulacion.js` · `informeGlosario.js` · `informeResumen.js` | Los informes de los módulos |
 | `frontend/kai-project/src/reportes/grafico.js` | Lee el bloque; lo comparten el chat y el PDF |
 | `frontend/kai-project/src/components/asistente/GraficoBarras.jsx` | Dibuja el gráfico en el chat |
 | `frontend/kai-project/src/components/asistente/Markdown.jsx` | Intercepta el bloque cercado |
 | `backend/app/herramientas.py` | La instrucción de sistema que pide el formato |
 
-La verificación está en la sonda `reporte`; ver `backend/pruebas/README.md`.
+La verificación está en las sondas `reporte` e `informes`; ver `backend/pruebas/README.md`.

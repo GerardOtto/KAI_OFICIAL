@@ -11,7 +11,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `003_planes_por_tokens.sql` | Planes con cuota de tokens por motor, precio mensual y tope diario | aplicada | aplicada (07-09-2026) |
 | `004_solo_google_tras_vincular.sql` | Quita la contraseña a las cuentas ya vinculadas a Google | aplicada (29-09-2026) | aplicada (29-09-2026) |
 | `005_jerarquia_de_metricas.sql` | Distingue los pilares de los indicadores que agrupan, para que los pesos de un ranking sumen una sola vez | aplicada (22-09-2026) | aplicada |
-| `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito y tabla de descargas de informes | aplicada (24-09-2026) | aplicada (26-09-2026) |
+| `006_acceso_por_plan.sql` | Espera entre consultas del plan gratuito (reemplazada por la 016) y tabla de descargas de informes | aplicada (24-09-2026) | aplicada (26-09-2026) |
 | `007_recalibracion_de_precios.sql` | Precios y cuotas de los planes de pago calculados sobre el costo total (sueldos, alojamiento, modelos); ver `docs/planes.md` §3 | aplicada (29-09-2026) | aplicada (29-09-2026) |
 | `008_valores_reales.sql` | Tabla `valor_real_universidad` para los valores medidos (razones, conteos, porcentajes), separada de los puntajes | aplicada (26-09-2026) | aplicada (26-09-2026) |
 | `009_ranking_kai.sql` | Ranking KAI: diez métricas con pesos parejos y editables por el usuario; columnas `ranking.pesos_editables` y `metrica.sentido`. Requiere la 008 | aplicada (26-09-2026) | aplicada (26-09-2026) |
@@ -21,6 +21,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `013_dominios_institucionales.sql` | Tabla `dominio_institucion` (60 dominios de 50 universidades) y función `institucion_por_correo`: quien entra con Google con un correo institucional recibe su institución sin elegirla. **Aplicarla antes de desplegar el backend que la usa** | aplicada (29-09-2026) | aplicada (29-09-2026) |
 | `014_precios_en_pesos.sql` | Columnas `plan.precio_mensual_clp` —el precio en pesos que muestra la portada: $ 27.400 / 93.700 / 463.500, netos— y `plan.precio_lista_clp`, el de referencia que se muestra tachado con «Descuento de lanzamiento» ($ 30.000 / 100.000 / 500.000; NULL lo quita). **Aplicarla antes de desplegar el backend**: `/planes` las lee | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `015_solicitudes_de_contacto.sql` | Tabla `solicitud_contacto`: cada solicitud del formulario «Contratar ahora», guardada antes de enviarse por correo, con `enviado` y `error_envio`. Datos personales: vetada al asistente y sin filas en el volcado de pruebas | aplicada (30-09-2026) | aplicada (30-09-2026) |
+| `016_consultas_de_prueba.sql` | El plan gratuito pasa de «una consulta cada tres días» a 3 consultas al asistente por cuenta, que no se reponen: columnas `plan.mensajes_totales` y `usuario.consultas_asistente` (arranca con las preguntas del historial). **Aplicarla antes de desplegar el backend**: la sesión y `/planes` leen las columnas nuevas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las

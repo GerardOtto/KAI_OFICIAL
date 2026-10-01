@@ -1,6 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
@@ -18,6 +16,8 @@ import SelectorInstituciones from "../components/tendencias/SelectorInstitucione
 import VistaAnual from "../components/tendencias/VistaAnual";
 import VistaEvolucion from "../components/tendencias/VistaEvolucion";
 import { colorDeIndice, fmt } from "../components/tendencias/paleta";
+import { generarInformeTendencias } from "../reportes/informeTendencias";
+import { institucionPropia } from "../reportes/documento";
 
 // Dos vistas hermanas sobre los mismos selectores: cambia el eje X.
 // `max: null` = sin tope de series.
@@ -27,11 +27,6 @@ const VISTAS = [
 ];
 
 const MAX_CHIPS_METRICA = 6;
-
-// Ancho fijo con el que se renderiza la copia que va al PDF. Es independiente del
-// tamaño de la ventana, así el informe sale siempre igual aunque el usuario esté
-// con el navegador angosto y la vista en pantalla se haya apilado.
-const ANCHO_PDF = 1400;
 
 export default function Tendencias() {
   const [vista, setVista] = useState("evolucion");
@@ -47,12 +42,9 @@ export default function Tendencias() {
 
   const [anosProyeccion, setAnosProyeccion] = useState(3);
   const [pdfEstado, setPdfEstado] = useState("idle"); // idle | generando | listo | error
-  const [exportando, setExportando] = useState(false);
-
-  const impresionRef = useRef(null);
 
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
-  const { puedePredecir } = useAuth();
+  const { puedePredecir, usuario } = useAuth();
   const descarga = useDescarga("tendencias");
 
   // Switch global: en «Valores», las series son las cifras medidas. Un ranking que
@@ -186,140 +178,57 @@ export default function Tendencias() {
     XLSX.writeFile(wb, `tendencias_${rankingNombre}_${vista}.xlsx`);
   };
 
+  /** Lo que el informe necesita, ya ordenado: series por institución en la
+   *  evolución, valores por institución y métrica en la comparación anual. */
+  const datosInforme = () => {
+    const comun = {
+      ranking: rankingNombre, disciplina: disciplinaActiva, numerico, usuario,
+      foco: institucionPropia(usuario, universidades),
+    };
+    if (esAnual) {
+      const valores = {};
+      filasAnual.forEach(f => {
+        (valores[f.id_universidad] ||= {})[f.id_metrica] = { valor: f.valor, techo: f.techo, unidad: f.unidad };
+      });
+      return {
+        ...comun, vista: "anual", anio: anioActivo, valores,
+        metricas: metricasSel
+          .map(id => metricasDisponibles.find(m => m.id_metrica === id))
+          .filter(Boolean)
+          .map(m => ({ id: m.id_metrica, nombre: m.nombre_metrica, peso: m.peso_metrica })),
+        instituciones: graficadas.map(id => ({ id, nombre: nombreUni(id) })),
+      };
+    }
+    return {
+      ...comun, vista: "evolucion", unidad: unidadActual,
+      metrica: { nombre: metricaActual?.nombre_metrica || "", peso: metricaActual?.peso_metrica },
+      anosProyeccion: proyectando ? anosProyeccion : null,
+      series: graficadas.map(id => {
+        // Un punto por año: si la fuente repite un año, vale el último.
+        const porAnio = new Map();
+        filasEvol
+          .filter(f => f.id_universidad === id && f.valor != null)
+          .forEach(f => porAnio.set(Number(f.anio), Number(f.valor)));
+        return {
+          id, nombre: nombreUni(id), color: colorDe(id),
+          puntos: [...porAnio].map(([x, y]) => ({ x, y })).sort((a, b) => a.x - b.x),
+        };
+      }),
+    };
+  };
+
   const handlePDF = async () => {
     if (pdfEstado === "generando" || !filasExport.length) return;
     if (!(await descarga.permitir("pdf"))) return;
     setPdfEstado("generando");
-    setExportando(true);
     try {
-      // Espera a que React monte la copia de impresión y a que su ResizeObserver
-      // haya medido el ancho fijo (el gráfico de líneas dimensiona su SVG con él).
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await new Promise(r => setTimeout(r, 450));
-
-      const nodo = impresionRef.current;
-      if (!nodo) throw new Error("No se montó la copia de impresión");
-
-      const canvas = await html2canvas(nodo, {
-        backgroundColor: "#131313",
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        // Fija el viewport del clon: así los media queries del CSS se evalúan
-        // siempre igual y no según el tamaño real de la ventana.
-        windowWidth: ANCHO_PDF + 100,
-        windowHeight: 1200,
-        width: nodo.scrollWidth,
-        height: nodo.scrollHeight,
-      });
-
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 12;
-      let y = margin + 4;
-
-      pdf.setFontSize(15);
-      pdf.setTextColor(20, 20, 20);
-      pdf.text("Informe de Tendencias", margin, y);
-      y += 7;
-
-      pdf.setFontSize(9);
-      pdf.setTextColor(90, 90, 90);
-      pdf.text(
-        esAnual
-          ? `${rankingNombre}${disciplinaActiva ? ` · ${disciplinaActiva}` : ""} · comparación ${anioActivo} · ${metricasSel.length} métricas · ${graficadas.length} instituciones`
-          : `${rankingNombre}${disciplinaActiva ? ` · ${disciplinaActiva}` : ""} · ${metricaActual?.nombre_metrica || ""} · ${graficadas.length} instituciones`,
-        margin, y
-      );
-      y += 7;
-
-      // La captura se trocea en franjas del alto de una página. Con muchas series
-      // el panel lateral crece mucho, y así el informe nunca sale reescalado a
-      // tamaño ilegible: se reparte en las páginas que haga falta.
-      const imgW = pageW - margin * 2;
-      const mmPorPx = imgW / canvas.width;
-      const corte = document.createElement("canvas");
-      const ctx = corte.getContext("2d");
-      let consumido = 0;
-
-      while (consumido < canvas.height) {
-        const dispMm = pageH - y - margin;
-        const dispPx = Math.floor(dispMm / mmPorPx);
-
-        // Si en esta página ya casi no cabe nada, se salta a la siguiente.
-        if (dispPx < 80) {
-          pdf.addPage();
-          y = margin;
-          continue;
-        }
-
-        const altoPx = Math.min(dispPx, canvas.height - consumido);
-        corte.width = canvas.width;
-        corte.height = altoPx;
-        ctx.fillStyle = "#131313";
-        ctx.fillRect(0, 0, corte.width, corte.height);
-        ctx.drawImage(canvas, 0, consumido, canvas.width, altoPx, 0, 0, canvas.width, altoPx);
-
-        // JPEG en vez de PNG: a scale 2 el PNG dejaba informes de 7-8 MB.
-        pdf.addImage(corte.toDataURL("image/jpeg", 0.92), "JPEG", margin, y, imgW, altoPx * mmPorPx);
-        consumido += altoPx;
-        y += altoPx * mmPorPx;
-
-        if (consumido < canvas.height) {
-          pdf.addPage();
-          y = margin;
-        }
-      }
-      y += 8;
-
-      // Tabla de datos: mismas filas que exporta el XLSX.
-      if (filasExport.length) {
-        const cols = Object.keys(filasExport[0]);
-        const anchoCol = (pageW - margin * 2) / cols.length;
-        const filaAlto = 5;
-
-        const encabezado = () => {
-          pdf.setFillColor(28, 28, 28);
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(7);
-          pdf.rect(margin, y, pageW - margin * 2, filaAlto, "F");
-          cols.forEach((c, i) => pdf.text(String(c), margin + 1.5 + i * anchoCol, y + 3.5));
-          y += filaAlto;
-        };
-
-        if (y + filaAlto * 3 > pageH - margin) { pdf.addPage(); y = margin; }
-        pdf.setFontSize(10);
-        pdf.setTextColor(20, 20, 20);
-        pdf.text("Datos", margin, y);
-        y += 5;
-        encabezado();
-
-        pdf.setFontSize(7);
-        filasExport.forEach((row, i) => {
-          if (y + filaAlto > pageH - margin) { pdf.addPage(); y = margin; encabezado(); pdf.setFontSize(7); }
-          const tono = i % 2 === 0 ? 245 : 255;
-          pdf.setFillColor(tono, tono, tono);
-          pdf.rect(margin, y, pageW - margin * 2, filaAlto, "F");
-          pdf.setTextColor(20, 20, 20);
-          cols.forEach((c, j) => {
-            const v = row[c];
-            const txt = v === null || v === undefined ? "—" : String(v);
-            pdf.text(txt.slice(0, Math.max(6, Math.floor(anchoCol / 1.6))), margin + 1.5 + j * anchoCol, y + 3.5);
-          });
-          y += filaAlto;
-        });
-      }
-
-      pdf.save(`tendencias_${vista}_${rankingNombre.replace(/\s+/g, "-")}.pdf`);
+      await generarInformeTendencias(datosInforme());
       setPdfEstado("listo");
       setTimeout(() => setPdfEstado("idle"), 2500);
     } catch (err) {
       console.error("Error al generar el PDF:", err);
       setPdfEstado("error");
       setTimeout(() => setPdfEstado("idle"), 4000);
-    } finally {
-      setExportando(false);
     }
   };
 
@@ -609,55 +518,6 @@ export default function Tendencias() {
         </div>
       </main>
 
-      {/* Copia para el PDF: ancho fijo y disposición fija, montada solo mientras
-          se exporta. Va detrás del fondo opaco (z-index negativo) para que el
-          usuario no la vea, pero con layout real para poder medirla y capturarla. */}
-      {exportando && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: `${ANCHO_PDF}px`,
-            zIndex: -1,
-            background: "#131313",
-            padding: "26px 30px",
-          }}
-        >
-          <div ref={impresionRef} style={{ background: "#131313" }}>
-            <p className="font-mono text-[11px] uppercase tracking-[.16em] text-[#8a8a8a] mb-2">
-              {rankingNombre}
-              {disciplinaActiva ? ` · ${disciplinaActiva}` : ""}
-              {esAnual ? ` · ${anioActivo}` : ""}
-            </p>
-            <h2 className="font-headline text-[24px] font-semibold text-white mb-5">
-              {esAnual ? `Comparación ${anioActivo ?? ""}` : metricaActual?.nombre_metrica || ""}
-            </h2>
-            {esAnual ? (
-              <VistaAnual
-                estatico
-                filas={filasAnual}
-                metricasSel={metricasSel}
-                universidadesSel={graficadas}
-                universidades={universidades}
-                colorDe={colorDe}
-                anio={anioActivo}
-              />
-            ) : (
-              <VistaEvolucion
-                estatico
-                filas={filasEvol}
-                universidadesSel={graficadas}
-                universidades={universidades}
-                colorDe={colorDe}
-                proyeccion={proyectando}
-                anosProyeccion={anosProyeccion}
-              />
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

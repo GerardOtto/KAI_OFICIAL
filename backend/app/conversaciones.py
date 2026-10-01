@@ -120,7 +120,22 @@ def guardar_mensaje(db, id_conversacion: int, rol: str, contenido: str,
         UPDATE conversacion SET fecha_actualizacion = CURRENT_TIMESTAMP
         WHERE id_conversacion = :c
     """), {"c": id_conversacion})
+    if rol == "user":
+        _contar_consulta(db, id_conversacion, +1)
     return id_mensaje
+
+
+def _contar_consulta(db, id_conversacion: int, delta: int) -> None:
+    """Sube o baja el contador de consultas de la cuenta dueña de la conversación.
+
+    Es un contador aparte, y no un recuento de mensajes, porque borrar una
+    conversación borra sus mensajes: el tope de por vida del plan gratuito se
+    recuperaría borrando el historial (migración 016).
+    """
+    db.execute(text("""
+        UPDATE usuario SET consultas_asistente = GREATEST(0, consultas_asistente + :d)
+         WHERE id_usuario = (SELECT id_usuario FROM conversacion WHERE id_conversacion = :c)
+    """), {"d": delta, "c": id_conversacion})
 
 
 def descartar_turno_fallido(db, id_conversacion: int, id_mensaje_usuario: int,
@@ -129,8 +144,10 @@ def descartar_turno_fallido(db, id_conversacion: int, id_mensaje_usuario: int,
 
     Borra el mensaje del usuario y, si la conversación se había creado para este
     turno y queda vacía, también la conversación: así un fallo del proveedor no
-    deja conversaciones en blanco en el historial del usuario.
+    deja conversaciones en blanco en el historial del usuario. La consulta se
+    devuelve al contador de la cuenta: un fallo del proveedor no la gasta.
     """
+    _contar_consulta(db, id_conversacion, -1)
     db.execute(text("DELETE FROM mensaje WHERE id_mensaje = :m"), {"m": id_mensaje_usuario})
     if era_nueva:
         db.execute(text("""
@@ -234,6 +251,21 @@ def mensajes_de_hoy(db, id_usuario: int) -> int:
     """), {"u": id_usuario}).scalar())
 
 
+def consultas_de_prueba(db, id_usuario: int, tope: int | None) -> dict:
+    """Las consultas de por vida del plan gratuito: cuántas trae, cuántas se
+    hicieron y cuántas quedan. Sin tope en el plan, todo va en None.
+
+    El contador se lee de la base en cada llamada y no del perfil cargado al
+    principio de la petición: `/chat` lo consulta dentro del cerrojo de cuota,
+    y un valor de hace un instante dejaría pasar a dos peticiones simultáneas.
+    """
+    if tope is None:
+        return {"total": None, "hechas": None, "restantes": None}
+    hechas = int(db.execute(text("SELECT consultas_asistente FROM usuario WHERE id_usuario = :u"),
+                            {"u": id_usuario}).scalar() or 0)
+    return {"total": tope, "hechas": hechas, "restantes": max(0, tope - hechas)}
+
+
 def espera_entre_consultas(db, id_usuario: int, dias: int | None) -> dict:
     """Cuánto falta para la siguiente consulta, en los planes con espera.
 
@@ -293,12 +325,15 @@ def estado_de_cuota(db, usuario: dict) -> dict:
     if sin_plan:
         usuario = {**usuario, "nombre_plan": "Sin plan", "mensajes_por_dia": 0,
                    "tokens_claude_mes": 0, "tokens_gemini_mes": 0,
-                   "precio_mensual_usd": 0, "dias_entre_mensajes": None}
+                   "precio_mensual_usd": 0, "dias_entre_mensajes": None,
+                   "mensajes_totales": None}
 
     tope_diario = usuario.get("mensajes_por_dia")
     mensajes_restantes = None if tope_diario is None else max(0, tope_diario - hoy)
     espera = espera_entre_consultas(db, usuario["id_usuario"], usuario.get("dias_entre_mensajes"))
     en_espera = bool(espera["horas_restantes"])
+    prueba = consultas_de_prueba(db, usuario["id_usuario"], usuario.get("mensajes_totales"))
+    prueba_agotada = prueba["restantes"] == 0
 
     motores = {}
     for motor, columna in COLUMNA_DE_CUOTA.items():
@@ -312,7 +347,7 @@ def estado_de_cuota(db, usuario: dict) -> dict:
             "tokens_mensuales": tope,
             "tokens_restantes": restantes,
             "disponible": (incluido and restantes != 0 and mensajes_restantes != 0
-                           and not en_espera),
+                           and not en_espera and not prueba_agotada),
         }
 
     total = sum(m["tokens_total"] for m in motores.values())
@@ -325,6 +360,7 @@ def estado_de_cuota(db, usuario: dict) -> dict:
         "mensajes_por_dia": tope_diario,
         "mensajes_restantes": mensajes_restantes,
         "espera": espera,
+        "consultas": prueba,
         "tokens_total": total,
         "motores": motores,
         # `excedido` significa que no queda ningún motor con el que consultar; es
@@ -351,6 +387,13 @@ def motivo_de_bloqueo(cuota: dict, motor: str) -> tuple[int, str] | None:
     if not estado["incluido"]:
         return 403, (f"Tu plan «{cuota.get('nombre_plan') or cuota.get('plan')}» no incluye este motor. "
                      "Puedes seguir consultando con el motor gratuito o cambiar de plan.")
+
+    # Las consultas de por vida van primero y con 403, como un motor no incluido:
+    # no se reponen esperando, solo contratando un plan.
+    prueba = cuota.get("consultas") or {}
+    if prueba.get("restantes") == 0:
+        return 403, (f"Ya usaste las {prueba['total']} consultas al asistente que incluye tu plan. "
+                     "Para seguir consultando, contrata un plan de pago.")
 
     # La espera entre consultas se comprueba antes que el tope diario: en un plan
     # con ambas cosas es la que primero se alcanza, y decir «vuelve mañana»

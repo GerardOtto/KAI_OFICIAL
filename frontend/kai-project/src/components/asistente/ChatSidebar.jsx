@@ -344,6 +344,11 @@ export default function ChatSidebar({
               {cuota.mensajes_restantes} consultas restantes hoy
             </span>
           )}
+          {cuota.consultas?.total != null && (
+            <span className="font-mono text-[9px] text-[#6f6f6f]">
+              {cuota.consultas.restantes} de {cuota.consultas.total} consultas de prueba restantes
+            </span>
+          )}
         </div>
       )}
     </aside>

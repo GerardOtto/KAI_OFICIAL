@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { evaluar, pasoPara, posiciones, prepararCifras, topePara } from "../../utils/simulacionCifras";
 import { formatearValor } from "../../utils/valoresReales";
+import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
+import { useAuth } from "../../auth/AuthContext";
+import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
+import { institucionPropia } from "../../reportes/documento";
 
 /** Simulación comparada sobre cifras medidas.
  *
@@ -16,6 +20,8 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
   const [cifras, setCifras] = useState({}); // { id_universidad: { id_metrica: cifra } }
   const [celda, setCelda] = useState(null);
   const [soloModificadas, setSoloModificadas] = useState(false);
+  const descarga = useDescarga("simulacion");
+  const { usuario } = useAuth();
 
   const simulado = useMemo(() => evaluar(universidades, metricas, cifras), [universidades, metricas, cifras]);
   const base = useMemo(() => evaluar(universidades, metricas), [universidades, metricas]);
@@ -63,6 +69,29 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
     a.click();
   };
 
+  const exportarPDF = async () => {
+    if (!(await descarga.permitir("pdf"))) return;
+    const porId = new Map(metricas.map((m) => [String(m.id_metrica), m]));
+    await generarInformeSimulacion({
+      tipo: "comparada", cifras: true, usuario,
+      ranking: rankingNombre, anio, universo: universidades.length,
+      foco: institucionPropia(usuario, universidades),
+      instituciones: elegidas.map((u) => ({
+        id: u.id_universidad, nombre: u.nombre,
+        scoreBase: base.get(u.id_universidad)?.total ?? 0, scoreSim: simulado.get(u.id_universidad)?.total ?? 0,
+        posBase: posBase.get(u.id_universidad), posSim: posSim.get(u.id_universidad),
+        modificada: modificada(u.id_universidad),
+      })),
+      cambios: universidades.flatMap((u) => Object.entries(cifras[u.id_universidad] || {})
+        .filter(([idM]) => porId.has(idM))
+        .map(([idM, v]) => {
+          const m = porId.get(idM);
+          return { institucion: u.nombre, metrica: m.nombre_metrica, unidad: m.unidad,
+                   base: u.valores[m.id_metrica] ?? 0, simulado: v, menorEsMejor: m.sentido === "menor" };
+        })),
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-white/[.08]">
@@ -80,6 +109,11 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
           </button>
           <button onClick={exportarCSV} className="text-[11px] font-semibold py-2 px-3 bg-white text-[#111] hover:bg-white/80">
             Exportar CSV
+          </button>
+          <button onClick={exportarPDF} disabled={descarga.agotado("pdf")}
+            title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
+            className="text-[11px] py-2 px-3 border border-white/[.14] text-[#8a8a8a] hover:text-white disabled:opacity-40">
+            PDF
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useAuth } from "../auth/AuthContext";
 import AuthModal from "./AuthModal";
+import SesionRequerida from "./SesionRequerida";
 import { useModoValores, RUTAS_CON_MODO } from "../estado/ModoValores";
 
 // Los modos de Simulación se eligen dentro del propio módulo, con el mismo
@@ -21,7 +22,7 @@ const navLinkClass = ({ isActive }) =>
     isActive ? "text-white border-b-2 border-white" : "text-outlineSoft hover:text-white"
   }`;
 
-function MenuCompacto() {
+function MenuCompacto({ pedirSesion }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [abierto, setAbierto] = useState(false);
@@ -49,7 +50,7 @@ function MenuCompacto() {
               return (
                 <button
                   key={d.to}
-                  onClick={() => { navigate(d.to); setAbierto(false); }}
+                  onClick={() => { setAbierto(false); if (!pedirSesion(d)) navigate(d.to); }}
                   className={`w-full text-left px-3 py-2 font-body text-[12px] transition-colors ${
                     esActual ? "bg-white/[.08] text-white" : "text-[#dcdcdc] hover:bg-white/[.05]"
                   }`}
@@ -145,6 +146,11 @@ function MenuUsuario() {
                     {cuota.mensajes_hoy} de {cuota.mensajes_por_dia} consultas hoy
                   </p>
                 )}
+                {cuota.consultas?.total != null && (
+                  <p className="font-mono text-[9px] text-[#6f6f6f] mt-1.5">
+                    {cuota.consultas.hechas} de {cuota.consultas.total} consultas de prueba usadas
+                  </p>
+                )}
               </div>
             )}
 
@@ -229,6 +235,28 @@ function SwitchDoble({ opciones, modo, setModo }) {
 
 export default function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { autenticado, cargando } = useAuth();
+  const [aviso, setAviso] = useState(null); // { label, to } del módulo pedido
+
+  /** Sin sesión, un módulo no se abre: se avisa sobre la página actual y se
+   *  ofrece entrar. Devuelve si interceptó el paso. Mientras se verifica la
+   *  sesión se deja pasar; si no la hay, la ruta protegida devuelve aquí. */
+  const pedirSesion = (d) => {
+    if (autenticado || cargando) return false;
+    setAviso(d);
+    return true;
+  };
+
+  // Quien abre la dirección de un módulo sin sesión es devuelto a la portada
+  // por la ruta protegida, con el módulo en el estado de la navegación.
+  const requiere = location.state?.requiere;
+  useEffect(() => {
+    if (!requiere) return;
+    const d = NAV.find((n) => requiere.startsWith(n.to));
+    setAviso({ label: d?.label || "Módulo", to: requiere });
+    navigate(location.pathname + location.hash, { replace: true, state: null });
+  }, [requiere, navigate, location.pathname, location.hash]);
 
   return (
     <header className="flex justify-between items-center px-4 sm:px-8 h-16 border-b border-outline/30 sticky top-0 bg-background z-50">
@@ -247,7 +275,8 @@ export default function Header() {
       <nav className="hidden lg:flex items-center h-full gap-1">
         {/* NavLink compara por prefijo: /simulacion/comparada activa «Simulación». */}
         {NAV.map(section => (
-          <NavLink key={section.label} to={section.to} className={navLinkClass}>
+          <NavLink key={section.label} to={section.to} className={navLinkClass}
+                   onClick={(e) => { if (pedirSesion(section)) e.preventDefault(); }}>
             {section.label}
           </NavLink>
         ))}
@@ -257,9 +286,11 @@ export default function Header() {
         <SwitchModo />
         {/* Sustituye al nav ancho por debajo de `lg`. Antes de esto no había
             navegación alguna en pantallas estrechas. */}
-        <MenuCompacto />
+        <MenuCompacto pedirSesion={pedirSesion} />
         <MenuUsuario />
       </div>
+
+      {aviso && <SesionRequerida modulo={aviso} onClose={() => setAviso(null)} />}
 
     </header>
   );

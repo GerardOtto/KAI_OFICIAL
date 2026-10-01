@@ -143,8 +143,31 @@ try:
     comprobar("una conversación por petición aceptada", conversaciones == aceptadas,
               f"{conversaciones} conversaciones frente a {aceptadas} aceptadas")
 
+    print(f"\n=== 4. Las consultas de por vida del gratuito, con {SIMULTANEAS} a la vez ===")
+    # Misma carrera, contra el contador de la cuenta: se pasa al plan gratuito
+    # con el contador a cero, como una cuenta recién creada.
+    db = SessionLocal()
+    tope_vida = db.execute(text("SELECT mensajes_totales FROM plan WHERE codigo_plan = 'free'")).scalar()
+    db.execute(text("UPDATE usuario SET plan_usuario = 'free', consultas_asistente = 0 WHERE id_usuario = :u"),
+               {"u": id_usuario})
+    db.commit()
+    db.close()
+    with ThreadPoolExecutor(max_workers=SIMULTANEAS) as pool:
+        codigos = list(pool.map(enviar, range(SIMULTANEAS)))
+    aceptadas = codigos.count(200)
+    print(f"    aceptadas: {aceptadas} | rechazadas con 403: {codigos.count(403)} | "
+          f"otros: {[c for c in codigos if c not in (200, 403)]}")
+    db = SessionLocal()
+    contadas = db.execute(text("SELECT consultas_asistente FROM usuario WHERE id_usuario = :u"),
+                          {"u": id_usuario}).scalar()
+    db.close()
+    comprobar(f"se aceptan exactamente {tope_vida}", aceptadas == tope_vida, f"se aceptaron {aceptadas}")
+    comprobar("el resto se rechaza con 403, sin errores", codigos.count(403) == SIMULTANEAS - tope_vida,
+              str(codigos))
+    comprobar("y el contador de la cuenta quedó en el tope", contadas == tope_vida, str(contadas))
+
 finally:
-    print("\n=== 4. Limpieza ===")
+    print("\n=== 5. Limpieza ===")
     db = SessionLocal()
     try:
         if id_usuario:

@@ -14,35 +14,17 @@
  *  —serif para los títulos, monoespaciada para las etiquetas— y el azul de
  *  acento; lo que cambia es el soporte.
  */
-import jsPDF from "jspdf";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
-import logoUrl from "../assets/logo.png";
+import {
+  ACENTO, ACENTO_SUAVE, ANCHO_UTIL, FONDO_SUAVE, GRIS, GRIS_CLARO, LINEA, MARGEN, TINTA,
+  alturaLinea, crearDocumento, pies, portada as portadaComun,
+} from "./documento";
 import { esDestacada, formatearValor, leerGrafico } from "./grafico";
 
 const TITULO_REPORTE = "Reporte ejecutivo de análisis institucional";
-
-// A4 vertical, en milímetros.
-const ANCHO = 210;
-const ALTO = 297;
-const MARGEN = 20;
-const ANCHO_UTIL = ANCHO - MARGEN * 2;
-const PIE = 18; // franja inferior reservada al pie de página
-
-// Paleta. El acento es el mismo `oklch(0.72 0.13 250)` del sitio, oscurecido
-// para que mantenga contraste sobre papel blanco.
-const TINTA = [19, 19, 19];
-const GRIS = [107, 107, 107];
-const GRIS_CLARO = [150, 150, 150];
-const ACENTO = [42, 117, 186];
-const ACENTO_SUAVE = [96, 170, 243];
-const LINEA = [216, 220, 226];
-const FONDO_SUAVE = [244, 246, 249];
-
-const MM_POR_PUNTO = 0.3528;
-const alturaLinea = (puntos, factor = 1.45) => puntos * MM_POR_PUNTO * factor;
 
 // ---------------------------------------------------------------------------
 // Texto
@@ -89,178 +71,6 @@ function plano(nodo) {
   if (nodo.type === "text" || nodo.type === "inlineCode") return nodo.value;
   if (nodo.children) return nodo.children.map(plano).join("");
   return "";
-}
-
-/** Fragmentos -> palabras sueltas, cada una sabiendo si lleva espacio delante. */
-function palabras(trozos) {
-  const salida = [];
-  let espacio = false;
-  for (const t of trozos) {
-    if (t.salto) {
-      salida.push({ salto: true });
-      espacio = false;
-      continue;
-    }
-    const partes = String(t.texto ?? "").split(/(\s+)/);
-    for (const parte of partes) {
-      if (!parte) continue;
-      if (/^\s+$/.test(parte)) {
-        espacio = true;
-        continue;
-      }
-      salida.push({ texto: parte, estilo: t, espacio });
-      espacio = false;
-    }
-  }
-  return salida;
-}
-
-// ---------------------------------------------------------------------------
-// Lienzo: cursor, saltos de página y primitivas de dibujo
-// ---------------------------------------------------------------------------
-
-class Lienzo {
-  constructor(doc, logo) {
-    this.doc = doc;
-    this.logo = logo;
-    this.y = MARGEN;
-  }
-
-  get limite() {
-    return ALTO - PIE;
-  }
-
-  fuente(familia, estilo, puntos, color = TINTA) {
-    this.doc.setFont(familia, estilo);
-    this.doc.setFontSize(puntos);
-    this.doc.setTextColor(...color);
-  }
-
-  /** Marca de agua: el logotipo centrado, muy tenue. Se dibuja al abrir la
-   *  página para que el contenido quede encima y nada se lea a través. */
-  marcaDeAgua() {
-    if (!this.logo) return;
-    const ancho = 120;
-    const alto = ancho / this.logo.proporcion;
-    try {
-      this.doc.saveGraphicsState();
-      this.doc.setGState(new this.doc.GState({ opacity: 0.05 }));
-      // El alias hace que jsPDF incruste el mapa de bits una sola vez y lo
-      // reutilice en cada página, en vez de repetirlo tantas veces como páginas
-      // tenga el reporte.
-      this.doc.addImage(this.logo.datos, "PNG", (ANCHO - ancho) / 2, (ALTO - alto) / 2, ancho, alto, "kai-logo", "FAST");
-      this.doc.restoreGraphicsState();
-    } catch {
-      // Sin soporte de transparencia es preferible no dibujarla: una marca de
-      // agua opaca taparía el texto.
-    }
-  }
-
-  nuevaPagina() {
-    this.doc.addPage();
-    this.marcaDeAgua();
-    this.y = MARGEN;
-  }
-
-  /** Abre página si el bloque que viene no cabe entero. */
-  reservar(alto) {
-    if (this.y + alto > this.limite) this.nuevaPagina();
-  }
-
-  separacion(mm) {
-    this.y += mm;
-  }
-
-  regla(color = LINEA, grosor = 0.2, ancho = ANCHO_UTIL) {
-    this.doc.setDrawColor(...color);
-    this.doc.setLineWidth(grosor);
-    this.doc.line(MARGEN, this.y, MARGEN + ancho, this.y);
-  }
-
-  /** Escribe palabras ajustando al ancho disponible. Devuelve el alto ocupado. */
-  escribir(trozos, { x = MARGEN, ancho = ANCHO_UTIL, puntos = 10, color = TINTA, familia = "helvetica", estilo = "normal", interlineado = 1.45 } = {}) {
-    const alto = alturaLinea(puntos, interlineado);
-    const aplicar = (e = {}) => {
-      if (e.mono) this.doc.setFont("courier", e.negrita ? "bold" : "normal");
-      else if (e.negrita && e.cursiva) this.doc.setFont(familia, "bolditalic");
-      else if (e.negrita) this.doc.setFont(familia, "bold");
-      else if (e.cursiva) this.doc.setFont(familia, "italic");
-      else this.doc.setFont(familia, estilo);
-      this.doc.setFontSize(puntos);
-      this.doc.setTextColor(...(e.enlace ? ACENTO : color));
-    };
-
-    const lista = palabras(trozos);
-    let linea = [];
-    let usado = 0;
-
-    const volcar = () => {
-      if (linea.length) {
-        this.reservar(alto);
-        let x0 = x;
-        for (const p of linea) {
-          aplicar(p.estilo);
-          if (p.hueco) x0 += p.hueco;
-          this.doc.text(p.texto, x0, this.y + alto * 0.72);
-          if (p.estilo?.enlace) {
-            this.doc.link(x0, this.y + alto * 0.2, p.w, alto * 0.7, { url: p.estilo.enlace });
-          }
-          x0 += p.w;
-        }
-        this.y += alto;
-      }
-      linea = [];
-      usado = 0;
-    };
-
-    for (const p of lista) {
-      if (p.salto) {
-        volcar();
-        continue;
-      }
-      aplicar(p.estilo);
-      let w = this.doc.getTextWidth(p.texto);
-      const hueco = p.espacio && linea.length ? this.doc.getTextWidth(" ") : 0;
-
-      // Una palabra más ancha que la columna —una dirección web larga— se parte
-      // por caracteres; si no, el bucle no avanzaría nunca.
-      if (w > ancho) {
-        volcar();
-        let resto = p.texto;
-        while (resto) {
-          let corte = resto.length;
-          while (corte > 1 && this.doc.getTextWidth(resto.slice(0, corte)) > ancho) corte -= 1;
-          const trozo = resto.slice(0, corte);
-          aplicar(p.estilo);
-          linea = [{ texto: trozo, estilo: p.estilo, w: this.doc.getTextWidth(trozo), hueco: 0 }];
-          volcar();
-          resto = resto.slice(corte);
-          aplicar(p.estilo);
-        }
-        continue;
-      }
-
-      if (usado + hueco + w > ancho && linea.length) {
-        volcar();
-        aplicar(p.estilo);
-        w = this.doc.getTextWidth(p.texto);
-        linea.push({ texto: p.texto, estilo: p.estilo, w, hueco: 0 });
-        usado = w;
-      } else {
-        linea.push({ texto: p.texto, estilo: p.estilo, w, hueco });
-        usado += hueco + w;
-      }
-    }
-    volcar();
-  }
-
-  /** Líneas de una celda ya ajustadas a un ancho, para medir la fila antes de
-   *  dibujarla. */
-  ajustar(texto, ancho, puntos, familia, estilo) {
-    this.doc.setFont(familia, estilo);
-    this.doc.setFontSize(puntos);
-    return this.doc.splitTextToSize(String(texto ?? ""), ancho);
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -515,37 +325,6 @@ function bloque(l, nodo) {
 
 const analizador = unified().use(remarkParse).use(remarkGfm);
 
-// Ancho al que se reduce el logotipo antes de incrustarlo. La marca de agua es
-// la mayor de sus dos apariciones, con 120 mm ≈ 4,7 pulgadas: 640 px la dejan
-// por encima de 130 ppp, de sobra para imprimir. Sin esta reducción el PNG
-// original entraba a resolución completa y un reporte de una página pesaba más
-// de un megabyte.
-const ANCHO_LOGO_PX = 640;
-
-/** El logotipo reducido y en PNG, listo para `addImage`. `null` si no cargó. */
-async function cargarLogo() {
-  try {
-    const imagen = new Image();
-    imagen.src = logoUrl;
-    await imagen.decode();
-    const proporcion = imagen.naturalWidth / imagen.naturalHeight || 3.35;
-
-    const lienzo = document.createElement("canvas");
-    lienzo.width = Math.min(ANCHO_LOGO_PX, imagen.naturalWidth || ANCHO_LOGO_PX);
-    lienzo.height = Math.round(lienzo.width / proporcion);
-    const ctx = lienzo.getContext("2d");
-    // Fondo blanco: el logotipo es tinta negra sobre transparente, y sin fondo
-    // el PNG resultante se incrusta con canal alfa que algunos lectores pintan
-    // en negro.
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, lienzo.width, lienzo.height);
-    ctx.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
-    return { datos: lienzo.toDataURL("image/png"), proporcion };
-  } catch {
-    return null;
-  }
-}
-
 /** La consulta del usuario, presentada como la pregunta que encabeza la sección.
  *
  *  No se inventa una pregunta donde no la hay: a una consulta que ya lo es se le
@@ -599,38 +378,7 @@ export function secciones(mensajes) {
 }
 
 function portada(l, { fecha, usuario, motor, nSecciones }) {
-  if (l.logo) {
-    const alto = 9;
-    l.doc.addImage(l.logo.datos, "PNG", MARGEN, l.y, alto * l.logo.proporcion, alto, "kai-logo", "FAST");
-    l.y += alto + 6;
-  } else {
-    l.fuente("times", "bold", 22, TINTA);
-    l.doc.text("KAI", MARGEN, l.y + 7);
-    l.y += 13;
-  }
-
-  l.doc.setDrawColor(...ACENTO);
-  l.doc.setLineWidth(0.8);
-  l.doc.line(MARGEN, l.y, MARGEN + 28, l.y);
-  l.y += 7;
-
-  l.fuente("times", "bold", 21, TINTA);
-  const titulo = l.doc.splitTextToSize(TITULO_REPORTE, ANCHO_UTIL);
-  for (const linea of titulo) {
-    l.doc.text(linea, MARGEN, l.y + 7);
-    l.y += 8.5;
-  }
-  l.y += 2;
-
-  l.fuente("courier", "normal", 7.5, GRIS);
-  for (const linea of datosDeCabecera({ fecha, usuario, motor, nSecciones })) {
-    l.doc.text(linea.toUpperCase(), MARGEN, l.y + 2.5);
-    l.y += 4;
-  }
-
-  l.y += 3;
-  l.regla();
-  l.y += 6;
+  portadaComun(l, { titulo: TITULO_REPORTE, ficha: datosDeCabecera({ fecha, usuario, motor, nSecciones }) });
 }
 
 function subtitulo(l, indice, pregunta) {
@@ -656,25 +404,6 @@ function subtitulo(l, indice, pregunta) {
   l.separacion(4);
 }
 
-/** Pie con numeración, en una pasada final: hasta terminar no se sabe el total. */
-function pies(doc, fecha) {
-  const total = doc.getNumberOfPages();
-  for (let p = 1; p <= total; p += 1) {
-    doc.setPage(p);
-    doc.setDrawColor(...LINEA);
-    doc.setLineWidth(0.2);
-    doc.line(MARGEN, ALTO - PIE + 6, ANCHO - MARGEN, ALTO - PIE + 6);
-
-    doc.setFont("courier", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...GRIS_CLARO);
-    // Dos bloques y no tres: con el título completo a la izquierda y la fecha
-    // centrada, ambos se pisaban. La fecha ya consta en la cabecera del reporte.
-    doc.text("KAI · REPORTE EJECUTIVO", MARGEN, ALTO - PIE + 10.5);
-    doc.text(`${fecha.toUpperCase()}   ·   ${p} / ${total}`, ANCHO - MARGEN, ALTO - PIE + 10.5, { align: "right" });
-  }
-}
-
 /** Nombre de archivo: sin tildes ni espacios, con la fecha delante. */
 function nombreArchivo(conversacion) {
   const fecha = new Date().toISOString().slice(0, 10);
@@ -698,19 +427,11 @@ export async function construirReporte({ mensajes, conversacion = "", usuario = 
   const partes = secciones(mensajes);
   if (!partes.length) throw new Error("No hay respuestas que incluir en el reporte.");
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  doc.setProperties({
-    title: TITULO_REPORTE,
-    subject: conversacion || "Análisis de rankings institucionales",
-    author: "KAI · Key Academic Indicator",
-    creator: "KAI",
+  const { doc, l, fecha } = await crearDocumento({
+    titulo: TITULO_REPORTE,
+    asunto: conversacion || "Análisis de rankings institucionales",
   });
 
-  const logo = await cargarLogo();
-  const l = new Lienzo(doc, logo);
-  const fecha = new Date().toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" });
-
-  l.marcaDeAgua();
   portada(l, { fecha, usuario, motor, nSecciones: partes.length });
 
   partes.forEach((seccion, i) => {

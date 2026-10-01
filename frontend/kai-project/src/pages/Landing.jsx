@@ -104,7 +104,7 @@ export default function Landing() {
    *  gratuito, creando la cuenta. */
   const elegir = (plan) => (plan.precio_mensual_usd > 0 ? setContacto(plan.codigo_plan) : entrar("register"));
 
-  const boton = "px-7 py-4 text-[15px] font-bold uppercase tracking-wider transition-colors " +
+  const boton = "px-7 py-4 font-boton text-[15px] font-semibold uppercase tracking-wider transition-colors " +
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
   return (
@@ -144,7 +144,7 @@ export default function Landing() {
             <ul className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {CAPACIDADES.map(({ titulo, texto, icono: ic }) => (
                 <li key={titulo} className="flex gap-3 bg-black/45 border border-white/10 backdrop-blur-sm p-4">
-                  <span className="text-accent shrink-0 mt-0.5">{ic}</span>
+                  <span className="text-white/85 shrink-0 mt-0.5">{ic}</span>
                   <span>
                     <span className="block text-[15px] font-semibold">{titulo}</span>
                     <span className="block mt-1 text-[13.5px] text-white/70 leading-snug">{texto}</span>
@@ -294,7 +294,7 @@ export default function Landing() {
               >
                 Fiel a la frase, tanto este proyecto como la historia no se cuenta desde el punto de vista
                 de los héroes épicos, sino a través de los ojos de dos campesinos comunes y codiciosos
-                (Tahei y Matashichi, o F y G), quienes "esconden" la magnitud de la épica dentro de una
+                (Tahei y Matashichi), quienes "esconden" la magnitud de la épica dentro de una
                 comedia de aventuras.
               </motion.p>
 

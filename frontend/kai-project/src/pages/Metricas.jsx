@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import jsPDF from "jspdf";
 import { useTiposMetrica } from "../hooks/useTiposMetrica";
 import { useMetricasMatriz } from "../hooks/useMetricasMatriz";
 import { useValoresMatriz } from "../hooks/useValoresMatriz";
@@ -9,6 +8,8 @@ import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import HeatCell from "../components/data/HeatCell";
 import { useModoValores } from "../estado/ModoValores";
 import { formatearValor } from "../utils/valoresReales";
+import { useAuth } from "../auth/AuthContext";
+import { generarInformeGlosario } from "../reportes/informeGlosario";
 
 const DownloadIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -44,6 +45,7 @@ export default function Metricas() {
   const { universidades } = useUniversidades();
   const todosLosRankings = useRankings();
   const descarga = useDescarga("metricas");
+  const { usuario } = useAuth();
 
   const rankings = useMemo(
     () => todosLosRankings.filter(r => !RANKINGS_OCULTOS.has(r.nombre_ranking)),
@@ -263,52 +265,19 @@ export default function Metricas() {
 
   const handlePDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const margin = 12;
-    const pageW = pdf.internal.pageSize.getWidth();
-    let y = margin;
-
-    pdf.setFontSize(16); pdf.setTextColor(20, 20, 20);
-    pdf.text("KAI — Qué mide cada ranking, y cuánto pesa", margin, y); y += 6;
-    pdf.setFontSize(9); pdf.setTextColor(100, 100, 100);
-    const sub = [universidadNombre && `Institución: ${universidadNombre}`, anio && `Año: ${anio}`].filter(Boolean).join("   |   ");
-    if (sub) { pdf.text(sub, margin, y); y += 5; }
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(margin, y, pageW - margin, y); y += 6;
-
-    dimensiones.forEach(tipo => {
-      const items = metricasVisibles(tipo);
-      if (!items.length) return;
-      if (y > 190) { pdf.addPage(); y = margin; }
-      pdf.setFontSize(11); pdf.setTextColor(20, 20, 20); pdf.setFont(undefined, "bold");
-      pdf.text(tipo, margin, y); y += 5;
-      pdf.setFont(undefined, "normal");
-
-      items.forEach((m, i) => {
-        if (y > 195) { pdf.addPage(); y = margin; }
-        const bg = i % 2 === 0 ? 248 : 255;
-        pdf.setFillColor(bg, bg, bg);
-        pdf.rect(margin, y, pageW - margin * 2, 6, "F");
-        pdf.setFontSize(8); pdf.setTextColor(20, 20, 20);
-        // La disciplina va en la línea solo cuando distingue: en los rankings de
-        // una sola disciplina sería «General» repetido en cada fila.
-        const etiqueta = m.disciplina && m.disciplina !== "General"
-          ? `${m.nombre_ranking} · ${m.disciplina} · ${m.nombre_metrica}`
-          : `${m.nombre_ranking} · ${m.nombre_metrica}`;
-        // Un indicador que no compone el total lleva el pilar del que forma
-        // parte: sin esa marca, su peso parecería sumarse a los demás.
-        pdf.text(pondera(m) ? etiqueta : `${etiqueta} — dentro de ${m.nombre_metrica_padre}`,
-                 margin + 2, y + 4);
-        pdf.text(`${m.peso_metrica}%`, pageW - margin - 30, y + 4);
-        if (contextoCargado && valoresMap[m.id_metrica] != null) {
-          pdf.text(String(valoresMap[m.id_metrica]), pageW - margin - 15, y + 4);
-        }
-        y += 6.5;
-      });
-      y += 3;
+    await generarInformeGlosario({
+      rankings: rankings.map(r => ({ id: r.id_ranking, nombre: r.nombre_ranking, restringido: r.restringido })),
+      dimensiones: dimensiones.map(tipo => ({
+        nombre: tipo,
+        celdas: Object.fromEntries(
+          rankings.map(r => [r.id_ranking, celda(tipo, r.id_ranking)]).filter(([, c]) => c)),
+      })),
+      institucion: contextoCargado ? universidadNombre : null,
+      anio: contextoCargado ? anio : null,
+      numerico,
+      totalMetricas: dimensiones.reduce((s, tipo) => s + metricasVisibles(tipo).length, 0),
+      usuario,
     });
-
-    pdf.save(`matriz_metricas${anio ? `_${anio}` : ""}.pdf`);
   };
 
   return (

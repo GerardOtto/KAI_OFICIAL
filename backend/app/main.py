@@ -485,7 +485,8 @@ def listar_planes():
         filas = db.execute(text("""
             SELECT codigo_plan, nombre_plan, descripcion, precio_mensual_usd, precio_mensual_clp,
                    precio_lista_clp,
-                   tokens_claude_mes, tokens_gemini_mes, mensajes_por_dia, dias_entre_mensajes
+                   tokens_claude_mes, tokens_gemini_mes, mensajes_por_dia, dias_entre_mensajes,
+                   mensajes_totales
             FROM plan WHERE publico ORDER BY orden
         """))
         return [

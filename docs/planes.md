@@ -16,7 +16,7 @@ Qué incluye cada plan, de dónde salen los precios y cómo se aplican los lími
 
 | Plan | Precio / mes | Equivalente CLP | Gemini / mes | Claude / mes | Consultas / día |
 |---|---:|---:|---:|---:|---:|
-| **Gratuito** | US$ 0 | $ 0 | 300.000 | — no incluido | 1 cada 3 días |
+| **Gratuito** | US$ 0 | $ 0 | 300.000 | — no incluido | 3 por cuenta, no se reponen |
 | **Investigador** | US$ 29 | ≈ $ 27.400 | 5.000.000 | 600.000 | 40 |
 | **Departamento** | US$ 99 | ≈ $ 93.700 | 15.000.000 | 2.000.000 | 150 |
 | **Institucional** | US$ 490 | ≈ $ 463.500 | 60.000.000 | 10.000.000 | sin tope |
@@ -118,8 +118,9 @@ Por consulta:
 | Claude Opus 5 | ~20.000 (estimado) | US$ 0,16 · $ 151 |
 
 Una consulta con Claude cuesta unas **20 veces** lo que una con Gemini; por eso
-la cuota es por motor (§2). El plan gratuito, a una consulta cada tres días,
-cuesta unos US$ 0,08 al mes por cuenta y como máximo US$ 0,16 si agota su cuota.
+la cuota es por motor (§2). El plan gratuito, con tres consultas de por vida
+(migración 016), cuesta unos US$ 0,02 por cuenta, una sola vez: cada cuenta
+gratuita tiene un costo acotado y conocido, y ya no uno mensual.
 
 ### 3.3 Costo máximo y margen de cada plan
 
@@ -214,11 +215,11 @@ Lectura:
 ### Traducir tokens a consultas
 
 «Tokens» no significa nada fuera del gremio, así que la portada muestra además
-una estimación de consultas (`TOKENS_POR_CONSULTA` en `PlanesChat.jsx`):
+una estimación de consultas (`TOKENS_POR_CONSULTA` en `landing/Planes.jsx`):
 
 | Plan | Consultas Gemini / mes | Consultas Claude / mes |
 |---|---:|---:|
-| Gratuito | ≈ 20 (limitado a 1 cada 3 días) | — |
+| Gratuito | 3 en total, por cuenta | — |
 | Investigador | ≈ 330 | ≈ 30 |
 | Departamento | ≈ 1.000 | ≈ 100 |
 | Institucional | ≈ 4.000 | ≈ 500 |

@@ -162,31 +162,67 @@ comprobar("Gemini sigue funcionando", chat(pago, "Otra", motor="gemini").status_
 uso = cliente.get("/uso", headers=pago).json()
 comprobar("no queda marcado como excedido del todo", uso["excedido"] is False, uso["excedido"])
 
-print("\n=== 7. Frecuencia y límite diario de consultas ===")
-# El plan gratuito ya no limita por volumen diario sino por frecuencia: una
-# consulta cada tantos días. Son dos límites distintos, y la espera se comprueba
-# antes que el tope porque es la que primero se alcanza.
-_, gratis = crear_usuario("free")
+print("\n=== 7. Plan gratuito: tres consultas por cuenta, para siempre ===")
+# El gratuito no limita por frecuencia ni por día, sino por un total de por
+# vida: se prueban tres consultas y, para seguir, hay que contratar.
 db = main.SessionLocal()
-espera_dias = db.execute(text("SELECT dias_entre_mensajes FROM plan WHERE codigo_plan='free'")).scalar()
+tope, espera_dias, diario = db.execute(text(
+    "SELECT mensajes_totales, dias_entre_mensajes, mensajes_por_dia FROM plan WHERE codigo_plan='free'")).one()
 db.close()
-comprobar("el plan gratuito declara una espera entre consultas", espera_dias == 3, espera_dias)
+comprobar("el plan gratuito trae 3 consultas de por vida", tope == 3, tope)
+comprobar("sin espera entre consultas ni tope diario", espera_dias is None and diario is None,
+          (espera_dias, diario))
+comprobar("/planes lo informa para la portada", gratis["mensajes_totales"] == 3, gratis)
+comprobar("los de pago no tienen tope de por vida",
+          all(p["mensajes_totales"] is None for p in planes[1:]), [p["mensajes_totales"] for p in planes])
 
-comprobar("la primera consulta pasa", chat(gratis, "primera", motor="gemini").status_code == 200)
-segunda = chat(gratis, "segunda seguida", motor="gemini")
-comprobar("la siguiente responde 429", segunda.status_code == 429, segunda.status_code)
-detalle = segunda.json()["detail"]
-comprobar("el mensaje habla de la espera y no del día",
-          f"cada {espera_dias} días" in detalle and "límite diario" not in detalle, detalle)
-comprobar("y dice cuándo se podrá volver a consultar", "disponible en" in detalle, detalle)
-uso_gratis = cliente.get("/uso", headers=gratis).json()
-comprobar("la espera viaja en el estado de cuota",
-          uso_gratis["espera"]["horas_restantes"] > 0, uso_gratis.get("espera"))
-comprobar("y deja el motor como no disponible",
-          uso_gratis["motores"]["gemini"]["disponible"] is False, uso_gratis["motores"]["gemini"])
+uid_g, prueba = crear_usuario("free")
+seguidas = [chat(prueba, f"consulta {i}", motor="gemini") for i in range(tope)]
+comprobar(f"las {tope} consultas pasan seguidas, sin esperar",
+          all(r.status_code == 200 for r in seguidas), [r.status_code for r in seguidas])
+cuarta = chat(prueba, "una más", motor="gemini")
+comprobar("la siguiente responde 403: no se repone esperando", cuarta.status_code == 403, cuarta.status_code)
+detalle = cuarta.json()["detail"]
+comprobar("el mensaje dice cuántas eran y que hay que contratar",
+          f"{tope} consultas" in detalle and "contrata" in detalle, detalle)
+uso_prueba = cliente.get("/uso", headers=prueba).json()
+comprobar("el estado de cuota lleva la cuenta",
+          uso_prueba["consultas"] == {"total": tope, "hechas": tope, "restantes": 0}, uso_prueba.get("consultas"))
+comprobar("y deja el asistente como excedido", uso_prueba["excedido"] is True, uso_prueba["excedido"])
 
-# El tope diario sigue vigente en los planes que lo tienen sin espera. Se
-# comprueba con un plan propio, porque ninguno del catálogo combina las dos.
+# Borrar el historial no devuelve consultas: el contador es de la cuenta.
+for r in seguidas:
+    cliente.delete(f"/conversaciones/{r.json()['id_conversacion']}", headers=prueba)
+db = main.SessionLocal()
+quedan_conv = db.execute(text("SELECT count(*) FROM conversacion WHERE id_usuario = :u"), {"u": uid_g}).scalar()
+db.close()
+comprobar("se borraron sus conversaciones", quedan_conv == 0, quedan_conv)
+tras_borrar = chat(prueba, "¿y ahora?", motor="gemini")
+comprobar("y aun así sigue sin consultas", tras_borrar.status_code == 403, tras_borrar.status_code)
+
+# Un turno fallido no gasta una consulta.
+_, fallida = crear_usuario("free")
+motores.responder = lambda motor, mensajes: resultado("falló", "modelo-de-prueba", motor, 0, 0, ok=False)
+chat(fallida, "esta falla", motor="gemini")
+motores.responder = responder_falso
+hechas = cliente.get("/uso", headers=fallida).json()["consultas"]["hechas"]
+comprobar("un fallo del proveedor no descuenta la consulta", hechas == 0, hechas)
+
+# Al contratar rigen las cuotas del plan; si vuelve al gratuito, el tope sigue.
+db = main.SessionLocal()
+db.execute(text("UPDATE usuario SET plan_usuario = 'investigador' WHERE id_usuario = :u"), {"u": uid_g})
+db.commit()
+comprobar("con un plan de pago vuelve a consultar", chat(prueba, "ya contraté", motor="gemini").status_code == 200)
+comprobar("y el estado de cuota ya no habla de tope de por vida",
+          cliente.get("/uso", headers=prueba).json()["consultas"]["total"] is None)
+db.execute(text("UPDATE usuario SET plan_usuario = 'free' WHERE id_usuario = :u"), {"u": uid_g})
+db.commit()
+db.close()
+comprobar("si vuelve al gratuito, las consultas no se reponen",
+          chat(prueba, "de vuelta", motor="gemini").status_code == 403)
+
+# El tope diario sigue vigente en los planes que lo tienen. Se comprueba con un
+# plan propio, porque ninguno del catálogo lo usa hoy.
 TOPE_DIARIO = 2
 codigo_diario = f"prueba-diario-{os.getpid()}"
 db = main.SessionLocal()

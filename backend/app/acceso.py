@@ -1,8 +1,8 @@
 """Qué puede hacer cada plan: única fuente de la que salen todas las respuestas.
 
 Los límites del plan gratuito no son de una sola clase —hay datos que no puede
-ver, cálculos que no puede pedir, informes que no puede volver a descargar y una
-espera entre consultas al asistente—, y aparecen en sitios muy distintos: en el
+ver, cálculos que no puede pedir, informes que no puede volver a descargar y
+tres consultas al asistente que no se reponen—, y aparecen en sitios muy distintos: en el
 endpoint que sirve los datos, en el que registra una descarga y en la interfaz,
 que debe deshabilitar lo que no está permitido antes de que el usuario lo pulse.
 

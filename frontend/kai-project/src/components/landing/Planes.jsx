@@ -103,13 +103,15 @@ function incluye(plan) {
         { si: true, texto: "Informes PDF y Excel sin límite" },
       ];
 
-  const espera = plan.dias_entre_mensajes;
+  // El gratuito trae un número fijo de consultas por cuenta que no se repone
+  // (migración 016); los de pago, cuotas mensuales.
   lineas.push({
     si: true,
     texto: gratis
-      ? `Asistente con IA: una consulta cada ${espera || 1} ${espera === 1 ? "día" : "días"}`
+      ? `Asistente con IA: ${plan.mensajes_totales ?? 3} consultas de prueba`
       : `Asistente con IA: ${plan.mensajes_por_dia == null ? "sin tope diario" : `hasta ${plan.mensajes_por_dia} consultas al día`}`,
-    detalle: gratis ? "Motor Gemini" : `Gemini ${consultas(plan.tokens_gemini_mes, "gemini")} · Claude ${consultas(plan.tokens_claude_mes, "claude")}`,
+    detalle: gratis ? "Motor Gemini · por cuenta, no se reponen"
+      : `Gemini ${consultas(plan.tokens_gemini_mes, "gemini")} · Claude ${consultas(plan.tokens_claude_mes, "claude")}`,
   });
   if (gratis) lineas.push({ si: false, texto: "Motor Claude, de razonamiento profundo" });
   return lineas;
@@ -171,12 +173,14 @@ export default function Planes({ planes, onElegir }) {
 
             <button
               onClick={() => onElegir(p)}
-              className={`group mt-6 w-full flex items-center justify-center gap-2 py-3.5 text-[14px] font-bold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.foco} ${
+              className={`group mt-6 w-full flex items-center justify-center gap-2 px-3 py-3.5 font-boton text-[14px] font-semibold uppercase tracking-wider whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${t.foco} ${
+                // Borde en los tres, del color del fondo en los rellenos: si solo
+                // lo tuviera el de contorno, mediría 4 px más que los otros.
                 gratis
                   ? "border-2 border-white/60 text-white hover:bg-white hover:text-black"
                   : destacado
-                    ? "bg-black text-white hover:bg-black/80"
-                    : "bg-white text-black hover:bg-white/85"
+                    ? "border-2 border-black bg-black text-white hover:bg-black/80 hover:border-black/0"
+                    : "border-2 border-white bg-white text-black hover:bg-white/85 hover:border-white/0"
               }`}
             >
               {gratis ? "Crear cuenta gratis" : "Contratar ahora"}

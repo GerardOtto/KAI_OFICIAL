@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import jsPDF from "jspdf";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { evaluar, pasoPara, posiciones, prepararCifras, topePara } from "../../utils/simulacionCifras";
 import { formatearValor } from "../../utils/valoresReales";
+import { useAuth } from "../../auth/AuthContext";
+import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 
 /** Simulación de una institución sobre sus cifras medidas.
  *
@@ -19,6 +20,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
   const { metricas, universidades } = useMemo(() => prepararCifras(filas), [filas]);
   const [cifras, setCifras] = useState({}); // { id_metrica: cifra simulada }
   const descarga = useDescarga("simulacion");
+  const { usuario } = useAuth();
 
   const propia = universidades.find((u) => u.id_universidad === universidadId);
   const base = useMemo(() => evaluar(universidades, metricas), [universidades, metricas]);
@@ -84,20 +86,31 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
 
   const exportarPDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-    let y = 14;
-    pdf.setFontSize(15); pdf.text(`KAI — Simulación en cifras: ${propia.nombre}`, 14, y); y += 7;
-    pdf.setFontSize(9); pdf.setTextColor(100, 100, 100);
-    pdf.text(`${rankingNombre} · ${anio} · valores medidos`, 14, y); y += 9;
-    pdf.setTextColor(20, 20, 20);
-    filasInforme().forEach(([nombre, unidad, , cb, cs, pb, ps]) => {
-      pdf.text(`${nombre} (${unidad})`, 14, y);
-      pdf.text(`${formatearValor(cb)} -> ${formatearValor(cs)}  ·  percentil ${pb} -> ${ps}`, 110, y);
-      y += 6;
+    const siguiente = otras
+      .map((u) => ({ nombre: u.nombre, total: simulado.get(u.id_universidad)?.total ?? 0 }))
+      .filter((u) => u.total > totalSim)
+      .sort((a, b) => a.total - b.total)[0];
+    await generarInformeSimulacion({
+      tipo: "unitaria", cifras: true, usuario,
+      ranking: rankingNombre, anio, institucion: propia.nombre,
+      base: { posicion: pBase, score: totalBase },
+      simulado: { posicion: pSim, score: totalSim },
+      total: universidades.length,
+      metricas: metricas.map((m) => {
+        const pB = base.get(idPropia)?.puntajes[m.id_metrica] ?? 0;
+        const pS = simulado.get(idPropia)?.puntajes[m.id_metrica] ?? 0;
+        return {
+          nombre: m.nombre_metrica, unidad: m.unidad, peso: m.peso_metrica,
+          base: propia.valores[m.id_metrica] ?? null, simulado: cifraDe(m) ?? null,
+          percentilBase: pB, percentilSimulado: pS,
+          efecto: m.pondera ? ((pS - pB) * m.peso_metrica) / 100 : 0,
+          modificada: cifras[m.id_metrica] !== undefined,
+        };
+      }),
+      superadas: superadas.map((u) => u.nombre),
+      perdidas: perdidas.map((u) => u.nombre),
+      siguiente: siguiente ? { nombre: siguiente.nombre, brecha: siguiente.total - totalSim } : null,
     });
-    y += 4; pdf.setFontSize(11);
-    pdf.text(`Puntaje ${totalBase.toFixed(1)} -> ${totalSim.toFixed(1)}  ·  posición ${pBase} -> ${pSim}`, 14, y);
-    pdf.save(`simulacion_cifras_${propia.nombre}_${anio}.pdf`.replace(/\s+/g, "_"));
   };
 
   return (

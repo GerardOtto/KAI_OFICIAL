@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
-import jsPDF from "jspdf";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useRankingResumen } from "../../hooks/useRankingResumen";
+import { useAuth } from "../../auth/AuthContext";
+import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 
 export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, universidadId, disciplinaFiltro }) {
   const rawData = useSimulacion(rankingId, anio, universidadId ? [universidadId] : []);
@@ -110,29 +111,31 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
 
   const descarga = useDescarga("simulacion");
 
+  const { usuario } = useAuth();
+
   const handleExportPDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
-    const pdf = new jsPDF({ unit: "mm", format: "a4" });
-    const margin = 14;
-    let y = margin;
-    pdf.setFontSize(16); pdf.setTextColor(20, 20, 20);
-    pdf.text(`KAI — Simulación: ${nombreInstitucion}`, margin, y); y += 7;
-    pdf.setFontSize(9); pdf.setTextColor(100, 100, 100);
-    pdf.text(`${rankingNombre} · ${anio}`, margin, y); y += 8;
-    pdf.setDrawColor(200, 200, 200); pdf.line(margin, y, 196, y); y += 8;
-
-    metricas.forEach(m => {
-      const val = getValor(m.id_metrica, m.valor_original);
-      pdf.setFontSize(9); pdf.setTextColor(20, 20, 20);
-      pdf.text(`${m.nombre_metrica} (peso ${m.peso_metrica}%)`, margin, y);
-      pdf.text(`base ${m.valor_original} -> ${val}`, 140, y);
-      y += 6;
+    const siguiente = [...pares].sort((a, b) => Number(a.score_total) - Number(b.score_total))
+      .find(u => Number(u.score_total) > scoreSimulado);
+    await generarInformeSimulacion({
+      tipo: "unitaria", cifras: false, usuario,
+      ranking: rankingNombre, anio, disciplina: disciplinaFiltro, institucion: nombreInstitucion,
+      base: { posicion: posicionBase, score: scoreBase },
+      simulado: { posicion: posicionSimulada, score: scoreSimulado },
+      total: resumen.length || null,
+      metricas: metricas.map(m => {
+        const simulado = getValor(m.id_metrica, m.valor_original);
+        return {
+          nombre: m.nombre_metrica, peso: m.peso_metrica, base: m.valor_original, simulado,
+          efecto: ((simulado - m.valor_original) * m.peso_metrica) / 100,
+          modificada: overrides[m.id_metrica] !== undefined,
+        };
+      }),
+      superadas: superadas.map(u => u.nombre_universidad),
+      perdidas: perdidas.map(u => u.nombre_universidad),
+      siguiente: siguiente
+        ? { nombre: siguiente.nombre_universidad, brecha: Number(siguiente.score_total) - scoreSimulado } : null,
     });
-    y += 4;
-    pdf.setFontSize(11); pdf.setFont(undefined, "bold");
-    pdf.text(`Score base: ${scoreBase.toFixed(2)}  ->  Score simulado: ${scoreSimulado.toFixed(2)}`, margin, y);
-    pdf.setFont(undefined, "normal");
-    pdf.save(`simulacion_unitaria_${nombreInstitucion}_${anio}.pdf`.replace(/\s+/g, "_"));
   };
 
   if (!universidadId) {

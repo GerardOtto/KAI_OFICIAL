@@ -261,6 +261,8 @@ export default function Asistente() {
 
   const sinAfiliacion = asistente ? asistente.permitido === false : false;
   const espera = cuota?.espera?.horas_restantes || 0;
+  // Consultas de por vida del plan gratuito; `total` es null en los de pago.
+  const prueba = cuota?.consultas?.total != null ? cuota.consultas : null;
   const sinCupo = cuota?.excedido;
   // Ningún motor tiene su clave configurada en el servidor: no hay a quién
   // preguntar, y conviene decirlo antes de que el usuario escriba.
@@ -404,6 +406,22 @@ export default function Asistente() {
               Los planes de pago no tienen esta espera.
             </p>
           )}
+          {!sinAfiliacion && prueba && (
+            prueba.restantes === 0 ? (
+              <p className="mb-3 text-[11.5px] text-warn border-l-2 border-warn pl-3 leading-relaxed">
+                Ya usaste las {prueba.total} consultas de prueba del plan gratuito. Para seguir
+                consultando al asistente, contrata un plan.{" "}
+                <a href="/#planes" className="text-white underline underline-offset-2 hover:text-white/70">
+                  Ver planes
+                </a>
+              </p>
+            ) : (
+              <p className="mb-3 text-[11.5px] text-outlineSoft border-l-2 border-outline pl-3 leading-relaxed">
+                Te {prueba.restantes === 1 ? "queda 1 consulta" : `quedan ${prueba.restantes} consultas`} de
+                prueba de {prueba.total}. No se reponen: después, el asistente se usa con un plan de pago.
+              </p>
+            )
+          )}
 
           {error && (
             <p role="alert" className="mb-3 text-[11.5px] text-negative border-l-2 border-negative pl-3 leading-relaxed">
@@ -427,6 +445,7 @@ export default function Asistente() {
               placeholder={
                 sinAfiliacion ? "Asistente no disponible para esta cuenta"
                   : sinMotor ? "Ningún motor configurado en el servidor"
+                    : prueba?.restantes === 0 ? "Consultas de prueba agotadas"
                     : sinCupo ? "Cuota agotada"
                       : "Consultar rankings…"
               }

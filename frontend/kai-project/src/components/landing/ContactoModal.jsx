@@ -87,7 +87,7 @@ export default function ContactoModal({ planes, planInicial, onClose }) {
               coordinar la contratación.
             </p>
             <button onClick={onClose}
-                    className="mt-8 w-full py-3.5 bg-white text-black text-[14px] font-bold uppercase tracking-wider hover:bg-white/85 transition-colors">
+                    className="mt-8 w-full py-3.5 bg-white text-black font-boton text-[14px] font-semibold uppercase tracking-wider hover:bg-white/85 transition-colors">
               Cerrar
             </button>
           </div>
@@ -163,7 +163,7 @@ export default function ContactoModal({ planes, planInicial, onClose }) {
             )}
 
             <button type="submit" disabled={enviando}
-                    className="w-full py-4 bg-white text-black text-[14px] font-bold uppercase tracking-wider hover:bg-white/85 transition-colors disabled:opacity-50 disabled:cursor-wait">
+                    className="w-full py-4 bg-white text-black font-boton text-[14px] font-semibold uppercase tracking-wider hover:bg-white/85 transition-colors disabled:opacity-50 disabled:cursor-wait">
               {enviando ? "Enviando…" : "Enviar solicitud"}
             </button>
             <p className="text-[12px] text-outlineSoft leading-relaxed">

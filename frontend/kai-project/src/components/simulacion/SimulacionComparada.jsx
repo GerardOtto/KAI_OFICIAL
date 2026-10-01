@@ -1,7 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
-import jsPDF from "jspdf";
 import { useSimulacion } from "../../hooks/useSimulacion";
+import { useAuth } from "../../auth/AuthContext";
+import { useUniversidades } from "../../hooks/useUniversidades";
+import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
+import { institucionPropia } from "../../reportes/documento";
 
 const PASO_STEPPER = 1;
 
@@ -82,62 +85,35 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
 
   const descarga = useDescarga("simulacion");
 
+  const { usuario } = useAuth();
+  const { universidades } = useUniversidades();
+
   const handleExportPDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
     if (!filas.length) return;
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const margin = 14;
-    let y = margin;
-
-    pdf.setFontSize(18); pdf.setTextColor(20, 20, 20);
-    pdf.text("KAI — Informe de Simulación Comparada", margin, y); y += 8;
-    pdf.setFontSize(9); pdf.setTextColor(100, 100, 100);
-    pdf.text(`Ranking: ${rankingNombre}   |   Año: ${anio}   |   Instituciones: ${filas.length}`, margin, y); y += 10;
-    pdf.setDrawColor(200, 200, 200); pdf.line(margin, y, pageW - margin, y); y += 6;
-
-    const colW = Math.min(38, (pageW - margin * 2 - 50) / metricas.length);
-    const instW = 50;
-    pdf.setFontSize(7);
-    pdf.setFillColor(20, 20, 20); pdf.setTextColor(255, 255, 255);
-    pdf.rect(margin, y, instW, 8, "F"); pdf.text("Institución", margin + 2, y + 5);
-    metricas.forEach((m, i) => {
-      const x = margin + instW + i * colW;
-      pdf.setFillColor(20, 20, 20); pdf.setTextColor(255, 255, 255);
-      pdf.rect(x, y, colW, 8, "F"); pdf.text(m.nombre_metrica.slice(0, 12), x + 2, y + 5);
+    const scoreBase = (fila) =>
+      metricas.reduce((acc, m) => acc + ((fila.valores[m.id_metrica] ?? 0) * m.peso_metrica) / 100, 0);
+    const posiciones = (puntaje) => new Map(
+      [...filas].sort((a, b) => puntaje(b) - puntaje(a)).map((f, i) => [f.id_universidad, i + 1]));
+    const posBase = posiciones(scoreBase);
+    const posSim = posiciones(calcScore);
+    const nombreMetrica = Object.fromEntries(metricas.map(m => [m.id_metrica, m.nombre_metrica]));
+    await generarInformeSimulacion({
+      tipo: "comparada", cifras: false, usuario,
+      ranking: rankingNombre, anio, disciplina: disciplinaFiltro,
+      foco: institucionPropia(usuario, universidades),
+      instituciones: filas.map(f => ({
+        id: f.id_universidad, nombre: f.nombre,
+        scoreBase: scoreBase(f), scoreSim: calcScore(f),
+        posBase: posBase.get(f.id_universidad), posSim: posSim.get(f.id_universidad),
+        modificada: filaTieneOverride(f.id_universidad),
+      })),
+      cambios: filas.flatMap(f => Object.entries(overrides[f.id_universidad] || {})
+        .filter(([idM]) => nombreMetrica[idM])
+        .map(([idM, v]) => ({
+          institucion: f.nombre, metrica: nombreMetrica[idM], base: f.valores[idM] ?? 0, simulado: v,
+        }))),
     });
-    const scoreX = margin + instW + metricas.length * colW;
-    pdf.setFillColor(40, 40, 40); pdf.setTextColor(255, 255, 255);
-    pdf.rect(scoreX, y, 24, 8, "F"); pdf.text("Score", scoreX + 2, y + 5);
-    y += 8;
-
-    [...filas].sort((a, b) => calcScore(b) - calcScore(a)).forEach((fila, idx) => {
-      if (y > 185) { pdf.addPage(); y = margin; }
-      const rowH = 7;
-      const bgVal = idx % 2 === 0 ? 248 : 255;
-      pdf.setFillColor(bgVal, bgVal, bgVal); pdf.setTextColor(20, 20, 20);
-      pdf.rect(margin, y, instW, rowH, "F");
-      pdf.setFontSize(7); pdf.text(fila.nombre.slice(0, 28), margin + 2, y + 4.5);
-      metricas.forEach((m, i) => {
-        const x = margin + instW + i * colW;
-        pdf.setFillColor(bgVal, bgVal, bgVal);
-        pdf.rect(x, y, colW, rowH, "F");
-        const val = getValor(fila.id_universidad, m.id_metrica, fila.valores[m.id_metrica]);
-        const modificado = esModificado(fila.id_universidad, m.id_metrica);
-        pdf.setTextColor(modificado ? 100 : 20, modificado ? 80 : 20, modificado ? 180 : 20);
-        pdf.text(String(val), x + 2, y + 4.5);
-      });
-      pdf.setFillColor(235, 235, 235); pdf.setTextColor(20, 20, 20);
-      pdf.rect(scoreX, y, 24, rowH, "F");
-      pdf.setFont(undefined, "bold");
-      pdf.text(calcScore(fila).toFixed(1), scoreX + 2, y + 4.5);
-      pdf.setFont(undefined, "normal");
-      y += rowH;
-    });
-
-    y += 6; pdf.setFontSize(7); pdf.setTextColor(100, 80, 180);
-    pdf.text("* Valores resaltados fueron modificados en la simulación.", margin, y);
-    pdf.save(`simulacion_comparada_${rankingNombre}_${anio}.pdf`.replace(/\s+/g, "_"));
   };
 
   if (!anio) {

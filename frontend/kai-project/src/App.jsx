@@ -62,7 +62,8 @@ function AppContent() {
 
       {!isLanding && <Header />}
       {institucionPendiente && !isLanding && <InstitucionPendiente />}
-      {/* Todos los módulos exigen sesión: la portada es lo único abierto. Las
+      {/* Todos los módulos exigen sesión: la portada es lo único abierto, y sin
+          sesión un módulo se pide con un aviso sobre ella. Las
           rutas antiguas del módulo de investigadores se redirigen en vez de
           devolver un 404, porque hay enlaces repartidos que aún apuntan a ellas. */}
       <Routes>
@@ -74,14 +75,7 @@ function AppContent() {
         <Route path="/metricas" element={<RutaProtegida><Metricas /></RutaProtegida>} />
         <Route path="/cientificos" element={<Navigate to="/" replace />} />
         <Route path="/investigadores-pucv" element={<Navigate to="/" replace />} />
-        <Route
-          path="/asistente"
-          element={
-            <RutaProtegida motivo="El asistente consume tokens de un servicio de IA de pago, por lo que su uso se controla por cuenta. Al iniciar sesión también se guardan tus conversaciones.">
-              <Asistente />
-            </RutaProtegida>
-          }
-        />
+        <Route path="/asistente" element={<RutaProtegida><Asistente /></RutaProtegida>} />
         <Route path="*" element={<h1>404</h1>} />
       </Routes>
     </>

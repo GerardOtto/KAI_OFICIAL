@@ -40,7 +40,7 @@ dejaría fuera precisamente a las cuentas que tienen que entrar a rellenarla.
 | Resto de rankings | completos | completos | completos |
 | Proyección en Tendencias | no | sí | sí |
 | Informes por módulo | 1 PDF y 1 XLSX, una sola vez | sin tope | sin tope |
-| Asistente | 1 consulta cada 3 días | según el plan | sin tope |
+| Asistente | 3 consultas por cuenta, que no se reponen | según el plan | sin tope |
 | Asistente fuera de la PUCV | no | no | sí |
 
 **THE y QS se ven, pero no se abren.** El catálogo los devuelve marcados con
@@ -56,10 +56,24 @@ navegador, así que la interfaz pide permiso antes de generarlos
 serviría: bastaría con borrar los datos del sitio o cambiar de equipo. El tope es
 histórico, no una cuota que se reponga.
 
-**La espera del asistente es de frecuencia, no de volumen.** El plan gratuito
-admite una consulta cada tres días, medidos desde la última pregunta registrada y
-no desde medianoche. Los turnos fallidos se descartan del historial, así que un
-fallo del proveedor no consume la espera.
+**El asistente gratuito es una prueba, no una cuota.** El plan gratuito trae tres
+consultas por cuenta, seguidas y sin espera, que no se reponen nunca: para seguir
+hay que contratar un plan, y desde que se asigna rigen sus cuotas. Si la cuenta
+vuelve al gratuito, las consultas ya hechas siguen contando. Al agotarlas, `/chat`
+responde **403** —como un motor no incluido, porque esperar no lo resuelve— y la
+interfaz lo anuncia antes de escribir.
+
+Se cuentan en `usuario.consultas_asistente` (migración 016) y no recontando los
+mensajes, porque borrar una conversación borra sus mensajes: bastaría con vaciar
+el historial para recuperarlas. El contador sube al registrar la pregunta, dentro
+del mismo cerrojo por usuario que el resto de la cuota —doce peticiones
+simultáneas aceptan exactamente tres—, y baja si el turno falla, así que un fallo
+del proveedor no gasta una consulta.
+
+El reemplazo fue la espera de «una consulta cada tres días» (migración 006): con
+ella, quien probaba el asistente tenía que esperar días para la segunda pregunta
+y no alcanzaba a formarse una opinión. La columna `dias_entre_mensajes` sigue en
+la tabla, sin uso en ningún plan.
 
 ## 4. El asistente, solo para la PUCV
 
@@ -95,8 +109,9 @@ retirarlos es una limpieza pendiente.
 | `KAI_VENTANA_MENSAJES` | 10 | Mensajes del historial que se reenvían al modelo |
 | `KAI_MENSAJES_INTACTOS` | 4 | Cuántos de ellos van sin recortar |
 
-Los límites del plan viven en la tabla `plan`, no en variables: `mensajes_por_dia`
-acota el volumen de un día y `dias_entre_mensajes` la frecuencia entre consultas.
+Los límites del plan viven en la tabla `plan`, no en variables: `mensajes_totales`
+acota las consultas de toda la vida de la cuenta, `mensajes_por_dia` el volumen de
+un día y `dias_entre_mensajes` la frecuencia entre consultas.
 Convenio de la tabla: `NULL` significa sin límite y `0`, no incluido.
 
 ## 7. Verificación

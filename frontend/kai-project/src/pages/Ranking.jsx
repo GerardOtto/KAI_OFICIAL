@@ -13,6 +13,10 @@ import { useValoresReales } from "../hooks/useValoresReales";
 import { filasCSV } from "../utils/valoresReales";
 import { useModoValores } from "../estado/ModoValores";
 import AvisoModo from "../components/data/AvisoModo";
+import { useAuth } from "../auth/AuthContext";
+import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
+import { generarInformeResumen } from "../reportes/informeResumen";
+import { institucionPropia } from "../reportes/documento";
 import {
   clasificar, historico, pesosIniciales, pesosModificados, participacion, variacion,
 } from "../utils/rankingPonderado";
@@ -74,6 +78,9 @@ export default function Ranking() {
   // Después del estado: el hook necesita la selección actual para corregirla si
   // el plan no incluye ese ranking.
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
+  const { usuario } = useAuth();
+  const descarga = useDescarga("ranking");
+  const [pdfEstado, setPdfEstado] = useState("idle"); // idle | generando | error
 
   const anios = useAnios(rankingId);
 
@@ -143,6 +150,38 @@ export default function Ranking() {
 
   const handleRankingChange = (id) => setRankingId(id);
 
+  /** Informe PDF de la clasificación visible: orden, variación y, en el Ranking
+   *  KAI, los pesos con que se calculó. */
+  const handlePDF = async () => {
+    if (pdfEstado === "generando" || !data.length) return;
+    if (!(await descarga.permitir("pdf"))) return;
+    setPdfEstado("generando");
+    try {
+      const partes = editable ? participacion(pesos) : {};
+      await generarInformeResumen({
+        ranking: rankingActual?.nombre_ranking || "", anio, anioAnterior, numerico, usuario,
+        descripcion: rankingActual?.descripcion_ranking || data[0]?.descripcion_ranking || "",
+        foco: institucionPropia(usuario, data),
+        filas: data.map(u => ({
+          id: u.id_universidad, nombre: u.nombre_universidad, pais: u.pais_universidad,
+          score: Number(u.score_total) || 0,
+          delta: variacion(historicoMap[u.id_universidad], anio, anioAnterior),
+        })),
+        pesosPropios: modificados,
+        pesos: editable ? ponderado.metricas.map(m => ({
+          nombre: m.nombre_metrica,
+          peso: pesos[m.id_metrica] ?? m.peso_metrica,
+          parte: partes[m.id_metrica] ?? 0,
+        })) : null,
+      });
+      setPdfEstado("idle");
+    } catch (err) {
+      console.error("Error al generar el PDF:", err);
+      setPdfEstado("error");
+      setTimeout(() => setPdfEstado("idle"), 4000);
+    }
+  };
+
   const esCompacta = densidad === "compacta";
   const gridCols = esCompacta ? GRID_COLS_COMPACT : GRID_COLS;
 
@@ -196,6 +235,14 @@ export default function Ranking() {
               className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Exportar
+            </button>
+            <button
+              onClick={handlePDF}
+              disabled={!data.length || pdfEstado === "generando" || descarga.agotado("pdf")}
+              title={descarga.agotado("pdf") ? motivoAgotado("pdf") : "Informe PDF de la clasificación"}
+              className="bg-white text-[#111] text-[11px] font-semibold py-2 px-3 hover:bg-white/85 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {pdfEstado === "generando" ? "Generando…" : pdfEstado === "error" ? "Error al generar" : "PDF"}
             </button>
           </div>
         </section>

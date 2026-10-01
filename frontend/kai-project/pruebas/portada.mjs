@@ -107,7 +107,7 @@ const planes = await evaluar(`
     crearGratis: ${botones("Crear cuenta gratis")}.length,
     recomendado: /Recomendado/i.test(texto),
     theQs: /incluidos THE y QS/.test(texto) && /Sin rankings THE y QS/.test(texto),
-    espera: /una consulta cada \\d+ días/.test(texto),
+    espera: /3 consultas de prueba/.test(texto) && /no se reponen/.test(texto),
     consultas: /≈ [\\d.]+ consultas al mes/.test(texto),
     pucv: /disponible para cuentas de la PUCV/.test(texto),
     boton: (() => { const b = ${botones("Contratar ahora")}[0]; if (!b) return null;
@@ -137,7 +137,7 @@ comprobar("el botón es grande y relleno",
   JSON.stringify(planes.boton));
 comprobar("hay un plan recomendado", planes.recomendado);
 comprobar("se dice quién ve THE y QS", planes.theQs);
-comprobar("el gratuito dice su espera entre consultas", planes.espera);
+comprobar("el gratuito dice sus 3 consultas de prueba, que no se reponen", planes.espera);
 comprobar("las cuotas se traducen a consultas", planes.consultas);
 comprobar("se avisa que el asistente es por ahora de la PUCV", planes.pucv);
 await evaluar(`document.getElementById('planes').scrollIntoView();`);
@@ -150,11 +150,28 @@ const mayusculas = await evaluar(`
     .map(t => {
       const b = [...document.querySelectorAll('main button')]
         .find(x => x.textContent.trim().toLowerCase().includes(t.toLowerCase()));
-      return [t, b ? getComputedStyle(b).textTransform : 'no está'];
+      return [t, b ? getComputedStyle(b).textTransform : 'no está', b ? getComputedStyle(b).fontFamily : ''];
     });
 `);
 comprobar("«Contratar ahora», «Ya tengo cuenta», «Elegir un plan» y los demás, en mayúsculas",
-  mayusculas.every(([, tt]) => tt === "uppercase"), JSON.stringify(mayusculas));
+  mayusculas.every(([, tt]) => tt === "uppercase"), JSON.stringify(mayusculas.map(([t, tt]) => [t, tt])));
+comprobar("y en IBM Plex Sans", mayusculas.every(([, , f]) => /^"?IBM Plex Sans/.test(f)),
+  JSON.stringify(mayusculas.map(([t, , f]) => [t, f])));
+const altos = await evaluar(`
+  return [...document.querySelectorAll('#planes article button')].map(b => Math.round(b.getBoundingClientRect().height));
+`);
+comprobar("los botones de las tarjetas caben en una línea y miden lo mismo",
+  altos.length === 4 && new Set(altos).size === 1, JSON.stringify(altos));
+const fuente = await evaluar(`await document.fonts.ready; return document.fonts.check('600 15px "IBM Plex Sans"');`);
+comprobar("la fuente IBM Plex Sans está cargada", fuente);
+
+// Los íconos decorativos de los bloques van en blanco, negro o gris: sin tono.
+const iconos = await evaluar(`
+  return [...document.querySelectorAll('main section:first-of-type li svg')].map(s => getComputedStyle(s).color);
+`);
+const gris = (c) => { const [r, g, b] = (c.match(/[\d.]+/g) || []).map(Number); return r === g && g === b; };
+comprobar("los íconos de las capacidades son blanco y negro", iconos.length === 4 && iconos.every(gris),
+  JSON.stringify(iconos));
 
 console.log("\n=== 4. «Contratar ahora» abre el formulario de contacto ===");
 // Se pulsa el del plan Institucional: el formulario debe traerlo elegido.
@@ -239,6 +256,65 @@ if (!process.env.KAI_API_URL) {
   await esperar(2500);
   const desdeHeader = await evaluar(`return location.pathname;`);
   comprobar("y también entrando desde el encabezado", desdeHeader === "/asistente", desdeHeader);
+  await evaluar(`localStorage.removeItem("kai_token");`);
+}
+
+console.log("\n=== 5b. Sin sesión, un módulo se pide con un aviso sobre la portada ===");
+const aviso = () => evaluar(`
+  const d = document.querySelector('[role="dialog"][aria-labelledby="sesion-titulo"]');
+  return { ruta: location.pathname, abierto: !!d, texto: d?.textContent || "",
+           bloqueo: /Necesitas una cuenta|Volver a la portada/.test(document.body.textContent) };
+`);
+await ir(APP);
+await evaluar(`[...document.querySelectorAll('header nav a')].find(a => /tendencias/i.test(a.textContent)).click();`);
+await esperar(600);
+const porEnlace = await aviso();
+comprobar("el enlace del encabezado no sale de la portada", porEnlace.ruta === "/", porEnlace.ruta);
+comprobar("y abre el aviso con el módulo y la razón",
+  porEnlace.abierto && /Tendencias/.test(porEnlace.texto) && /Inicia sesión para usar/.test(porEnlace.texto),
+  JSON.stringify(porEnlace).slice(0, 200));
+comprobar("sin la antigua pantalla de bloqueo", !porEnlace.bloqueo);
+await capturar("landing-5-aviso-sesion");
+await evaluar(`${botones("Crear cuenta gratis")}.at(-1).click();`);
+await esperar(500);
+const aRegistro = await evaluar(`return !!document.getElementById('nombre') && !!document.getElementById('clave');`);
+comprobar("«Crear cuenta gratis» del aviso lleva al registro", aRegistro);
+await evaluar(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));`);
+await esperar(300);
+
+// El menú compacto, en pantallas estrechas, hace lo mismo.
+await ir(APP, 390, 844);
+await evaluar(`[...document.querySelectorAll('header button')].find(b => /menú/i.test(b.textContent)).click();`);
+await esperar(300);
+await evaluar(`[...document.querySelectorAll('header button')].find(b => /^asistente$/i.test(b.textContent.trim())).click();`);
+await esperar(600);
+const porMenu = await aviso();
+comprobar("el menú compacto también avisa sin salir de la portada",
+  porMenu.ruta === "/" && porMenu.abierto && /Asistente/.test(porMenu.texto) && /IA de pago/.test(porMenu.texto),
+  JSON.stringify(porMenu).slice(0, 200));
+
+// La dirección escrita a mano devuelve a la portada con el mismo aviso.
+await ir(`${APP}/simulacion/unitaria`);
+const porDireccion = await aviso();
+comprobar("abrir la dirección de un módulo devuelve a la portada con el aviso",
+  porDireccion.ruta === "/" && porDireccion.abierto && /Simulación/.test(porDireccion.texto),
+  JSON.stringify(porDireccion).slice(0, 200));
+
+if (process.env.KAI_API_URL) {
+  const cuenta = await crearSesion();
+  await evaluar(`${botones("Iniciar sesión")}.find(b => b.closest('[role="dialog"]')).click();`);
+  await esperar(500);
+  await evaluar(`
+    const poner = (id, v) => { const e = document.getElementById(id);
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, v);
+      e.dispatchEvent(new Event('input', { bubbles: true })); };
+    poner('correo', ${JSON.stringify(cuenta.correo)});
+    poner('clave', 'Prueba12345!');
+    document.querySelector('form button[type="submit"]').click();
+  `);
+  await esperar(2500);
+  const tras = await evaluar(`return location.pathname;`);
+  comprobar("al entrar desde el aviso se llega al módulo pedido", tras === "/simulacion/unitaria", tras);
   await evaluar(`localStorage.removeItem("kai_token");`);
 }
 
