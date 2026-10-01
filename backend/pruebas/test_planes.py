@@ -17,6 +17,10 @@ sys.path.insert(0, RAIZ)
 from dotenv import load_dotenv
 load_dotenv(os.path.join(RAIZ, ".env"))
 os.environ["GEMINI_API_KEY"] = "clave-de-prueba"
+# Claude también tiene que figurar como configurado: sin esto la batería solo
+# pasaba donde el .env local trae una clave real, y fallaba en integración
+# continua. El proveedor se sustituye por un doble, así que nunca se usa.
+os.environ["ANTHROPIC_API_KEY"] = "clave-de-prueba"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text

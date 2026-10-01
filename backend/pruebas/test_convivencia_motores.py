@@ -17,6 +17,9 @@ sys.path.insert(0, RAIZ)
 from dotenv import load_dotenv
 load_dotenv(os.path.join(RAIZ, ".env"))
 os.environ["GEMINI_API_KEY"] = "clave-de-prueba"  # deja el motor Gemini "disponible"
+# Y el de Claude: sin esto la batería dependía de la clave real del .env local
+# y fallaba en integración continua. El doble del proveedor evita usarla.
+os.environ["ANTHROPIC_API_KEY"] = "clave-de-prueba"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text

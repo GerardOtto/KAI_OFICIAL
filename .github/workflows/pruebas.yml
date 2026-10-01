@@ -37,9 +37,10 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kai_pruebas
-      # Las baterías sustituyen el proveedor por un doble; la clave solo sirve
-      # para que el motor figure como configurado y nunca se usa.
+      # Las baterías sustituyen el proveedor por un doble; las claves solo sirven
+      # para que los motores figuren como configurados y nunca se usan.
       GEMINI_API_KEY: clave-de-prueba
+      ANTHROPIC_API_KEY: clave-de-prueba
       JWT_SECRET: secreto-solo-para-pruebas
 
     steps:
