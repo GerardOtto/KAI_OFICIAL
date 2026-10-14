@@ -33,6 +33,8 @@ BATERIAS = [
      "Ranking KAI: pesos parejos, completitud, percentiles reproducibles y acceso", False, False),
     ("valores-reales", "test_valores_reales.py",
      "Modo numérico: cobertura por componentes, calidades, ediciones y acceso", False, False),
+    ("consultas-guiadas", "test_consultas_guiadas.py",
+     "Informes de brechas de los botones del chat: SQL, formato y acceso", False, False),
     ("acceso", "test_acceso_por_plan.py",
      "Institución obligatoria, módulos con sesión, rankings reservados y descargas", False, False),
     ("dominios", "test_dominios.py",

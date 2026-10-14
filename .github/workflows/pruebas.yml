@@ -51,6 +51,12 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      # La batería `consultas-guiadas` genera los mensajes de los botones del
+      # chat con el módulo del frontend que los construye, así que necesita Node.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Instalar dependencias
         run: pip install -r backend/requirements.txt
 

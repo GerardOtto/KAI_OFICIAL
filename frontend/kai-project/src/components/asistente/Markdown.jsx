@@ -19,11 +19,23 @@ function textoDelBloque(nodo) {
  * `** texto **` no es negrita para ningún analizador de Markdown: la
  * especificación exige que los asteriscos peguen al texto, y con espacios se
  * muestran literales. Los modelos lo escriben así de vez en cuando, así que se
- * normaliza. La expresión exige contenido no vacío que no empiece ni termine en
- * asterisco, para no tocar separadores como `***` ni listas con viñeta `*`.
+ * normaliza.
+ *
+ * Se recorta solo lo que queda dentro de cada par de `**` de una línea, nunca lo
+ * que hay entre dos negritas. La versión anterior buscaba «`**`, espacio, texto,
+ * espacio, `**`» con una expresión, y en «la **PUCV** supera a la **UV**» tomaba
+ * el cierre de la primera y la apertura de la segunda por un par: borraba los
+ * espacios y salía «la PUCVsupera a laUV». Un `**` sin pareja al final de la
+ * línea no se toca, ni los separadores `***` ni las viñetas `*`.
  */
 function normalizar(texto) {
-  return (texto || "").replace(/\*\*[ \t]+([^*\n](?:[^*\n]*[^*\s])?)[ \t]+\*\*/g, "**$1**");
+  return (texto || "").split("\n").map((linea) => {
+    const partes = linea.split("**");
+    if (partes.length < 3) return linea;
+    // Los trozos impares están dentro de una negrita; el último impar solo si
+    // tiene un cierre detrás.
+    return partes.map((p, i) => (i % 2 === 1 && i < partes.length - 1 ? p.trim() : p)).join("**");
+  }).join("\n");
 }
 
 /** Envoltorio con desplazamiento propio para el contenido ancho.

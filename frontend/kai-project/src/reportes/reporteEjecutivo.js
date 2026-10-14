@@ -14,10 +14,12 @@
  *  —serif para los títulos, monoespaciada para las etiquetas— y el azul de
  *  acento; lo que cambia es el soporte.
  */
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
+import { consultaDeMensaje, parteVisible, tituloDeInforme } from "../components/asistente/consultasGuiadas";
 import {
   ACENTO, ACENTO_SUAVE, ANCHO_UTIL, FONDO_SUAVE, GRIS, GRIS_CLARO, LINEA, MARGEN, TINTA,
   alturaLinea, crearDocumento, pies, portada as portadaComun,
@@ -173,17 +175,18 @@ function codigo(l, nodo) {
   l.separacion(2.5);
 }
 
-function tabla(l, nodo) {
+const TABLA_PUNTOS = 8.5;
+const TABLA_PADDING = 2;
+
+/** Filas de texto, anchos de columna y medida de cada fila de una tabla. */
+function geometriaDeTabla(l, nodo) {
   const filas = nodo.children.map((fila) => fila.children.map(plano));
-  if (!filas.length) return;
+  if (!filas.length) return null;
   const columnas = Math.max(...filas.map((f) => f.length));
-  const alineacion = nodo.align || [];
-  const PUNTOS = 8.5;
-  const PADDING = 2;
 
   // Ancho natural de cada columna, recortado a un máximo para que una celda
   // larga no deje a las demás en un hilo, y reescalado al ancho disponible.
-  l.doc.setFontSize(PUNTOS);
+  l.doc.setFontSize(TABLA_PUNTOS);
   const natural = [];
   for (let c = 0; c < columnas; c += 1) {
     let max = 0;
@@ -191,18 +194,35 @@ function tabla(l, nodo) {
       l.doc.setFont("helvetica", i === 0 ? "bold" : "normal");
       max = Math.max(max, l.doc.getTextWidth(fila[c] || ""));
     });
-    natural.push(Math.min(max + PADDING * 2, ANCHO_UTIL * 0.45));
+    natural.push(Math.min(max + TABLA_PADDING * 2, ANCHO_UTIL * 0.45));
   }
   const suma = natural.reduce((s, w) => s + w, 0) || 1;
   const anchos = natural.map((w) => (w / suma) * ANCHO_UTIL);
+  const altoLinea = alturaLinea(TABLA_PUNTOS, 1.3);
 
-  const altoLinea = alturaLinea(PUNTOS, 1.3);
+  const celdasDe = (fila, esCabecera) => anchos.map((ancho, c) =>
+    l.ajustar(fila[c] || "", ancho - TABLA_PADDING * 2, TABLA_PUNTOS, "helvetica", esCabecera ? "bold" : "normal"));
+  const altoDe = (celdas) => Math.max(...celdas.map((c) => c.length)) * altoLinea + TABLA_PADDING * 2;
+  const total = filas.reduce((s, fila, i) => s + altoDe(celdasDe(fila, i === 0)), 0);
+  return { filas, anchos, altoLinea, celdasDe, altoDe, total };
+}
+
+/** Una tabla de hasta este alto no se parte entre dos páginas: si no cabe
+ *  entera, empieza en la siguiente. Una más larga se parte por filas y repite su
+ *  cabecera. */
+const TABLA_INDIVISIBLE = 110;
+
+function tabla(l, nodo) {
+  const g = geometriaDeTabla(l, nodo);
+  if (!g) return;
+  const { filas, anchos, altoLinea, celdasDe, altoDe } = g;
+  const alineacion = nodo.align || [];
+  const PUNTOS = TABLA_PUNTOS;
+  const PADDING = TABLA_PADDING;
 
   const dibujarFila = (fila, esCabecera) => {
-    const celdas = anchos.map((ancho, c) =>
-      l.ajustar(fila[c] || "", ancho - PADDING * 2, PUNTOS, "helvetica", esCabecera ? "bold" : "normal"),
-    );
-    const alto = Math.max(...celdas.map((c) => c.length)) * altoLinea + PADDING * 2;
+    const celdas = celdasDe(fila, esCabecera);
+    const alto = altoDe(celdas);
 
     if (l.y + alto > l.limite) {
       l.nuevaPagina();
@@ -234,9 +254,31 @@ function tabla(l, nodo) {
   };
 
   l.separacion(1.5);
-  l.reservar(altoLinea * 3);
+  l.reservar(g.total <= TABLA_INDIVISIBLE ? g.total : altoLinea * 3);
   filas.forEach((fila, i) => dibujarFila(fila, i === 0));
   l.separacion(3);
+}
+
+/** Alto aproximado de un bloque, para que un título no quede al pie de una
+ *  página y lo que encabeza en la siguiente. */
+function altoDeBloque(l, nodo) {
+  if (nodo.type === "table") {
+    const total = geometriaDeTabla(l, nodo)?.total ?? 0;
+    return total <= TABLA_INDIVISIBLE ? total + 4.5 : alturaLinea(TABLA_PUNTOS, 1.3) * 3;
+  }
+  if (nodo.type === "paragraph") {
+    return l.ajustar(plano(nodo), ANCHO_UTIL, 10, "helvetica", "normal").length * alturaLinea(10) + 2.2;
+  }
+  return 12;
+}
+
+/** Lo que un título debe tener a su lado en la misma página: el bloque que lo
+ *  sigue o, si a uno o dos bloques viene una tabla, hasta la tabla. */
+function altoJuntoATitulo(l, nodos, i) {
+  const siguientes = nodos.slice(i + 1, i + 3);
+  const hastaTabla = siguientes.findIndex((n) => n.type === "table");
+  const junto = hastaTabla >= 0 ? siguientes.slice(0, hastaTabla + 1) : siguientes.slice(0, 1);
+  return junto.reduce((s, n) => s + altoDeBloque(l, n), 0);
 }
 
 function grafico(l, datos) {
@@ -323,7 +365,10 @@ function bloque(l, nodo) {
 // Armado del documento
 // ---------------------------------------------------------------------------
 
-const analizador = unified().use(remarkParse).use(remarkGfm);
+// Con los mismos complementos que el chat (`Markdown.jsx`): un salto de línea
+// suelto es un salto también en el papel, no un espacio. Sin remark-breaks, una
+// enumeración que en pantalla se lee renglón a renglón salía amontonada en el PDF.
+const analizador = unified().use(remarkParse).use(remarkGfm).use(remarkBreaks);
 
 /** La consulta del usuario, presentada como la pregunta que encabeza la sección.
  *
@@ -345,7 +390,9 @@ export function comoPregunta(texto) {
     /^(¿|(qué|que|cuál|cual|cuáles|cuales|cómo|como|cuánto|cuánta|cuántos|cuántas|cuanto|cuanta|cuantos|cuantas|cuándo|cuando|dónde|donde|por qué|porqué|quién|quien|quiénes|quienes|hay|existe|existen|puede|puedes|podrías|tiene|tienen|sabes)(\s|$))/i;
   const interrogativa = INTERROGATIVAS.test(t);
   const cierra = t.endsWith("?");
-  if (cierra && !t.startsWith("¿")) return `¿${t}`;
+  // «Scimago: ¿dónde pueden mejorar…?» ya abre su pregunta, aunque no al
+  // comienzo: anteponerle otro signo la dejaría con dos.
+  if (cierra && !t.includes("¿")) return `¿${t}`;
   if (!cierra && interrogativa) return `¿${t.replace(/[.…]+$/, "")}?`;
   return t.replace(/[.]+$/, "");
 }
@@ -366,19 +413,24 @@ export function datosDeCabecera({ fecha, usuario, motor, nSecciones }) {
   ].filter(Boolean);
 }
 
-/** Agrupa la conversación en secciones: una consulta con sus respuestas. */
+/** Agrupa la conversación en secciones: una consulta con sus respuestas.
+ *
+ *  De una consulta guiada, el subtítulo es su pregunta: las instrucciones y el
+ *  SQL que la acompañan son para el modelo, no para quien lee el reporte. */
 export function secciones(mensajes) {
   const salida = [];
   for (const m of mensajes) {
-    if (m.role === "user") salida.push({ pregunta: m.content, hora: m.time, respuestas: [] });
-    else if (salida.length) salida[salida.length - 1].respuestas.push(m);
+    if (m.role === "user") {
+      salida.push({ pregunta: parteVisible(m.content), guiada: consultaDeMensaje(m.content),
+                    hora: m.time, respuestas: [] });
+    } else if (salida.length) salida[salida.length - 1].respuestas.push(m);
     else salida.push({ pregunta: "", hora: m.time, respuestas: [m] });
   }
   return salida.filter((s) => s.respuestas.length);
 }
 
-function portada(l, { fecha, usuario, motor, nSecciones }) {
-  portadaComun(l, { titulo: TITULO_REPORTE, ficha: datosDeCabecera({ fecha, usuario, motor, nSecciones }) });
+function portada(l, { titulo, fecha, usuario, motor, nSecciones }) {
+  portadaComun(l, { titulo, ficha: datosDeCabecera({ fecha, usuario, motor, nSecciones }) });
 }
 
 function subtitulo(l, indice, pregunta) {
@@ -427,18 +479,29 @@ export async function construirReporte({ mensajes, conversacion = "", usuario = 
   const partes = secciones(mensajes);
   if (!partes.length) throw new Error("No hay respuestas que incluir en el reporte.");
 
+  // Una conversación que abre con un informe de brechas se titula como él y
+  // lleva el logotipo de su ranking en la portada, como el informe original.
+  const guiada = partes[0].guiada;
+  const titulo = guiada ? tituloDeInforme(guiada) : TITULO_REPORTE;
   const { doc, l, fecha } = await crearDocumento({
-    titulo: TITULO_REPORTE,
+    titulo,
     asunto: conversacion || "Análisis de rankings institucionales",
+    ranking: guiada?.ranking || "",
   });
 
-  portada(l, { fecha, usuario, motor, nSecciones: partes.length });
+  portada(l, { titulo, fecha, usuario, motor, nSecciones: partes.length });
 
   partes.forEach((seccion, i) => {
     subtitulo(l, i + 1, comoPregunta(seccion.pregunta));
     for (const respuesta of seccion.respuestas) {
       const arbol = analizador.parse(respuesta.content || "");
-      arbol.children.forEach((nodo) => bloque(l, nodo));
+      arbol.children.forEach((nodo, i) => {
+        if (nodo.type === "heading" && nodo.depth <= 2) {
+          const titulo = alturaLinea(PUNTOS_ENCABEZADO[nodo.depth], 1.3) + 6;
+          l.reservar(Math.min(titulo + altoJuntoATitulo(l, arbol.children, i), TABLA_INDIVISIBLE + 20));
+        }
+        bloque(l, nodo);
+      });
     }
   });
 

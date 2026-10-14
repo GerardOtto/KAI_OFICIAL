@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
 import Cargando from "../components/asistente/Cargando";
+import BotonesBrechas from "../components/asistente/BotonesBrechas";
+import BotonReporte from "../components/asistente/BotonReporte";
+import { construirMensaje, consultaDeMensaje, parteVisible } from "../components/asistente/consultasGuiadas";
+import { ESTILO_RANKING } from "../components/asistente/estiloRankings";
 import { SparkleIcon } from "../components/asistente/iconos";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
@@ -23,13 +27,6 @@ const SendIcon = () => (
   </svg>
 );
 
-const ReportIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <path d="M14 2v6h6M8 17v-4M12 17v-6M16 17v-2" />
-  </svg>
-);
-
 const ForkIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="6" cy="4" r="2" /><circle cx="18" cy="4" r="2" /><circle cx="12" cy="20" r="2" />
@@ -37,14 +34,8 @@ const ForkIcon = () => (
   </svg>
 );
 
-const SUGERENCIAS = [
-  "¿Qué rankings hay cargados y qué período cubre cada uno?",
-  "Compara el índice de citas de la PUCV en THE Latam entre 2019 y 2024.",
-  "¿Qué universidades chilenas subieron más en Shanghai GRAS?",
-];
-
 export default function Asistente() {
-  const { usuario, cuota, capacidades, setCuota, refrescar } = useAuth();
+  const { usuario, cuota, capacidades, rankingsRestringidos, setCuota, refrescar } = useAuth();
   const descarga = useDescarga("asistente");
   // El asistente está reservado a las cuentas de la institución: el servidor lo
   // dice en las capacidades, y aquí se usa para no dejar escribir una consulta
@@ -68,6 +59,10 @@ export default function Asistente() {
   // que se leen desde el historial se muestran enteras, porque ahí el revelado
   // sería un estorbo entre el usuario y algo que ya había leído.
   const [idRevelable, setIdRevelable] = useState(null);
+  // Mensaje completo de una consulta guiada que volvió al compositor —al
+  // derivarla a otro motor o tras un fallo—. El campo muestra solo su pregunta;
+  // si el usuario la envía sin tocarla, se manda con sus instrucciones.
+  const [pendiente, setPendiente] = useState(null);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -114,6 +109,7 @@ export default function Asistente() {
       const datos = await abrir(id);
       setIdConversacion(id);
       setIdRevelable(null);
+      setPendiente(null);
       setMotor(datos.motor);
       setMensajes(datos.mensajes.map((m) => ({
         id: m.id_mensaje,
@@ -133,6 +129,15 @@ export default function Asistente() {
     setInput("");
     setError("");
     setIdRevelable(null);
+    setPendiente(null);
+  };
+
+  /** Devuelve un mensaje al compositor mostrando solo lo que escribió o eligió
+   *  el usuario: las instrucciones de una consulta guiada quedan aparte. */
+  const devolverAlCompositor = (contenido) => {
+    const visible = parteVisible(contenido);
+    setInput(visible);
+    setPendiente(visible === contenido ? null : contenido);
   };
 
   /** Lleva un mensaje a una conversación nueva con otro motor.
@@ -147,7 +152,7 @@ export default function Asistente() {
     setIdConversacion(null);
     setMensajes([]);
     setMotor(motorDestino);
-    setInput(texto);
+    devolverAlCompositor(texto);
     setError("");
     setIdRevelable(null);
     inputRef.current?.focus();
@@ -196,13 +201,24 @@ export default function Asistente() {
     }
   };
 
+  /** Envía un mensaje. Sin `texto`, el del compositor.
+   *
+   *  Una consulta guiada viaja entera —pregunta, marca e instrucciones— y así se
+   *  guarda: el modelo la necesita completa para responder y, en los turnos
+   *  siguientes, para entender de qué se habló. La pantalla, el título de la
+   *  conversación y el reporte usan solo la pregunta (`parteVisible`).
+   */
   const enviar = async (texto) => {
-    const contenido = (texto ?? input).trim();
+    let contenido = (texto ?? input).trim();
+    if (texto === undefined && pendiente && contenido === parteVisible(pendiente).trim()) {
+      contenido = pendiente;
+    }
     if (!contenido || cargando) return;
     if (!motor) { setError("Todavía no hay un motor seleccionado."); return; }
 
     setError("");
     setInput("");
+    setPendiente(null);
     // El identificador del mensaje optimista se guarda aparte porque, si el turno
     // falla, hay que retirar exactamente este y no cualquier otro: filtrar por el
     // prefijo «tmp-» borraba también las preguntas ya respondidas de la misma
@@ -225,7 +241,7 @@ export default function Asistente() {
         // para no dejar en pantalla un turno que no existe en el historial.
         setError(r.content);
         setMensajes((prev) => prev.filter((m) => m.id !== idOptimista));
-        setInput(contenido);
+        devolverAlCompositor(contenido);
         return;
       }
 
@@ -248,7 +264,7 @@ export default function Asistente() {
       // 429 es la cuota agotada: el mensaje del servidor ya explica qué hacer.
       setError(e.message);
       setMensajes((prev) => prev.filter((m) => m.id !== idOptimista));
-      setInput(contenido);
+      devolverAlCompositor(contenido);
       if (e.status === 401) refrescar();
     } finally {
       setCargando(false);
@@ -268,6 +284,8 @@ export default function Asistente() {
   // preguntar, y conviene decirlo antes de que el usuario escriba.
   const sinMotor = motores.length > 0 && disponibles.length === 0;
   const bloqueado = sinCupo || sinMotor || sinAfiliacion;
+  // La última respuesta lleva el reporte destacado: es la que se acaba de leer.
+  const idUltimaRespuesta = mensajes.findLast((m) => m.role === "assistant")?.id;
 
   return (
     <div className="flex bg-background text-white" style={{ height: "calc(100vh - 64px)" }}>
@@ -293,7 +311,7 @@ export default function Asistente() {
               </div>
               <div>
                 <p className="font-body text-sm text-outlineSoft mb-1">
-                  Hola{usuario ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Pregúntame sobre los rankings cargados.
+                  Hola{usuario ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Elige un informe o pregúntame sobre los rankings cargados.
                 </p>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f]">
                   Consulto la base de datos real; no invento cifras
@@ -304,48 +322,57 @@ export default function Asistente() {
                   </p>
                 )}
               </div>
-              <div className="flex flex-col gap-2 w-full max-w-lg">
-                {SUGERENCIAS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => enviar(s)}
-                    disabled={bloqueado}
-                    className="text-left px-4 py-3 border border-outline/30 text-[12px] text-[#c4c4c4] hover:border-white/40 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <BotonesBrechas
+                onElegir={(c) => enviar(construirMensaje(c))}
+                deshabilitado={bloqueado}
+                restringidos={rankingsRestringidos}
+              />
             </div>
           )}
 
-          {mensajes.map((m) =>
-            m.role === "user" ? (
-              <div key={m.id} className="group flex flex-col items-end gap-2">
-                <div className="max-w-3xl bg-surfaceHigh border border-outline/40 px-6 py-4">
-                  <p className="text-white/90 leading-relaxed">{m.content}</p>
+          {mensajes.map((m, i) => {
+            if (m.role === "user") {
+              const guiada = consultaDeMensaje(m.content);
+              return (
+                <div key={m.id} className="group flex flex-col items-end gap-2">
+                  <div className="max-w-3xl bg-surfaceHigh border border-outline/40 px-6 py-4">
+                    {/* De una consulta guiada se muestra la pregunta y de qué
+                        informe sale; las instrucciones y el SQL que la
+                        acompañan son para el modelo. */}
+                    {guiada && (
+                      <span className="flex items-center gap-2 mb-2 font-mono text-[9.5px] uppercase tracking-widest text-outlineSoft">
+                        <img src={ESTILO_RANKING[guiada.id].icono} alt="" className="w-4 h-4 rounded-[3px]" />
+                        Informe de brechas · {guiada.nombre}
+                      </span>
+                    )}
+                    <p className="text-white/90 leading-relaxed">{parteVisible(m.content)}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Derivar: la misma pregunta, en una conversación nueva con
+                        el otro motor. Es la vía prevista para cambiar de modelo,
+                        ya que dentro de una conversación el motor no cambia. */}
+                    {disponibles
+                      .filter((mo) => mo.id !== motor)
+                      .map((mo) => (
+                        <button
+                          key={mo.id}
+                          onClick={() => derivar(m.content, mo.id)}
+                          title={`Reenviar esta consulta a ${mo.nombre} en una conversación nueva`}
+                          className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-outlineSoft opacity-0 group-hover:opacity-100 hover:text-white transition-all"
+                        >
+                          <ForkIcon /> Derivar a {mo.nombre}
+                        </button>
+                      ))}
+                    <span className="text-[10px] uppercase tracking-widest text-outlineSoft">{m.time}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {/* Derivar: la misma pregunta, en una conversación nueva con el
-                      otro motor. Es la vía prevista para cambiar de modelo, ya
-                      que dentro de una conversación el motor no cambia. */}
-                  {disponibles
-                    .filter((mo) => mo.id !== motor)
-                    .map((mo) => (
-                      <button
-                        key={mo.id}
-                        onClick={() => derivar(m.content, mo.id)}
-                        title={`Reenviar esta consulta a ${mo.nombre} en una conversación nueva`}
-                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-outlineSoft opacity-0 group-hover:opacity-100 hover:text-white transition-all"
-                      >
-                        <ForkIcon /> Derivar a {mo.nombre}
-                      </button>
-                    ))}
-                  <span className="text-[10px] uppercase tracking-widest text-outlineSoft">{m.time}</span>
-                </div>
-              </div>
-            ) : (
-              <div key={m.id} className="flex flex-col gap-2">
+              );
+            }
+            // Un informe de brechas trae tablas de seis columnas: se le da más
+            // ancho para que la meta del top 10 no quede tras el desplazamiento.
+            const deInforme = i > 0 && consultaDeMensaje(mensajes[i - 1].content);
+            return (
+              <div key={m.id} className="flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 shrink-0 flex items-center justify-center border mt-1 bg-surfaceHigh border-outline/50 text-white">
                     <SparkleIcon />
@@ -357,7 +384,7 @@ export default function Asistente() {
                       su contenido, que es lo que deja a una tabla ancha
                       desplazarse dentro del mensaje en vez de estirar la página. */}
                   <Markdown
-                    className="max-w-3xl min-w-0"
+                    className={`${deInforme ? "max-w-4xl" : "max-w-3xl"} min-w-0`}
                     revelar={m.id === idRevelable}
                     alAvanzar={seguirElFinal}
                   >
@@ -366,17 +393,16 @@ export default function Asistente() {
                 </div>
                 {/* El reporte es opcional y se compone en el navegador: no hay
                     petición al servidor ni consumo de cuota al pulsarlo. */}
-                <div className="pl-11 flex items-center gap-3 flex-wrap">
-                  <button
+                <div className="pl-11 flex items-center gap-x-4 gap-y-2 flex-wrap">
+                  <BotonReporte
                     onClick={() => generarReporte(m.id)}
-                    disabled={generando != null || descarga.agotado("pdf")}
-                    title={descarga.agotado("pdf") ? motivoAgotado("pdf")
-                      : "Descargar un PDF con esta conversación hasta aquí"}
-                    className="flex items-center gap-1.5 px-2.5 py-1 border border-outline/40 font-mono text-[9px] uppercase tracking-widest text-outlineSoft hover:border-white/50 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-wait"
-                  >
-                    <ReportIcon />
-                    {generando === m.id ? "Componiendo…" : "Reporte ejecutivo"}
-                  </button>
+                    destacado={m.id === idUltimaRespuesta}
+                    componiendo={generando === m.id}
+                    ocupado={generando != null}
+                    agotado={descarga.agotado("pdf")}
+                    motivoAgotado={motivoAgotado("pdf")}
+                    incluidos={descarga.limite}
+                  />
                   {m.tokens != null && m.tokens > 0 && (
                     <span className="font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f]">
                       {m.time} · {m.tokens.toLocaleString("es-CL")} tokens
@@ -384,8 +410,8 @@ export default function Asistente() {
                   )}
                 </div>
               </div>
-            )
-          )}
+            );
+          })}
 
           {cargando && <Cargando />}
         </div>

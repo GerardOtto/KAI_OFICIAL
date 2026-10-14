@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { parteVisible } from "./consultasGuiadas";
 
 const GraduationCapIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -33,7 +34,9 @@ const TrashIcon = () => (
  * caben en un renglón; lo que se quiere es la frase, en limpio.
  */
 function sinFormato(texto) {
-  return (texto || "")
+  // El último mensaje puede ser una consulta guiada aún sin respuesta: de ella
+  // solo se muestra la pregunta, nunca las instrucciones ni el SQL.
+  return parteVisible(texto)
     .replace(/```[\s\S]*?```/g, " ")           // bloques de código
     .replace(/`([^`]+)`/g, "$1")               // código en línea
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // enlaces e imágenes: solo el texto
@@ -168,7 +171,7 @@ export default function ChatSidebar({
     if (!q) return conversaciones;
     return conversaciones.filter(
       (c) => c.titulo.toLowerCase().includes(q) ||
-             (c.ultimo_mensaje || "").toLowerCase().includes(q));
+             parteVisible(c.ultimo_mensaje).toLowerCase().includes(q));
   }, [conversaciones, busqueda]);
 
   return (

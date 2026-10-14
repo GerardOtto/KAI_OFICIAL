@@ -46,12 +46,19 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(400%)" },
         },
+        // Brillo que cruza el botón del reporte y luego descansa: el cruce ocupa
+        // un tercio del ciclo, para que llame la atención sin parpadear.
+        destello: {
+          "0%": { backgroundPosition: "160% 0" },
+          "35%, 100%": { backgroundPosition: "-60% 0" },
+        },
       },
       animation: {
         barrido: "barrido 2.2s linear infinite",
         onda: "onda 1.1s ease-in-out infinite",
         latido: "latido 1.8s ease-in-out infinite",
         deslizar: "deslizar 1.4s ease-in-out infinite",
+        destello: "destello 3.8s ease-in-out 0.8s infinite",
       },
     },
   },

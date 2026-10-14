@@ -11,6 +11,13 @@ from sqlalchemy import text
 
 LIMITE_TITULO = 60
 
+# Las consultas guiadas del asistente —los informes de brechas que se piden con
+# un botón— viajan en un solo mensaje: la pregunta que ve el usuario, esta marca
+# y detrás las instrucciones y el SQL para el modelo. Se guarda todo, porque el
+# modelo lo necesita en los turnos siguientes; el título sale solo de la
+# pregunta. Ver `frontend/kai-project/src/components/asistente/consultasGuiadas.js`.
+MARCA_INSTRUCCIONES = "<!-- kai:instrucciones"
+
 # Cuántos mensajes se le reenvían al modelo en cada turno, y cuántos de ellos van
 # enteros. La API es sin estado: todo esto viaja en cada vuelta del ciclo de
 # herramientas, así que una respuesta larga de hace cinco turnos se paga otra vez,
@@ -24,7 +31,8 @@ TOPE_MENSAJE_ANTIGUO = 900
 
 def titulo_desde_mensaje(texto: str) -> str:
     """Título provisional de la conversación a partir del primer mensaje."""
-    limpio = " ".join((texto or "").split())
+    visible = (texto or "").split(MARCA_INSTRUCCIONES, 1)[0]
+    limpio = " ".join(visible.split())
     if not limpio:
         return "Nueva conversación"
     if len(limpio) <= LIMITE_TITULO:

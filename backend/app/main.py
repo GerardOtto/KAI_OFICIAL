@@ -678,8 +678,18 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
         # Las herramientas del asistente leen la base por su cuenta: sin esto, el
         # plan gratuito obtendría por el chat los datos de THE y QS que la
         # interfaz le niega.
-        with herramientas.con_rankings_vedados(vedados):
+        with herramientas.con_rankings_vedados(vedados), herramientas.capturar_informes() as informes:
             resultado = motores.responder(motor, historial)
+
+        # Una consulta guiada (un botón del chat) pide copiar tal cual el informe
+        # que arma la base. Si la copia del modelo no coincide —traducir una
+        # palabra le ha pasado—, se entrega el original: es la respuesta que se
+        # le pidió, sin el error de transcripción.
+        if (resultado["ok"] and informes and conv.MARCA_INSTRUCCIONES in texto
+                and resultado["texto"].strip() != informes[-1].strip()):
+            logger.info("Consulta guiada: la copia del modelo no coincidía con el informe; "
+                        "se entrega el original.")
+            resultado = {**resultado, "texto": informes[-1]}
 
         era_nueva = req.id_conversacion is None
         if resultado["ok"]:

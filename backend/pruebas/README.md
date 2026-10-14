@@ -45,6 +45,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `ranking-kai` | Ranking KAI: pesos parejos que suman 100, las diez métricas en cada universidad y año, percentiles reproducibles desde el valor medido y abierto al plan gratuito |
 | `valores-reales` | Modo numérico: cobertura por componentes y no por pilares, calidades, solo ediciones publicadas y universidades clasificadas, Scimago idéntico a su tabla, THE y QS reservados |
+| `consultas-guiadas` | Los cuatro informes de brechas de los botones del chat: genera los mensajes con Node desde el módulo del frontend, ejecuta cada SQL con `consulta_sql`, comprueba el formato del informe, el plan gratuito, las cifras del informe de Scimago validado y que `/chat` entregue el informe exacto aunque el modelo lo copie con una errata. **Necesita Node** en el PATH |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
@@ -95,6 +96,7 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `motores` | Selector de motores y derivación |
 | `respuestas_markdown` | Énfasis, tablas, listas y desbordamiento |
 | `reporte` | Composición del PDF del reporte ejecutivo y dibujo del bloque de gráfico |
+| `consultas_guiadas` | Botones de brechas: la pregunta visible sin instrucciones, las negritas del informe en el chat y su PDF (título, logotipo del ranking, sin SQL y tablas que no se parten) |
 | `informes` | Informes PDF de Tendencias, Simulación, Glosario y Resumen: cifras clave y lectura, tablas acotadas, proyecciones dentro de la escala y ningún carácter fuera de la fuente del PDF |
 | `revelado` | Aparición progresiva de la respuesta e indicador de espera |
 
@@ -107,7 +109,7 @@ miden la versión recortada de las vistas, que es la que verá la mayoría.
 además un backend con el proveedor sustituido por un doble, con la aplicación
 compilada apuntando a él. Se omiten si no se define `KAI_API_URL`.
 
-`reporte`, `informes` y `revelado` son la excepción a todo lo anterior: no miran la
+`reporte`, `informes`, `revelado` y `consultas_guiadas` son la excepción a todo lo anterior: no miran la
 aplicación compilada, sino que importan los módulos de origen y montan los
 componentes sueltos —para componer PDF, dibujar gráficos o cronometrar la
 aparición del texto— sin atravesar la interfaz. Necesitan el servidor de

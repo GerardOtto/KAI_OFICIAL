@@ -194,6 +194,31 @@ def _vedado(ranking_id) -> bool:
     return int(ranking_id) in _vedados.get()
 
 
+# --- El informe de una consulta guiada --------------------------------------
+
+# Los informes de brechas que el chat pide con un botón traen un SQL que arma el
+# informe entero en una sola celda, `informe`, y piden al modelo copiarla tal
+# cual. Gemini, puesto a prueba, la copió idéntica casi siempre, pero no siempre:
+# una vez escribió «5 % to 10 %» y otra «in THE Latam». Aquí se guarda la celda
+# que devolvió la herramienta, para que /chat entregue el original cuando la
+# copia no coincida. Mismo mecanismo que `_vedados`: las herramientas corren en
+# el hilo del turno.
+_informes: contextvars.ContextVar[list | None] = contextvars.ContextVar(
+    "informes_guiados", default=None)
+
+
+@contextlib.contextmanager
+def capturar_informes():
+    """Durante el bloque, guarda en la lista que entrega cada celda `informe`
+    que devuelva `consulta_sql`."""
+    caja: list[str] = []
+    marca = _informes.set(caja)
+    try:
+        yield caja
+    finally:
+        _informes.reset(marca)
+
+
 # --- Utilidades de las herramientas ----------------------------------------
 
 # Tope de filas de un resultado. No es solo una defensa contra una consulta
@@ -1041,7 +1066,11 @@ def consulta_sql(sql: str) -> str:
         db.execute(text("SET LOCAL statement_timeout = '8s'"))
         resultado_sql = db.execute(text(sql))
         filas = resultado_sql.fetchall()
-        return _tabla(filas, list(resultado_sql.keys()), "La consulta no devolvió filas.")
+        columnas = list(resultado_sql.keys())
+        caja = _informes.get()
+        if caja is not None and columnas == ["informe"] and len(filas) == 1 and filas[0][0]:
+            caja.append(filas[0][0])
+        return _tabla(filas, columnas, "La consulta no devolvió filas.")
     except Exception as e:
         # El error vuelve al modelo para que corrija la consulta y reintente.
         return f"ERROR de SQL: {type(e).__name__}: {str(e)[:400]}"
