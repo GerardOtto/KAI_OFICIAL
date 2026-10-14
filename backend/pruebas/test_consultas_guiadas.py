@@ -155,7 +155,8 @@ print("\n=== 4. Scimago: las cifras del informe validado ===")
 scimago = informes.get("brechas-scimago", "")
 ESPERADO = [
     "## Pontificia Universidad Católica de Valparaíso (PUCV): 9.º de 57 en Chile",
-    "universidades chilenas de Scimago 2023 en cada métrica",
+    # Edición 2025: la ventana de publicaciones 2019-2023 (migración 017).
+    "universidades chilenas de Scimago 2025 en cada métrica",
     "| Impacto normalizado · **prioridad 1** | 0,91 | 28.º de 57 | Alta (13 %) | 1,09 (14.º) | 1,15 |",
     "| Impacto tecnológico · **prioridad 2** | 0,90 % | 16.º de 57 | Alta (10 %) | — | 1,15 % |",
     "| Acceso abierto | 67,8 % | 34.º de 57 | Baja (2 %) | 73,0 % (17.º) | 77,8 % |",

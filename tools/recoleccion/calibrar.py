@@ -416,16 +416,10 @@ def verificar_scimago(filas_salida) -> None:
         print("  Sin DATABASE_URL; se omite la verificación.")
         return
 
-    # Lo recolectado, por ventana: el año de la edición es el que cierra la ventana.
-    recolectado: dict = {}
+    # Lo recolectado, por ventana: `anio_dato` es el año que cierra la ventana.
     ruta = nav.RAIZ / "scimago" / "procesado.csv"
     with ruta.open(encoding="utf-8-sig", newline="") as f:
-        for fila in csv.DictReader(f):
-            try:
-                recolectado[(fila["universidad"], fila["variable"],
-                             int(fila["anio_dato"]))] = float(fila["valor"])
-            except (TypeError, ValueError):
-                continue
+        descargado = list(csv.DictReader(f))
 
     motor = create_engine(url)
     with motor.connect() as c:
@@ -441,6 +435,17 @@ def verificar_scimago(filas_salida) -> None:
         tabla, anio = (("valor_real_universidad", "anio_edicion") if migrada
                        else ("metrica_universidad", "anio_metrica"))
         valor = "valor" if migrada else "valor_metrica"
+        # Desde la migración 017 la base guarda cada edición con su año, y SCImago
+        # arma la edición E con la ventana que cierra en E-2 (la 2025 usa
+        # 2019-2023). Una base anterior la guardaba con el año de la ventana.
+        por_edicion = migrada and c.execute(text("""
+            select count(*) from valor_real_universidad v
+            join metrica m on m.id_metrica = v.id_metrica
+            join ranking r on r.id_ranking = m.id_ranking
+            where r.nombre_ranking = 'Scimago Latam'
+              and v.anios_origen = 'publicaciones ' || (v.anio_edicion - 6) || '-' || (v.anio_edicion - 2)
+            """)).scalar() > 0
+        desfase = -mc.DESFASES["Scimago Latam"]["ventana"][1] if por_edicion else 0
         filas = list(c.execute(text(f"""
             select u.nombre_universidad, m.nombre_metrica, x.{anio}, x.{valor}
             from {tabla} x
@@ -448,7 +453,16 @@ def verificar_scimago(filas_salida) -> None:
             join ranking r on r.id_ranking = m.id_ranking
             join universidad u on u.id_universidad = x.id_universidad
             where r.nombre_ranking = 'Scimago Latam'""")))
-    print(f"  cifras leídas de {tabla}")
+    print(f"  cifras leídas de {tabla}"
+          + (f", ediciones = ventana + {desfase} años" if desfase else ""))
+
+    recolectado: dict = {}
+    for fila in descargado:
+        try:
+            recolectado[(fila["universidad"], fila["variable"],
+                         int(fila["anio_dato"]) + desfase)] = float(fila["valor"])
+        except (TypeError, ValueError):
+            continue
 
     print(f"  {len(filas)} valores de Scimago en la base\n")
     print(f"    {'métrica':32} {'pares':>6} {'iguales':>8} {'desvío mediano':>15}")

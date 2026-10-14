@@ -73,7 +73,7 @@ una palabra traducida las otras dos.
 |---|---|---|---|
 | QS Latam | `QS Latam` | puntajes de 0 a 100 que publica QS, por indicador | la más reciente cargada (hoy 2026) |
 | THE Latam | `THE Latam` | puntajes de 0 a 100 que publica THE, **por pilar** | la más reciente (hoy 2026) |
-| Scimago | `Scimago Latam` | valores medidos (`valor_real_universidad`) | la más reciente (hoy 2023) |
+| Scimago | `Scimago Latam` | valores medidos (`valor_real_universidad`) | la más reciente (hoy 2025, con publicaciones 2019-2023) |
 | Ranking KAI | `Ranking KAI` | valores medidos | la más reciente (hoy 2025) |
 
 QS y THE van en puntajes porque sus encuestas de reputación no tienen cifra

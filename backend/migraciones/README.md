@@ -22,6 +22,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `014_precios_en_pesos.sql` | Columnas `plan.precio_mensual_clp` —el precio en pesos que muestra la portada: $ 27.400 / 93.700 / 463.500, netos— y `plan.precio_lista_clp`, el de referencia que se muestra tachado con «Descuento de lanzamiento» ($ 30.000 / 100.000 / 500.000; NULL lo quita). **Aplicarla antes de desplegar el backend**: `/planes` las lee | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `015_solicitudes_de_contacto.sql` | Tabla `solicitud_contacto`: cada solicitud del formulario «Contratar ahora», guardada antes de enviarse por correo, con `enviado` y `error_envio`. Datos personales: vetada al asistente y sin filas en el volcado de pruebas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `016_consultas_de_prueba.sql` | El plan gratuito pasa de «una consulta cada tres días» a 3 consultas al asistente por cuenta, que no se reponen: columnas `plan.mensajes_totales` y `usuario.consultas_asistente` (arranca con las preguntas del historial). **Aplicarla antes de desplegar el backend**: la sesión y `/planes` leen las columnas nuevas | aplicada (30-09-2026) | aplicada (30-09-2026) |
+| `017_scimago_por_edicion.sql` | Scimago pasa a guardarse con el año de su **edición** y no con el que cierra su ventana de publicaciones: 2018…2023 se corre a 2020…2025 (la edición 2025 usa 2019-2023), en puntajes y cifras. Solo datos, sin cambios de esquema. Requiere la 011 | aplicada (14-10-2026) | **pendiente** |
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las
@@ -275,3 +276,35 @@ las cifras:
 
 Un ranking sin cifras (Shanghai, QS por Disciplina) muestra sus puntajes en
 cualquier modo, con un aviso.
+
+## 017: el año de Scimago es el de su edición
+
+SCImago Institutions Rankings arma cada edición con los cinco años de
+publicaciones que terminan dos antes: la edición 2025 usa 2019-2023, y la
+descarga de la 2026 (`year=2026`) trae la ventana 2020-2024. La base guardaba
+cada ventana con su último año, así que la plataforma mostraba «Scimago 2023»
+como lo más reciente cuando era la edición 2025. THE y QS ya se guardaban por
+edición.
+
+La 017 corre dos años las dos tablas que guardan el año de Scimago
+(`metrica_universidad.anio_metrica` y `valor_real_universidad.anio_edicion`); las
+cifras, los percentiles y `anios_origen` —que ya decía la ventana correcta— no
+cambian. Reconoce una base sin corregir porque sus cifras tienen una ventana que
+cierra en su propio año de edición, de modo que una segunda ejecución no mueve
+nada, y aborta si alguna cifra queda con otra ventana que «cinco años que
+terminan dos antes» o si algún percentil queda sin su cifra del mismo año.
+
+Se probó dos veces seguidas sobre una base cargada con `datos_de_prueba.sql`, y
+`calibrar.py` empareja ahora cada ventana descargada con la edición E = ventana + 2
+(coinciden las 6.120 cifras, desvío 0,00 %). El volcado de integración continua
+se regeneró con la 017 aplicada.
+
+Para Railway, sin pasos adicionales:
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/017_scimago_por_edicion.sql
+```
+
+Debe terminar con `NOTICE: Edición más reciente de Scimago Latam: 2025`. El
+backend no necesita desplegarse antes ni después: todas las pantallas y las
+consultas guiadas leen el año más reciente desde la base.

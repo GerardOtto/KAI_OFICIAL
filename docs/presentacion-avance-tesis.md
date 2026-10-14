@@ -223,7 +223,7 @@ Visual — **tabla** con una columna de barras para «Filas»:
 |---|---:|---:|---|---:|---:|
 | THE Latam | 22 | 1 | 2016–2026 | 35 | 1.340 |
 | QS Latam | 10 | 1 | 2024–2026 | 41 | 1.046 |
-| Scimago Latam | 20 | 1 | 2018–2023 | 57 | 6.120 |
+| Scimago Latam | 20 | 1 | 2020–2025 | 57 | 6.120 |
 | Shanghai GRAS | 836 | 57 | 2017–2025 | 22 | 2.542 |
 | QS Global | 10 | 1 | 2024–2027 | 25 | 870 |
 | Shanghai ARWU | 6 | 1 | 2003–2025 | 5 | 323 |

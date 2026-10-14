@@ -120,7 +120,7 @@ console.log("\n=== 3. El reporte PDF de un informe de brechas ===");
 const INFORME = [
   "> **Cómo leer este informe**",
   "> **Hoy:** la cifra real de la universidad: un porcentaje, una cantidad o una razón, según la métrica.",
-  "> **Lugar:** su posición entre las 57 universidades chilenas de Scimago 2023 en cada métrica (el 1.º es el mejor).",
+  "> **Lugar:** su posición entre las 57 universidades chilenas de Scimago 2025 en cada métrica (el 1.º es el mejor).",
   "> **Influencia:** cuánto pesa la métrica en el puntaje total del ranking: alta (10 % o más), media (5 % a 10 %) o baja.",
   "> **Metas:** la cifra que hoy tiene la universidad ubicada en ese lugar. Alcanzarla permitiría llegar ahí.",
   "> **Prioridad:** las dos métricas que más pueden subir su puntaje total.",
@@ -149,7 +149,7 @@ const INFORME = [
   "",
   ...Array.from({ length: 7 }, (_, i) => `- **Métrica ${i + 1}:** lo que mide, explicado en una frase.`),
   "",
-  "*Fuente: SCImago Institutions Rankings 2023 (datos de Scopus), la edición más reciente cargada en KAI.*",
+  "*Fuente: SCImago Institutions Rankings 2025 (datos de Scopus), la edición más reciente cargada en KAI.*",
 ].join("\n");
 
 const pdf = await ev(`

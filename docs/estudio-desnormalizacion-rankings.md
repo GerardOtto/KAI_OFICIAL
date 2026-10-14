@@ -31,7 +31,7 @@ citadas aquí).
 |---|---|---|---|
 | THE (id 1) | Solo los 5 pilares (`Teaching`, `Research Environment`, `Research Quality`, `Industry`, `International Outlook`, ids 1692–1696). Las 17 métricas internas (ids 1–17) están definidas pero **sin valores**. | Puntaje 0–100 del ranking **THE Latin America** | 2016–2024, 2026 |
 | QS (id 2) | 8 indicadores de QS Latam (ids 18–25) + mezcla de estudiantes (1688–1689) | Puntaje 0–100 (1688–1689 son % reales) | 2025 |
-| Scimago (id 3) | 19 indicadores (ids 26–43, 1690–1691) | **Valor crudo** (conteos, %, razones) | Ventanas 2014–2018 … 2019–2023, guardadas con el último año (2018 … 2023) |
+| Scimago (id 3) | 19 indicadores (ids 26–43, 1690–1691) | **Valor crudo** (conteos, %, razones) | Ventanas 2014–2018 … 2019–2023, de las ediciones 2020 … 2025 (desde la migración 017; antes se guardaban con el último año de la ventana) |
 
 Observaciones:
 

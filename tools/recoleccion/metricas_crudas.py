@@ -83,7 +83,9 @@ DESFASES = {
     # International Faculty Ratio: 0,43 en E-0 contra 0,70 en E-4.
     "QS Latam": {"institucional": 4, "ventana": (-6, -2)},
     "QS Global": {"institucional": 4, "ventana": (-6, -2)},
-    "Scimago Latam": {"institucional": 0, "ventana": (-4, 0)},
+    # Scimago: la edición 2025 usa las publicaciones 2019-2023, y la descarga de la
+    # 2026 trae la ventana 2020-2024. La base lo sigue desde la migración 017.
+    "Scimago Latam": {"institucional": 0, "ventana": (-6, -2)},
 }
 
 
