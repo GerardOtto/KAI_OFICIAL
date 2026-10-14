@@ -39,12 +39,12 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 |---|---|
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
-| `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados, descargas contadas y asistente por dominio |
+| `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados (y sus cifras fuera del glosario del plan gratuito), descargas contadas y asistente por dominio |
 | `contacto` | Formulario «Contratar ahora»: se guarda y se envía (con el correo sustituido por un doble), no se pierde si el correo falla, valida, frena robots y abusos, y el asistente no lo lee |
 | `dominios` | Catálogo de dominios institucionales, institución asignada al entrar con Google y no editable, correos parecidos que no se confunden y el asistente cerrado a las cuentas con contraseña |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |
 | `ranking-kai` | Ranking KAI: pesos parejos que suman 100, las diez métricas en cada universidad y año, percentiles reproducibles desde el valor medido y abierto al plan gratuito |
-| `valores-reales` | Modo numérico: cobertura por componentes y no por pilares, calidades, solo ediciones publicadas y universidades clasificadas, Scimago idéntico a su tabla, THE y QS reservados |
+| `valores-reales` | Modo numérico: cobertura por componentes y no por pilares, calidades, solo ediciones publicadas y universidades clasificadas, Scimago idéntico a su tabla, THE y QS reservados, el pilar de cada indicador, el glosario con la edición más reciente de cada ranking y el resumen de GRAS por disciplina |
 | `consultas-guiadas` | Los cuatro informes de brechas de los botones del chat: genera los mensajes con Node desde el módulo del frontend, ejecuta cada SQL con `consulta_sql`, comprueba el formato del informe, el plan gratuito, las cifras del informe de Scimago validado y que `/chat` entregue el informe exacto aunque el modelo lo copie con una errata. **Necesita Node** en el PATH |
 | `motor-gemini` | Ciclo de herramientas, contabilidad de tokens y traducción de errores |
 | `busqueda-web` | Internet como herramienta que el modelo pide, cuota agotada y cadena de modelos |

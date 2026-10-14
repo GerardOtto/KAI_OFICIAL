@@ -1,4 +1,5 @@
 import { useInstituciones } from "../hooks/useInstituciones";
+import { nombreUniversidad } from "../utils/universidades";
 
 /** Desplegable de institución. Es obligatorio en el registro, así que se
  *  declara `required` y no ofrece una opción vacía seleccionable. */
@@ -19,8 +20,10 @@ export default function SelectorInstitucion({ valor, onChange, disabled, id = "i
           {instituciones.length ? "Selecciona tu institución" : "Cargando instituciones…"}
         </option>
         {instituciones.map((i) => (
+          // El valor es el nombre de la base, que es lo que el servidor reconoce;
+          // la etiqueta, el nombre con sus tildes.
           <option key={i.id_universidad} value={i.nombre_universidad}>
-            {i.nombre_universidad}
+            {nombreUniversidad(i.nombre_universidad)}
           </option>
         ))}
       </select>

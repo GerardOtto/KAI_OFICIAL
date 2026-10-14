@@ -25,6 +25,7 @@ import {
   alturaLinea, crearDocumento, pies, portada as portadaComun,
 } from "./documento";
 import { esDestacada, formatearValor, leerGrafico } from "./grafico";
+import { nombreUniversidad } from "../utils/universidades";
 
 const TITULO_REPORTE = "Reporte ejecutivo de análisis institucional";
 
@@ -405,7 +406,7 @@ export function comoPregunta(texto) {
  */
 export function datosDeCabecera({ fecha, usuario, motor, nSecciones }) {
   return [
-    usuario?.institucion && `Institución: ${usuario.institucion}`,
+    usuario?.institucion && `Institución: ${nombreUniversidad(usuario.institucion)}`,
     usuario?.nombre && `Solicitado por: ${usuario.nombre}`,
     motor && `Asistente: ${motor}`,
     `Emitido: ${fecha}`,

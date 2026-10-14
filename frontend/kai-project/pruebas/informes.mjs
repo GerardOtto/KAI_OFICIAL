@@ -213,6 +213,19 @@ comprobar("abarca varios rankings: no dice «Ranking usado»", !/RANKING USADO/.
 comprobar("no vuelca las métricas una por una: cabe en dos páginas", glosario.sin.paginas <= 2, glosario.sin.paginas);
 comprobar("sin valores de la institución, no agrega una matriz en blanco", !/Valores de/.test(glosario.sin.texto));
 comprobar("con institución y año, agrega sus valores", /Valores de Universidad Propia en 2024/.test(glosario.con.texto));
+// Sin año, cada ranking aporta su edición más reciente: el informe lo dice.
+const glosarioReciente = await ev(`
+  const { construirInformeGlosario } = window.__kai.glosario;
+  const rankings = [{ id: 1, nombre: 'Ranking A' }, { id: 2, nombre: 'Ranking B' }];
+  const dimensiones = ['Docencia', 'Investigación'].map(nombre => ({ nombre,
+    celdas: { 1: { peso: 20, valor: 55.5 }, 2: { peso: 10, valor: 40 } } }));
+  const { doc } = await construirInformeGlosario({ rankings, dimensiones, totalMetricas: 10, numerico: false,
+    usuario: window.__kai.datos.usuario, institucion: 'Universidad Propia', anio: null, ediciones: { 1: 2026, 2: 2025 } });
+  return window.__kai.leer(doc).texto;
+`);
+comprobar("sin año, toma la edición más reciente de cada ranking y lo dice",
+  /Valores de Universidad Propia en la edición más reciente de cada ranking/.test(glosarioReciente.replace(/\s+/g, " ")),
+  glosarioReciente.slice(0, 300));
 comprobar("explica la marca de los multidisciplinarios y la de referencia",
   /multidisciplinario/.test(glosario.sin.texto) && /ref/.test(glosario.sin.texto));
 

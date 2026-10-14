@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useInstituciones } from "../../hooks/useInstituciones";
+import { nombreUniversidad } from "../../utils/universidades";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -119,7 +120,7 @@ export default function ContactoModal({ planes, planInicial, onClose }) {
                      maxLength={200} className={campo} placeholder="Escribe o elige de la lista"
                      value={form.institucion} onChange={cambiar("institucion")} disabled={enviando} />
               <datalist id="c-instituciones">
-                {instituciones.map((i) => <option key={i.id_universidad} value={i.nombre_universidad} />)}
+                {instituciones.map((i) => <option key={i.id_universidad} value={nombreUniversidad(i.nombre_universidad)} />)}
               </datalist>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

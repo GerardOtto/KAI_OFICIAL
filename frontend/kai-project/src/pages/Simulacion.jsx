@@ -1,9 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
 import { useAnios } from "../hooks/useAnios";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useMetricas } from "../hooks/useMetricas";
+import { useRankingResumen } from "../hooks/useRankingResumen";
+import { useAuth } from "../auth/AuthContext";
+import SelectorUniversidad from "../components/SelectorUniversidad";
 import SimulacionUnitaria from "../components/simulacion/SimulacionUnitaria";
 import SimulacionComparada from "../components/simulacion/SimulacionComparada";
 import AgenteIA from "../components/simulacion/AgenteIA";
@@ -11,6 +14,7 @@ import SimulacionUnitariaCifras from "../components/simulacion/SimulacionUnitari
 import SimulacionComparadaCifras from "../components/simulacion/SimulacionComparadaCifras";
 import AvisoModo from "../components/data/AvisoModo";
 import { useModoValores } from "../estado/ModoValores";
+import { idDeInstitucion } from "../utils/universidades";
 
 // Mismo selector que las vistas de Tendencias. El modo vive en la URL
 // (/simulacion/:modo), así que sigue siendo direccionable por enlace.
@@ -19,6 +23,12 @@ const MODOS = [
   { modo: "comparada", label: "Comparada", sub: "varias instituciones · matriz" },
 ];
 
+// Comparada arranca con la institución de la cuenta y las primeras del ranking.
+const COMPARADAS_INICIALES = 4;
+
+const claseControl =
+  "bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40";
+
 export default function Simulacion() {
   const { modo: modoParam } = useParams();
   const navigate = useNavigate();
@@ -26,14 +36,17 @@ export default function Simulacion() {
 
   // Igual que en Tendencias: la elección inicial la fija el catálogo.
   const [rankingId, setRankingId] = useState(null);
+  // Lo que eligió el usuario; null = lo que corresponda por defecto.
   const [anio, setAnio] = useState(null);
-  const [institucionUnitaria, setInstitucionUnitaria] = useState(null);
-  const [institucionesComparada, setInstitucionesComparada] = useState([]);
-  const [disciplinaFiltro, setDisciplinaFiltro] = useState(null);
-  const [showPicker, setShowPicker] = useState(false);
-  const [searchUni, setSearchUni] = useState("");
+  const [disciplina, setDisciplina] = useState(null);
+  // `undefined` = sin tocar: la institución de la cuenta (y, en Comparada, las
+  // primeras del ranking). Lo elegido se conserva al cambiar de ranking: antes
+  // se borraba y había que volver a buscar cada institución.
+  const [unitariaElegida, setUnitariaElegida] = useState(undefined);
+  const [comparadasElegidas, setComparadasElegidas] = useState(undefined);
 
   const { rankings } = useRankingsPermitidos(rankingId, setRankingId);
+  const { usuario } = useAuth();
 
   // Switch global. En «Valores» se simula sobre la cifra real solo donde el
   // puntaje es su percentil (Ranking KAI, Scimago); en los demás rankings se
@@ -47,6 +60,10 @@ export default function Simulacion() {
     : rankingSel.normalizacion !== "percentil" ? "noSimulable" : null;
 
   const anios = useAnios(rankingId, enCifras ? "numerico" : "puntajes");
+  // El año elegido si este ranking lo tiene; si no, su edición más reciente. Se
+  // resuelve aquí y no en un efecto: el efecto corría con los años del ranking
+  // anterior y dejaba, por ejemplo, el Ranking KAI en 2023 en vez de 2025.
+  const anioActivo = anios.length ? (anio && anios.includes(anio) ? anio : anios[0]) : null;
   const { universidades } = useUniversidades();
   const metricasRanking = useMetricas(rankingId);
 
@@ -54,27 +71,47 @@ export default function Simulacion() {
     () => [...new Set(metricasRanking.map(m => m.disciplina).filter(d => d && d !== "General"))].sort(),
     [metricasRanking]
   );
+  // Un ranking multidisciplinario se simula disciplina por disciplina: cada una
+  // reparte sus propios pesos al 100 %, y la opción «Todas» sumaba esos totales en
+  // uno que no corresponde a ninguna clasificación.
+  const disciplinaActiva = disciplinas.length
+    ? (disciplina && disciplinas.includes(disciplina) ? disciplina : disciplinas[0])
+    : null;
 
-  useEffect(() => {
-    if (anios.length && (!anio || !anios.includes(anio))) setAnio(anios[0]);
-  }, [anios, anio]);
+  // Quiénes figuran en lo que se está viendo: el selector lo marca y la página
+  // avisa por las elegidas que no aparecen.
+  const resumen = useRankingResumen(rankingId, anioActivo, disciplinaActiva);
+  const conDatos = useMemo(
+    () => (resumen.loading || !anioActivo ? null : new Set(resumen.data.map(u => u.id_universidad))),
+    [resumen.loading, resumen.data, anioActivo]
+  );
 
-  const rankingNombre = rankings.find(r => r.id_ranking === rankingId)?.nombre_ranking || "";
+  const propia = useMemo(
+    () => idDeInstitucion(usuario?.institucion, universidades),
+    [usuario, universidades]
+  );
+  const institucionUnitaria = unitariaElegida === undefined ? propia : unitariaElegida;
+  const institucionesComparada = useMemo(() => {
+    if (comparadasElegidas !== undefined) return comparadasElegidas;
+    const primeras = resumen.data.map(u => u.id_universidad);
+    return [...new Set([propia, ...primeras].filter(Boolean))].slice(0, COMPARADAS_INICIALES);
+  }, [comparadasElegidas, propia, resumen.data]);
 
-  const unisFiltradas = useMemo(() => {
-    if (!universidades) return [];
-    return universidades.filter(u => u.nombre_universidad.toLowerCase().includes(searchUni.toLowerCase())).slice(0, 30);
-  }, [universidades, searchUni]);
+  const rankingNombre = rankingSel?.nombre_ranking || "";
+  const nombreDe = (id) => universidades?.find(u => u.id_universidad === id)?.nombre_universidad;
+  const nombreUnitaria = nombreDe(institucionUnitaria);
+
+  const elegidasAhora = modo === "unitaria"
+    ? (institucionUnitaria ? [institucionUnitaria] : [])
+    : institucionesComparada;
+  const faltantes = conDatos ? elegidasAhora.filter(id => !conDatos.has(id)) : [];
+  const dondeSeVe = [rankingNombre, disciplinaActiva, anioActivo].filter(Boolean).join(" · ");
 
   const handleRankingChange = (id) => {
     setRankingId(id);
     setAnio(null);
-    setInstitucionUnitaria(null);
-    setInstitucionesComparada([]);
-    setDisciplinaFiltro(null);
+    setDisciplina(null);
   };
-
-  const nombreUnitaria = universidades?.find(u => u.id_universidad === institucionUnitaria)?.nombre_universidad;
 
   return (
     <div className="min-h-screen bg-background text-white">
@@ -83,7 +120,7 @@ export default function Simulacion() {
         {/* Título */}
         <section className="mb-1">
           <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
-            Simulación · {rankingNombre} · {anio ?? "—"} · modo {modo}{enCifras ? " · cifras medidas" : ""}
+            Simulación · {rankingNombre}{disciplinaActiva ? ` · ${disciplinaActiva}` : ""} · {anioActivo ?? "—"} · modo {modo}{enCifras ? " · cifras medidas" : ""}
           </p>
           <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
             Simulación de escenarios
@@ -113,14 +150,14 @@ export default function Simulacion() {
           })}
         </div>
 
-        {/* Controles: ranking / año / instituciones */}
+        {/* Controles: ranking / año / disciplina / instituciones */}
         <div className="flex items-end gap-3 flex-wrap py-4 mb-2 border-b border-white/[.08]">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Ranking</p>
             <select
-              value={rankingId}
+              value={rankingId ?? ""}
               onChange={e => handleRankingChange(Number(e.target.value))}
-              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
+              className={claseControl}
             >
               {rankings.map(r => (
                 <option key={r.id_ranking} value={r.id_ranking} disabled={r.restringido}>
@@ -133,9 +170,9 @@ export default function Simulacion() {
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Año</p>
             <select
-              value={anio || ""}
+              value={anioActivo || ""}
               onChange={e => setAnio(Number(e.target.value))}
-              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
+              className={claseControl}
             >
               {anios.map(a => (
                 <option key={a} value={a}>{a}</option>
@@ -147,11 +184,10 @@ export default function Simulacion() {
             <div>
               <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Disciplina</p>
               <select
-                value={disciplinaFiltro || ""}
-                onChange={e => setDisciplinaFiltro(e.target.value || null)}
-                className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 focus:outline-none focus:border-white/40"
+                value={disciplinaActiva || ""}
+                onChange={e => setDisciplina(e.target.value)}
+                className={`${claseControl} max-w-[260px]`}
               >
-                <option value="">Todas</option>
                 {disciplinas.map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -159,83 +195,48 @@ export default function Simulacion() {
             </div>
           )}
 
-          <div className="relative">
+          <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">
               {modo === "unitaria" ? "Institución" : `Instituciones (${institucionesComparada.length})`}
             </p>
-            <button
-              onClick={() => setShowPicker(v => !v)}
-              className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 min-w-[220px] text-left flex items-center justify-between gap-3 hover:border-white/30 transition-colors"
-            >
-              <span className="truncate">
-                {modo === "unitaria"
-                  ? nombreUnitaria || "Seleccionar..."
-                  : institucionesComparada.length ? `${institucionesComparada.length} seleccionadas` : "Seleccionar..."}
-              </span>
-              <span className="text-[8px] text-outlineSoft shrink-0">▾</span>
-            </button>
-
-            {showPicker && (
-              <div className="absolute top-full left-0 mt-1 w-[300px] bg-[#1a1a1a] border border-white/[.18] shadow-[0_12px_32px_rgba(0,0,0,.5)] z-30">
-                <div className="p-2 border-b border-white/[.1]">
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Buscar..."
-                    value={searchUni}
-                    onChange={e => setSearchUni(e.target.value)}
-                    className="w-full bg-transparent text-white text-xs px-2 py-1.5 outline-none placeholder:text-outlineSoft"
-                  />
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {unisFiltradas.map(u => {
-                    const seleccionada = modo === "unitaria"
-                      ? institucionUnitaria === u.id_universidad
-                      : institucionesComparada.includes(u.id_universidad);
-                    return (
-                      <button
-                        key={u.id_universidad}
-                        onClick={() => {
-                          if (modo === "unitaria") {
-                            setInstitucionUnitaria(u.id_universidad);
-                            setShowPicker(false);
-                          } else {
-                            setInstitucionesComparada(prev =>
-                              prev.includes(u.id_universidad) ? prev.filter(id => id !== u.id_universidad) : [...prev, u.id_universidad]
-                            );
-                          }
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                          seleccionada ? "bg-white/[.08] text-white" : "text-[#9a9a9a] hover:text-white hover:bg-white/[.04]"
-                        }`}
-                      >
-                        {u.nombre_universidad}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <SelectorUniversidad
+              universidades={universidades}
+              multiple={modo === "comparada"}
+              valor={modo === "unitaria" ? institucionUnitaria : institucionesComparada}
+              onCambio={modo === "unitaria" ? setUnitariaElegida : setComparadasElegidas}
+              idPropia={propia}
+              conDatos={conDatos}
+              placeholder="Seleccionar..."
+              claseBoton={`${claseControl} min-w-[240px] max-w-[340px] text-left flex items-center justify-between gap-3 hover:border-white/30 transition-colors`}
+            />
           </div>
         </div>
 
         {aviso && <AvisoModo tipo={aviso} ranking={rankingNombre} />}
 
+        {faltantes.length > 0 && (
+          <p className="mb-3 text-[11.5px] leading-relaxed text-warn">
+            {modo === "unitaria"
+              ? `${nombreDe(faltantes[0]) || "La institución elegida"} no figura en ${dondeSeVe}. Elige otra institución o cambia de ranking, de año o de disciplina.`
+              : `No figuran en ${dondeSeVe}: ${faltantes.map(id => nombreDe(id) || id).join(", ")}. Se comparan las demás.`}
+          </p>
+        )}
+
         {/* Cuerpo por modo */}
         {enCifras ? (
           modo === "unitaria" ? (
             <SimulacionUnitariaCifras
-              key={`${rankingId}-${anio}-${institucionUnitaria}`}
+              key={`${rankingId}-${anioActivo}-${institucionUnitaria}`}
               rankingId={rankingId}
-              anio={anio}
+              anio={anioActivo}
               rankingNombre={rankingNombre}
               universidadId={institucionUnitaria}
             />
           ) : (
             <SimulacionComparadaCifras
-              key={`${rankingId}-${anio}`}
+              key={`${rankingId}-${anioActivo}`}
               rankingId={rankingId}
-              anio={anio}
+              anio={anioActivo}
               rankingNombre={rankingNombre}
               selectedUniversidades={institucionesComparada}
             />
@@ -243,23 +244,28 @@ export default function Simulacion() {
         ) : modo === "unitaria" ? (
           <SimulacionUnitaria
             rankingId={rankingId}
-            anio={anio}
+            anio={anioActivo}
             rankingNombre={rankingNombre}
             universidadId={institucionUnitaria}
-            disciplinaFiltro={disciplinaFiltro}
+            disciplinaFiltro={disciplinaActiva}
           />
         ) : (
           <SimulacionComparada
             rankingId={rankingId}
-            anio={anio}
+            anio={anioActivo}
             rankingNombre={rankingNombre}
             selectedUniversidades={institucionesComparada}
-            disciplinaFiltro={disciplinaFiltro}
+            disciplinaFiltro={disciplinaActiva}
           />
         )}
       </main>
 
-      <AgenteIA />
+      <AgenteIA
+        rankingNombre={rankingNombre}
+        anio={anioActivo}
+        disciplina={disciplinaActiva}
+        institucion={modo === "unitaria" ? nombreUnitaria : nombreDe(propia)}
+      />
     </div>
   );
 }

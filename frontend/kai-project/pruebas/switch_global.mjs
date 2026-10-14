@@ -105,19 +105,32 @@ console.log("\n=== 4. Simulación en cifras (Ranking KAI) ===");
 await ir("/simulacion/unitaria", 3000);
 await elegirRanking("Ranking KAI");
 await esperar(2500);
-await ev(`[...document.querySelectorAll('button')].find(b => /Seleccionar/.test(b.textContent))?.click();`);
+// La unitaria arranca con la institución de la cuenta; se cambia a la PUCV con el
+// selector compartido para fijar la institución de la prueba.
+comprobar("la unitaria arranca con una institución elegida",
+  !/Seleccionar/.test(await ev(`return document.querySelector('main button[aria-expanded]')?.textContent || '';`)));
+await ev(`document.querySelector('main button[aria-expanded]')?.click();`);
 await esperar(500);
-await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Pontificia Universidad Catolica de Valparaiso')?.click();`);
+await ev(`[...document.querySelectorAll('main [role=option]')].find(b => /^Pontificia Universidad Católica de Valparaíso/.test(b.textContent.trim()))?.click();`);
 await esperar(3500);
 const controles = await ev(`return document.querySelectorAll('input[type=range][id^=cifra-]').length;`);
 comprobar("aparecen los diez controles sobre la cifra real", controles === 10, controles);
 const antes = await ev(`return [...document.querySelectorAll('span')].find(s => /^\\d+,\\d$|^\\d+\\.\\d$/.test(s.textContent.trim()) && s.className.includes('text-[26px]'))?.textContent;`);
-await ev(`
-  const i = [...document.querySelectorAll('input[type=range][id^=cifra-]')]
-    .find(x => /Doctorados otorgados/.test(document.querySelector('label[for=' + x.id + ']')?.textContent || ''));
+// Se lleva al tope el componente en que la institución está más atrás, sin
+// contar los de «menos es mejor»: en uno donde ya supera a todas, subir la cifra
+// no cambia el puntaje. Antes era siempre «Doctorados otorgados», que la PUCV
+// encabeza en la edición 2025.
+const movida = await ev(`
+  const filas = [...document.querySelectorAll('input[type=range][id^=cifra-]')].map(i => {
+    const texto = i.parentElement.textContent;
+    return { id: i.id, menor: /menos es mejor/.test(texto), supera: Number((texto.match(/supera al (\\d+)/) || [])[1] ?? 100) };
+  }).filter(f => !f.menor).sort((a, b) => a.supera - b.supera);
+  const i = document.getElementById(filas[0].id);
   const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
   set.call(i, i.max); i.dispatchEvent(new Event('input', { bubbles: true }));
+  return document.querySelector('label[for=' + i.id + ']')?.textContent + ' (supera al ' + filas[0].supera + ' %)';
 `);
+console.log(`  · se movió ${movida}`);
 await esperar(600);
 const despues = await ev(`return [...document.querySelectorAll('span')].find(s => s.className.includes('text-[26px]'))?.textContent;`);
 comprobar("mover una cifra cambia el puntaje", antes && despues && antes !== despues, `${antes} -> ${despues}`);
@@ -129,11 +142,10 @@ await capturar("switch_simulacion_cifras");
 
 await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('Comparada'))?.click();`);
 await esperar(2000);
-// En la comparada hay que elegir instituciones; si no, la vista pide hacerlo.
-await ev(`[...document.querySelectorAll('button')].find(b => /Seleccionar/.test(b.textContent))?.click();`);
-await esperar(500);
-await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Pontificia Universidad Catolica de Valparaiso')?.click();`);
-await esperar(2500);
+// La comparada arranca con la institución de la cuenta y las primeras del
+// ranking: no hace falta elegir nada para ver la matriz.
+comprobar("la comparada arranca con instituciones elegidas",
+  /\d+ seleccionadas/.test(await ev(`return document.querySelector('main button[aria-expanded]')?.textContent || '';`)));
 comprobar("la simulación comparada también opera en cifras",
   /Cifras medidas\. Haz clic en una celda/.test(await ev(`return document.body.textContent;`)));
 
@@ -155,6 +167,34 @@ if (process.env.KAI_TOKEN_PAGO) {
   comprobar("aparece el aviso de que THE no se puede recalcular desde la cifra",
     /no se puede recalcular desde la cifra medida/.test(await avisoTipo()), await avisoTipo());
   comprobar("no aparecen controles sobre cifras", (await ev(`return document.querySelectorAll('input[type=range][id^=cifra-]').length;`)) === 0);
+
+  console.log("\n=== 7. Tendencias: el modo no cambia la métrica elegida ===");
+  // THE publica puntajes por pilar y KAI mide sus cifras por indicador. Antes, al
+  // pasar a Valores la selección se reemplazaba por la primera métrica de la lista
+  // y al volver ya no era la que el usuario había elegido.
+  await ev(`${switchHeader("Puntajes")}.click();`);
+  await ir("/tendencias", 3000);
+  await elegirRanking("THE Latam");
+  await esperar(3000);
+  await ev(`
+    const s = [...document.querySelectorAll('main select')].find(s => [...s.options].some(o => o.text.startsWith('Research Quality')));
+    const o = [...s.options].find(o => o.text.startsWith('Research Quality'));
+    const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    set.call(s, o.value); s.dispatchEvent(new Event('change', { bubbles: true }));`);
+  await esperar(2500);
+  const titulo = () => ev(`return document.querySelector('main h2')?.textContent.trim() || '';`);
+  const instituciones = () => ev(`return [...document.querySelectorAll('main span[title]')].map(s => s.getAttribute('title')).join('|');`);
+  const antesTitulo = await titulo();
+  const antesInst = await instituciones();
+  await ev(`${switchHeader("Valores")}.click();`);
+  await esperar(3000);
+  const enValores = await titulo();
+  comprobar("en Valores muestra un indicador del mismo pilar",
+    /Citation impact|Research strength|Research excellence|Research influence/.test(enValores), enValores);
+  await ev(`${switchHeader("Puntajes")}.click();`);
+  await esperar(3000);
+  comprobar("al volver a Puntajes la métrica es la elegida", (await titulo()) === antesTitulo, `${antesTitulo} / ${await titulo()}`);
+  comprobar("y las instituciones son las mismas", (await instituciones()) === antesInst);
 }
 
 console.log("\n=== Sin errores en la consola ===");

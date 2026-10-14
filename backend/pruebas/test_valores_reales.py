@@ -207,6 +207,12 @@ try:
               [m["nombre_metrica"] for m in met_n][:5])
     met_p = cliente.get(f"/metricas-con-datos?ranking_id={the_id}", headers=pago).json()
     comprobar("en puntajes, siguen siendo los pilares", any(m["nombre_metrica"] == "Teaching" for m in met_p))
+    # El pilar de cada indicador viaja con la lista: Tendencias lo usa para que la
+    # métrica elegida no cambie al alternar Puntajes y Valores.
+    pilares = {m["id_metrica"] for m in met_p}
+    comprobar("cada indicador de THE con cifra trae su pilar, y el pilar tiene puntaje",
+              met_n and all(m["id_metrica_padre"] in pilares for m in met_n),
+              [(m["nombre_metrica"], m["id_metrica_padre"]) for m in met_n if m["id_metrica_padre"] not in pilares][:3])
 
     id_ssr = next(m["id_metrica"] for m in cliente.get(f"/valores-reales?ranking_id={kai_id}", headers=gratis).json()["metricas"]
                   if m["nombre_metrica"] == "Estudiantes por académico")
@@ -245,10 +251,35 @@ try:
                        headers=gratis).json()
     comprobar("el glosario numérico trae la cifra con su unidad",
               glos and all(f["unidad"] for f in glos), glos[:1])
+    # Sin año, cada ranking aporta su edición más reciente con datos de la
+    # universidad: un mismo año para todos dejaba columnas enteras vacías.
+    sin_anio = cliente.get("/valores-metrica-universidad",
+                           params={"tipo": "Alumnado", "universidad_id": 2, "modo": "numerico"}, headers=pago).json()
+    ediciones = {}
+    for f in sin_anio:
+        ediciones.setdefault(f["id_ranking"], set()).add(f["anio_metrica"])
+    comprobar("sin año, el glosario trae una sola edición por ranking",
+              sin_anio and all(len(a) == 1 for a in ediciones.values()), ediciones)
+    comprobar("y en el Ranking KAI es la más reciente", ediciones.get(kai_id) == {ultimo}, ediciones.get(kai_id))
 
     print("\n=== 7. Un ranking sin valores medidos ===")
     gras = cliente.get(f"/valores-reales?ranking_id={ids['Shanghai GRAS']}", headers=gratis).json()
     comprobar("Shanghai GRAS responde sin años ni valores", gras["anios"] == [] and gras["valores"] == [], gras["anios"])
+
+    # Un ranking multidisciplinario se resume por disciplina: cada una reparte su
+    # propio 100 %, y sin acotarla el total sumaba todas (más de 1.600 «puntos»).
+    gras_id = ids["Shanghai GRAS"]
+    anio_gras = max(cliente.get(f"/anios?ranking_id={gras_id}", headers=gratis).json())
+    disciplinas = sorted({m["disciplina"] for m in
+                          cliente.get(f"/metricas-con-datos?ranking_id={gras_id}", headers=gratis).json()})
+    una = cliente.get("/ranking-resumen", params={"ranking_id": gras_id, "anio": anio_gras,
+                                                  "disciplina": disciplinas[0]}, headers=gratis).json()
+    todas = cliente.get("/ranking-resumen", params={"ranking_id": gras_id, "anio": anio_gras}, headers=gratis).json()
+    comprobar("el resumen de una disciplina de GRAS queda en la escala de 0 a 100",
+              una and max(float(f["score_total"]) for f in una) <= 100.5,
+              max((float(f["score_total"]) for f in una), default=None))
+    comprobar("y no es la suma de todas las disciplinas",
+              max(float(f["score_total"]) for f in todas) > max(float(f["score_total"]) for f in una))
 finally:
     db = main.SessionLocal()
     db.execute(text("DELETE FROM usuario WHERE id_usuario = ANY(:ids)"), {"ids": usuarios})

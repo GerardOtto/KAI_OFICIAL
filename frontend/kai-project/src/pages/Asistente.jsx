@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
 import Cargando from "../components/asistente/Cargando";
@@ -14,12 +15,6 @@ import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 
 const hora = (fecha) =>
   new Date(fecha).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-const PaperclipIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21.44 11.05 12.5 20a5 5 0 0 1-7.07-7.07l8.94-8.94a3.5 3.5 0 0 1 4.95 4.95L10.4 17.87a2 2 0 0 1-2.83-2.83l7.78-7.78" />
-  </svg>
-);
 
 const SendIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -49,7 +44,15 @@ export default function Asistente() {
   const [idConversacion, setIdConversacion] = useState(null);
   const [motor, setMotor] = useState(null);
   const [mensajes, setMensajes] = useState([]);
-  const [input, setInput] = useState("");
+  // Una pregunta traída desde otro módulo (Simulación la ofrece al pie) llega al
+  // campo sin enviarse, para que el usuario la revise antes de gastar una consulta.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [input, setInput] = useState(() => location.state?.pregunta || "");
+  useEffect(() => {
+    // Se borra del historial: si no, recargar la página la volvería a escribir.
+    if (location.state?.pregunta) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   // Id del mensaje cuyo reporte se está componiendo: el PDF tarda un instante y
@@ -477,9 +480,6 @@ export default function Asistente() {
               }
               className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-outlineSoft/70 disabled:cursor-not-allowed"
             />
-            <button className="text-outlineSoft cursor-not-allowed" title="Adjuntar (próximamente)">
-              <PaperclipIcon />
-            </button>
             <button
               onClick={() => enviar()}
               className="text-white hover:text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"

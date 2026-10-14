@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { alpha } from "./paleta";
+import { nombreCorto } from "../../utils/universidades";
 
 const normalizar = (s) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -179,8 +180,8 @@ export default function SelectorInstituciones({
                 style={{ background: alpha(color, ".12"), borderColor: alpha(color, ".45") }}
               >
                 <span className="w-2 h-2 flex-none" style={{ background: color }} />
-                <span className="font-body font-semibold text-[10.5px] text-[#e6e6e6] max-w-[150px] truncate">
-                  {u?.nombre_universidad || id}
+                <span className="font-body font-semibold text-[10.5px] text-[#e6e6e6] max-w-[190px] truncate">
+                  {u ? nombreCorto(u.nombre_universidad) : id}
                 </span>
                 <button
                   onClick={() => setSeleccionadas(seleccionadas.filter(x => x !== id))}

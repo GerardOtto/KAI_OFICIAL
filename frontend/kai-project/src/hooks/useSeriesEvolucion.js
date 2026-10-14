@@ -1,45 +1,50 @@
 import { useEffect, useState } from "react";
 import { cabeceraAuth } from "../auth/AuthContext";
+import { conNombres } from "../utils/universidades";
+
+const SIN_FILAS = [];
 
 // Vista "Evolución": una métrica a lo largo de los años, una serie por institución.
 // Reusa /trends, pero acotando el payload a las instituciones seleccionadas y
 // con dependencias estables (la lista viaja como string, no como array).
+//
+// Una respuesta que llega tarde no pisa a la vigente. Al cambiar de ranking, de
+// métrica o de modo lo anterior deja de valer en el acto; al sumar o quitar una
+// institución, el gráfico conserva lo que tenía hasta que llega lo nuevo, en vez
+// de vaciarse en cada clic.
 export function useSeriesEvolucion(rankingId, metricaId, universidadIds, modo = "puntajes") {
-  const [filas, setFilas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [estado, setEstado] = useState({ base: "", filas: SIN_FILAS, pedida: "" });
 
   const uniKey = (universidadIds || []).join(",");
+  const base = rankingId && metricaId && uniKey ? `${rankingId}|${metricaId}|${modo}` : "";
 
   useEffect(() => {
-    if (!rankingId || !metricaId || !uniKey) {
-      setFilas([]);
-      return;
-    }
+    if (!base) return;
+    const [id, metrica, m] = base.split("|");
     const query = new URLSearchParams({
-      ranking_id: rankingId,
-      metrica_id: metricaId,
+      ranking_id: id,
+      metrica_id: metrica,
       universidades: uniKey,
-      modo,
+      modo: m,
     });
 
-    let cancelado = false;
-    setLoading(true);
+    let vigente = true;
     fetch(`${import.meta.env.VITE_API_URL}/trends?${query}`, { headers: cabeceraAuth() })
       .then(r => r.json())
-      .then(res => {
-        if (cancelado) return;
-        setFilas(Array.isArray(res?.data) ? res.data : []);
-        setLoading(false);
-      })
+      .then(res => vigente && setEstado({
+        base, pedida: uniKey, filas: conNombres(Array.isArray(res?.data) ? res.data : []) }))
       .catch(err => {
-        if (cancelado) return;
+        if (!vigente) return;
         console.error(err);
-        setFilas([]);
-        setLoading(false);
+        setEstado({ base, pedida: uniKey, filas: SIN_FILAS });
       });
 
-    return () => { cancelado = true; };
-  }, [rankingId, metricaId, uniKey, modo]);
+    return () => { vigente = false; };
+  }, [base, uniKey]);
 
-  return { filas, loading };
+  const vigente = base && estado.base === base;
+  return {
+    filas: vigente ? estado.filas : SIN_FILAS,
+    loading: Boolean(base) && !(vigente && estado.pedida === uniKey),
+  };
 }

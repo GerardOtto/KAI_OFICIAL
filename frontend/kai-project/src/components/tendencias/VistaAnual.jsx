@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { alpha, fmt, decimalesPara } from "./paleta";
+import { nombreCorto } from "../../utils/universidades";
 
 const PLOT_A = 254;
 
@@ -173,7 +174,10 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
                   <div className="flex items-baseline gap-2 mb-[5px]">
                     <span className="font-mono text-[9.5px] text-[#6f6f6f] flex-none">{r.pos}</span>
                     <span className="w-2 h-2 flex-none" style={{ background: color }} />
-                    <span className={`font-body text-[11px] text-[#dcdcdc] ${claseNombre}`}>{r.nombre}</span>
+                    <span className={`font-body text-[11px] text-[#dcdcdc] ${claseNombre}`}
+                          title={estatico ? undefined : r.nombre}>
+                      {estatico ? r.nombre : nombreCorto(r.nombre)}
+                    </span>
                     <span className="font-mono font-semibold text-[12.5px] text-white">
                       {fmt(r.valor, grupoRail.decimales)}
                     </span>

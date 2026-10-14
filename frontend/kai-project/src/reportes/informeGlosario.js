@@ -23,12 +23,13 @@ function textoPeso(c) {
 }
 
 async function construir(datos) {
-  const { rankings, dimensiones, institucion, anio, numerico, totalMetricas, usuario } = datos;
+  const { rankings, dimensiones, institucion, anio, ediciones, numerico, totalMetricas, usuario } = datos;
   const visibles = dimensiones.filter((d) => rankings.some((r) => d.celdas[r.id]));
-  // Sin ningún valor para esa institución y año, la segunda matriz saldría en
-  // blanco: se omite.
-  const conValores = Boolean(institucion && anio)
+  // Sin ningún valor para esa institución, la segunda matriz saldría en blanco:
+  // se omite. Sin año, cada ranking aporta su edición más reciente.
+  const conValores = Boolean(institucion)
     && visibles.some((d) => rankings.some((r) => !r.restringido && d.celdas[r.id]?.valor != null));
+  const deCuando = anio ? `en ${anio}` : "en la edición más reciente de cada ranking";
 
   const { doc, l, fecha } = await crearDocumento({ titulo: "Qué mide cada ranking, y cuánto pesa", asunto: "Glosario de métricas" });
   portada(l, {
@@ -36,7 +37,7 @@ async function construir(datos) {
     titulo: "Qué mide cada ranking, y cuánto pesa",
     ficha: [
       `${rankings.length} rankings · ${visibles.length} dimensiones${totalMetricas ? ` · ${cifra(totalMetricas)} métricas` : ""}`,
-      conValores && `Valores de ${institucion} en ${anio} · ${numerico ? "cifras medidas" : "puntajes"}`,
+      conValores && `Valores de ${institucion} ${deCuando} · ${numerico ? "cifras medidas" : "puntajes"}`,
       ...fichaDeEmision(usuario, fecha),
     ],
   });
@@ -84,11 +85,15 @@ async function construir(datos) {
 
   // 03 · Valores de la institución -----------------------------------------
   if (conValores) {
-    seccion(l, 3, `Valores de ${institucion} en ${anio}`,
+    seccion(l, 3, `Valores de ${institucion} ${deCuando}`,
       `El ${numerico ? "valor medido" : "puntaje"} de la métrica de mayor peso de cada dimensión. Los rankings de pago no incluidos en el plan quedan en blanco.`);
     tabla(l, {
       puntos,
-      columnas,
+      // Cada columna dice de qué edición son sus cifras: no coinciden entre rankings.
+      columnas: columnas.map((c, i) => {
+        const r = rankings[i - 1];
+        return r && ediciones?.[r.id] ? { ...c, titulo: `${c.titulo} · ${ediciones[r.id]}` } : c;
+      }),
       // Solo las dimensiones con algún valor: las demás serían filas en blanco.
       filas: visibles
         .filter((d) => rankings.some((r) => !r.restringido && d.celdas[r.id]?.valor != null))
@@ -97,7 +102,7 @@ async function construir(datos) {
         ...rankings.map((r) => {
           const c = d.celdas[r.id];
           if (!c || r.restringido || c.valor == null) return c && r.restringido ? "plan de pago" : "";
-          return { texto: cifra(c.valor) };
+          return { texto: `${cifra(c.valor)}${c.unidad === "%" ? " %" : ""}` };
         }),
       ]),
     });

@@ -914,11 +914,15 @@ def get_anios(ranking_id: int, modo: str = "puntajes",
         db.close()
 
 @app.get("/ranking-resumen")
-def get_ranking_resumen(ranking_id: int, anio: int,
+def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = None,
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
-        result = db.execute(text("""
+        # Un ranking multidisciplinario (Shanghai GRAS, QS por Disciplina) publica
+        # una clasificación por disciplina, cada una con pesos que suman 100: sin
+        # acotarla, el total sumaba todas las disciplinas (más de 1.600 «puntos»).
+        por_disciplina = "AND m.disciplina = :disciplina" if disciplina else ""
+        result = db.execute(text(f"""
             SELECT
                 r.id_ranking,
                 r.nombre_ranking,
@@ -937,10 +941,11 @@ def get_ranking_resumen(ranking_id: int, anio: int,
               -- tienen observaciones, así que el resultado es el mismo; el filtro
               -- impide que una carga futura en ese nivel sume dos veces el peso.
               AND m.pondera
+              {por_disciplina}
             GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
                      u.id_universidad, u.nombre_universidad, u.pais_universidad
             ORDER BY score_total DESC
-        """), {"ranking_id": ranking_id, "anio": anio})
+        """), {"ranking_id": ranking_id, "anio": anio, "disciplina": disciplina})
         rows = [dict(row._mapping) for row in result]
         return rows
     finally:
@@ -1005,17 +1010,41 @@ def get_metricas_por_tipo(tipo: str,
         db.close()
 
 @app.get("/valores-metrica-universidad")
-def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int,
+def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int | None = None,
     modo: str = "puntajes",
     usuario: dict = Depends(auth.usuario_actual)):
+    """Valores de una universidad en las métricas de una dimensión, en todos los
+    rankings: lo que muestra el glosario.
+
+    Sin `anio`, cada ranking aporta su edición más reciente con datos de esa
+    universidad. Las ediciones no coinciden entre rankings —QS Latam llega a 2026,
+    Scimago a 2025, Shanghai a 2025—, y un mismo año para todos dejaba columnas
+    enteras vacías, sobre todo en «Valores». Con `anio`, solo esa edición, en los
+    rankings que la tienen. `anio_metrica` dice de qué edición es cada valor.
+
+    Los rankings que el plan no incluye no aportan valores: el glosario muestra su
+    columna bloqueada, y la cifra no debe viajar aunque la interfaz no la pinte.
+    """
     db = SessionLocal()
     try:
+        vedados = sorted(acceso.ids_vedados(db, usuario))
+        edicion = ("AND mu.anio_metrica = :anio" if anio is not None
+                   else "AND mu.anio_metrica = ul.anio")
         result = db.execute(text(f"""
+            WITH f AS (
+                SELECT * FROM {_fuente_valores(db, modo)} x WHERE x.id_universidad = :universidad_id
+            ),
+            ul AS (
+                SELECT me.id_ranking, max(f.anio_metrica) AS anio
+                FROM f JOIN metrica me ON me.id_metrica = f.id_metrica
+                GROUP BY me.id_ranking
+            )
             SELECT
                 m.id_metrica,
                 m.nombre_metrica,
                 m.tipo_metrica,
                 m.disciplina,
+                r.id_ranking,
                 r.nombre_ranking,
                 mu.valor_metrica,
                 mu.anio_metrica,
@@ -1023,12 +1052,13 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int,
                 mu.calidad
             FROM metrica m
             JOIN ranking r ON r.id_ranking = m.id_ranking
-            JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
+            JOIN f mu ON mu.id_metrica = m.id_metrica
+            JOIN ul ON ul.id_ranking = m.id_ranking
             WHERE m.tipo_metrica = :tipo
-              AND mu.id_universidad = :universidad_id
-              AND mu.anio_metrica = :anio
+              {edicion}
+              {"AND m.id_ranking <> ALL(:vedados)" if vedados else ""}
             ORDER BY r.nombre_ranking, m.nombre_metrica
-        """), {"tipo": tipo, "universidad_id": universidad_id, "anio": anio})
+        """), {"tipo": tipo, "universidad_id": universidad_id, "anio": anio, "vedados": vedados})
         return [dict(row._mapping) for row in result]
     finally:
         db.close()
@@ -1378,15 +1408,20 @@ def get_metricas_con_datos(ranking_id: int, modo: str = "puntajes",
     usuario: dict = Depends(ranking_permitido)):
     db = SessionLocal()
     try:
+        # `id_metrica_padre` deja a la interfaz pasar de un pilar a sus indicadores:
+        # THE publica puntajes por pilar y cifras por indicador, y al alternar el
+        # modo la métrica elegida debe seguir siendo la misma, no otra cualquiera.
         result = db.execute(text(f"""
             SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
+                   m.id_metrica_padre, m.pondera,
                    to_jsonb(m) ->> 'sentido' AS sentido,
                    MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max,
                    MAX(mu.unidad) AS unidad
             FROM metrica m
             JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id
-            GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica
+            GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
+                     m.id_metrica_padre, m.pondera
             ORDER BY m.nombre_metrica, m.disciplina
         """), {"ranking_id": ranking_id})
         return [dict(row._mapping) for row in result]

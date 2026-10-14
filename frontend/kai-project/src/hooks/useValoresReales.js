@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { cabeceraAuth } from "../auth/AuthContext";
+import { conNombres } from "../utils/universidades";
 
 /** Valores medidos de un ranking en un año, para el modo numérico.
  *
@@ -22,7 +23,8 @@ export function useValoresReales(rankingId, anio, activo) {
         if (!r.ok) throw new Error(cuerpo.detail || `Error ${r.status}`);
         return cuerpo;
       })
-      .then((datos) => vigente && setEstado({ clave, datos, error: null }))
+      .then((datos) => vigente && setEstado({
+        clave, datos: { ...datos, valores: conNombres(datos.valores) }, error: null }))
       .catch((e) => vigente && setEstado({ clave, datos: null, error: e.message }));
     return () => { vigente = false; };
   }, [clave]);

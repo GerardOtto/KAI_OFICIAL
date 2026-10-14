@@ -4,10 +4,13 @@ import { useSimulacion } from "../../hooks/useSimulacion";
 import { useRankingResumen } from "../../hooks/useRankingResumen";
 import { useAuth } from "../../auth/AuthContext";
 import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
+import { conSigno, decimal, porcentaje } from "../../utils/formato";
 
 export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, universidadId, disciplinaFiltro }) {
   const rawData = useSimulacion(rankingId, anio, universidadId ? [universidadId] : []);
-  const { data: resumen } = useRankingResumen(rankingId, anio);
+  // Los pares se miden en la misma disciplina que se simula: con el total de todas
+  // las disciplinas, una sola quedaba siempre al fondo de la tabla.
+  const { data: resumen } = useRankingResumen(rankingId, anio, disciplinaFiltro);
 
   // { id_metrica: valor_editado }
   const [overrides, setOverrides] = useState({});
@@ -86,7 +89,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
       .find(u => Number(u.score_total) > scoreSimulado);
     if (!siguiente) return null;
     const gap = Number(siguiente.score_total) - scoreSimulado;
-    return `Te faltan ${gap.toFixed(1)} pts para superar a ${siguiente.nombre_universidad}`;
+    return `Te faltan ${decimal(gap)} pts para superar a ${siguiente.nombre_universidad}`;
   }, [pares, scoreSimulado, movimiento]);
 
   const handleExportCSV = () => {
@@ -155,7 +158,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
   if (!metricas.length) {
     return (
       <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">
-        No hay métricas disponibles para esta institución en el año seleccionado.
+        No hay métricas de esta institución en {rankingNombre} {anio}{disciplinaFiltro ? ` (${disciplinaFiltro})` : ""}.
       </div>
     );
   }
@@ -189,15 +192,15 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
                   <div className="w-[44px] h-1 bg-white/[.08]">
                     <div className="h-1 bg-white/40" style={{ width: `${(m.peso_metrica / maxPeso) * 100}%` }} />
                   </div>
-                  <span className="font-mono text-[10px] text-[#6f6f6f]">peso {m.peso_metrica}%</span>
+                  <span className="font-mono text-[10px] text-[#6f6f6f]">peso {porcentaje(m.peso_metrica)}</span>
                 </div>
               </div>
 
               <div className="text-right">
                 <div className={`font-mono font-semibold text-[17px] tabular-nums ${modificado ? "text-accent" : "text-white"}`}>
-                  {Number(actual).toFixed(1)}
+                  {decimal(actual)}
                 </div>
-                <div className="font-mono text-[9.5px] text-[#6f6f6f]">base {Number(m.valor_original).toFixed(1)}</div>
+                <div className="font-mono text-[9.5px] text-[#6f6f6f]">base {decimal(m.valor_original)}</div>
               </div>
 
               <input
@@ -213,7 +216,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
               <div className={`text-right font-mono font-semibold text-[12px] ${
                 deltaPts > 0 ? "text-positive" : deltaPts < 0 ? "text-negative" : "text-[#6f6f6f]"
               }`}>
-                {deltaPts === 0 ? "—" : `${deltaPts > 0 ? "+" : ""}${deltaPts.toFixed(1)}`}
+                {deltaPts === 0 ? "—" : conSigno(deltaPts)}
               </div>
             </div>
           );
@@ -247,17 +250,17 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
         <div className="pb-2">
           <p className="text-[10.5px] text-[#8a8a8a] mb-1">Score</p>
           <div className="flex items-baseline gap-2">
-            <span className="font-mono font-semibold text-[26px] text-white">{scoreSimulado.toFixed(1)}</span>
+            <span className="font-mono font-semibold text-[26px] text-white">{decimal(scoreSimulado)}</span>
             <span className={`font-mono font-semibold text-[12px] ${
               scoreSimulado > scoreBase ? "text-positive" : scoreSimulado < scoreBase ? "text-negative" : "text-[#6f6f6f]"
             }`}>
-              {scoreSimulado === scoreBase ? "—" : `${scoreSimulado > scoreBase ? "+" : ""}${(scoreSimulado - scoreBase).toFixed(1)}`}
+              {scoreSimulado === scoreBase ? "—" : conSigno(scoreSimulado - scoreBase)}
             </span>
           </div>
         </div>
 
         <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] mt-5 mb-2">
-          Base {scoreBase.toFixed(1)} → simulado
+          Base {decimal(scoreBase)} → simulado
         </p>
         <div className="relative h-6 bg-white/[.06] mb-1.5">
           <div
@@ -294,7 +297,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
         {!hayOverrides && (
           <p className="text-xs leading-relaxed text-[#7a7a7a]">
             Aún no has movido ninguna métrica.
-            {metricas[0] && ` Empieza por una de peso alto: ${metricas[0].nombre_metrica} pesa ${metricas[0].peso_metrica}%.`}
+            {metricas[0] && ` Empieza por una de peso alto: ${metricas[0].nombre_metrica} pesa ${porcentaje(metricas[0].peso_metrica)}.`}
           </p>
         )}
         {hayOverrides && movimiento === 0 && metricaMasCercana && (

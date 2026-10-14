@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { cabeceraAuth } from "../auth/AuthContext";
 import { comoLista } from "./respuesta";
 import { metricasDe } from "../utils/rankingPonderado";
+import { conNombres } from "../utils/universidades";
 
 const VACIO = { porAnio: {}, metricas: [] };
 
@@ -33,7 +34,7 @@ export function useRankingPonderado(rankingId, anios, activo) {
         fetch(`${import.meta.env.VITE_API_URL}/simulacion?ranking_id=${id}&anio=${anio}`,
               { headers: cabeceraAuth() })
           .then((r) => r.json())
-          .then((d) => [anio, comoLista(d)])
+          .then((d) => [anio, conNombres(comoLista(d))])
           .catch(() => [anio, []])
       )
     ).then((pares) => {

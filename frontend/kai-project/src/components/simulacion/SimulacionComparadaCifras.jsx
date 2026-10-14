@@ -6,6 +6,8 @@ import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { useAuth } from "../../auth/AuthContext";
 import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { institucionPropia } from "../../reportes/documento";
+import { decimal, porcentaje } from "../../utils/formato";
+import { nombreCorto } from "../../utils/universidades";
 
 /** Simulación comparada sobre cifras medidas.
  *
@@ -126,7 +128,7 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
               <div key={m.id_metrica} className="text-center">
                 <div className="font-body font-medium text-[9.5px] text-[#b4b4b4] leading-tight">{m.nombre_metrica}</div>
                 <div className="font-mono text-[8.5px] text-[#6f6f6f] mt-0.5 leading-tight">{m.unidad}</div>
-                <div className="font-mono text-[9px] text-[#6f6f6f]">{m.peso_metrica}%{m.sentido === "menor" ? " · ↓ mejor" : ""}</div>
+                <div className="font-mono text-[9px] text-[#6f6f6f]">{porcentaje(m.peso_metrica)}{m.sentido === "menor" ? " · ↓ mejor" : ""}</div>
               </div>
             ))}
             <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end">Puntaje</div>
@@ -137,7 +139,7 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
             return (
               <div key={u.id_universidad} className="grid gap-[5px] items-stretch mb-[5px]"
                 style={{ gridTemplateColumns: columnas, borderLeft: `2px solid ${modificada(u.id_universidad) ? "oklch(0.72 0.13 250)" : "transparent"}` }}>
-                <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate">{u.nombre}</div>
+                <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate" title={u.nombre}>{nombreCorto(u.nombre)}</div>
                 {metricas.map((m) => {
                   const original = u.valores[m.id_metrica];
                   const actual = cifraDe(u, m);
@@ -183,7 +185,7 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
                 })}
                 <div className="flex items-center gap-2 pr-2">
                   <span className="font-mono font-semibold text-[13px] tabular-nums w-10 text-right" style={{ color: modificada(u.id_universidad) ? "#fff" : "#dcdcdc" }}>
-                    {total.toFixed(1)}
+                    {decimal(total)}
                   </span>
                   <div className="flex-1 h-1.5 bg-white/[.07]">
                     <div className="h-1.5" style={{ width: `${(total / maxTotal) * 100}%`, background: modificada(u.id_universidad) ? "oklch(0.72 0.13 250)" : "rgba(255,255,255,.35)" }} />
@@ -209,14 +211,14 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
                 <div key={u.id_universidad} className="flex items-center gap-2.5 py-[11px] px-2 border-b border-white/[.06]"
                   style={{ borderLeft: `2px solid ${modificada(u.id_universidad) ? "oklch(0.72 0.13 250)" : "transparent"}` }}>
                   <span className="font-mono text-[12px] text-[#8a8a8a] w-6">{pS}</span>
-                  <span className="flex-1 font-body font-semibold text-[12px] truncate text-[#dcdcdc]">{u.nombre}</span>
+                  <span className="flex-1 font-body font-semibold text-[12px] truncate text-[#dcdcdc]" title={u.nombre}>{nombreCorto(u.nombre)}</span>
                   {mov !== 0 && (
                     <span className={`font-mono text-[11px] ${mov > 0 ? "text-positive" : "text-negative"}`}>
                       {mov > 0 ? `▲${mov}` : `▼${Math.abs(mov)}`}
                     </span>
                   )}
                   <span className="font-mono font-semibold text-[12px] tabular-nums text-[#dcdcdc]">
-                    {(simulado.get(u.id_universidad)?.total ?? 0).toFixed(1)}
+                    {decimal(simulado.get(u.id_universidad)?.total ?? 0)}
                   </span>
                 </div>
               );

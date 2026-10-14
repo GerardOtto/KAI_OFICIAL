@@ -9,7 +9,9 @@ const SALIDA = new URL("./capturas/", import.meta.url).pathname.replace(/^\/([A-
 fs.mkdirSync(SALIDA, { recursive: true });
 
 // Calculado aparte en SQL sobre la misma base.
-const ESPERADO_GRAS = { Articulos: 53.2, Reputacion: 15.0, Academicos: 13.3, Investigacion: 12.1, Internacionalizacion: 6.4 };
+// Las dimensiones se muestran con tildes, y «Internacional» e «Internacionalizacion»
+// —la misma dimensión cargada con dos nombres— forman una sola fila.
+const ESPERADO_GRAS = { "Artículos": 53.2, "Reputación": 15.0, "Académicos": 13.3, "Investigación": 12.1, "Internacionalización": 6.4 };
 // Suma de los pesos que ponderan en Scimago Latam, también medida en SQL. No
 // llega a 100 porque su metodología cargada no reparte el total; la matriz debe
 // reproducir el dato, no cuadrarlo.
@@ -48,7 +50,8 @@ ws.addEventListener("message", (e) => {
 const { token: TESTIGO } = await crearSesion();
 await cdp("Page.navigate", { url: APP });
 await esperar(1200);
-await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)});`);
+// Arranca en Puntajes aunque otra sonda haya dejado «Valores» guardado.
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)}); localStorage.removeItem("kai_modo_valores");`);
 
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 950, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: `${APP}/metricas` });
@@ -57,7 +60,7 @@ await esperar(4000);
 console.log("=== 1. QS por Disciplina queda fuera ===");
 const columnas = await ev(`
   const cab = document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div');
-  return [...cab].map(e => e.innerText.trim()).filter(Boolean);
+  return [...cab].map(e => e.innerText.trim().split('\\n')[0]).filter(Boolean);
 `);
 comprobar("hay columnas de rankings", columnas.length > 0, JSON.stringify(columnas));
 comprobar("«QS por Disciplina» no aparece como columna",
@@ -68,9 +71,28 @@ comprobar("los demás rankings siguen, incluido el Ranking KAI",
     .every(n => columnas.some(c => c.toUpperCase() === n.toUpperCase())), JSON.stringify(columnas));
 comprobar("quedan siete columnas", columnas.length === 7, columnas.length);
 
+console.log("\n=== 1b. Institución, ediciones y dimensiones ===");
+// La cuenta de la sonda tiene institución: el glosario arranca con ella y cada
+// columna dice de qué edición son sus cifras, porque no coinciden entre rankings.
+const contexto = await ev(`
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].slice(1).map(e => e.innerText.trim());
+  const dims = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')].map(f => f.children[0].innerText.trim());
+  return { boton: document.querySelector('main button[aria-expanded]')?.innerText.trim(),
+           edicion: document.querySelector('main select')?.selectedOptions[0]?.text, cab, dims };
+`);
+comprobar("arranca con la institución de la cuenta", !/Seleccionar/.test(contexto.boton || ""), contexto.boton);
+comprobar("por defecto, la edición más reciente de cada ranking", /más reciente/.test(contexto.edicion || ""), contexto.edicion);
+comprobar("las columnas abiertas dicen su edición",
+  contexto.cab.filter(c => /edición \d{4}/.test(c)).length >= 3, JSON.stringify(contexto.cab));
+comprobar("las dimensiones llevan tilde", contexto.dims.includes("Investigación") && !contexto.dims.includes("Investigacion"),
+  JSON.stringify(contexto.dims));
+comprobar("la internacionalización es una sola fila",
+  contexto.dims.filter(d => /^Internacional/.test(d)).length === 1, JSON.stringify(contexto.dims));
+comprobar("«Puntaje» no aparece como dimensión", !contexto.dims.includes("Puntaje"));
+
 console.log("\n=== 2. Shanghai GRAS: cifras proporcionadas ===");
 const gras = await ev(`
-  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /SHANGHAI GRAS/i.test(t));   // 0 es la celda vacía
   const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
   return filas.map(f => {
@@ -107,15 +129,17 @@ comprobar(`las dimensiones de GRAS suman 100 % (dan ${suma.toFixed(1)})`,
 // cubierta por la batería `pesos` del backend, que la calcula en SQL.
 console.log("\n=== 3. Un ranking de una sola disciplina no lleva la marca ===");
 const scimago = await ev(`
-  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^SCIMAGO LATAM$/i.test(t));
   const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
   return filas.map(f => ({ dim: f.children[0].innerText.trim(),
-                           texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | ') })).filter(x => x.texto);
+                           texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | '),
+                           prom: Boolean(f.children[col]?.querySelector('[title="Promedio entre disciplinas"]')) }))
+    .filter(x => x.texto);
 `);
 comprobar("Scimago Latam no muestra la marca de promedio en ninguna celda",
-  scimago.every(c => !/prom/i.test(c.texto)),
-  JSON.stringify(scimago.filter(c => /prom/i.test(c.texto))));
+  scimago.every(c => !c.prom),
+  JSON.stringify(scimago.filter(c => c.prom)));
 const sumaScimago = scimago.reduce((s, c) => {
   const m = c.texto.match(/([\d.,]+)\s*%/);
   return s + (m ? parseFloat(m[1].replace(/\./g, "").replace(",", ".")) : 0);
@@ -129,10 +153,10 @@ comprobar("sin cursor encima no hay globo", antes === 0, antes);
 
 // Se pasa el cursor por la celda de Articulos × Shanghai GRAS.
 const rect = await ev(`
-  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /SHANGHAI GRAS/i.test(t));
   const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
-    .find(f => f.children[0].innerText.trim() === 'Articulos');
+    .find(f => f.children[0].innerText.trim() === 'Artículos');
   const c = fila.children[col];
   const r = c.getBoundingClientRect();
   return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
@@ -152,11 +176,11 @@ comprobar("aparece el globo al pasar el cursor", globo !== null);
 if (globo) {
   console.log("  --- contenido ---\n" + globo.texto.split("\n").map(l => "    " + l).join("\n"));
   comprobar("nombra la dimensión y el ranking",
-    /Articulos/.test(globo.texto) && /Shanghai GRAS/i.test(globo.texto), globo.texto.slice(0, 80));
+    /Artículos/.test(globo.texto) && /Shanghai GRAS/i.test(globo.texto), globo.texto.slice(0, 80));
   comprobar("explica que el peso es promedio entre disciplinas",
     /promedio sobre 57 disciplinas/i.test(globo.texto), globo.texto.slice(0, 200));
-  comprobar("agrupa las métricas por nombre en pocas líneas",
-    globo.texto.split("\n").length <= 16, globo.texto.split("\n").length);
+  const lineas = globo.texto.split("\n").filter(l => l.trim()).length;
+  comprobar("agrupa las métricas por nombre en pocas líneas", lineas <= 16, lineas);
   // Los pesos del desglose también tienen que ser cuotas, no sumas crudas: si
   // aquí reaparecen miles por ciento, el problema solo se habrá movido de sitio.
   const pesosGlobo = [...globo.texto.matchAll(/([\d.,]+)\s*%/g)]
@@ -224,7 +248,7 @@ console.log("\n=== 7. THE Latam: reservado, pero presente ===");
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1600, height: 950, deviceScaleFactor: 1, mobile: false });
 await esperar(700);
 const the = await ev(`
-  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
   return [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
     .map(f => ({ dim: f.children[0].innerText.trim(),
@@ -240,7 +264,7 @@ comprobar("y todas dicen a qué plan pertenecen",
 
 // Una celda tapada tampoco abre el globo con el desglose.
 const celdaThe = await ev(`
-  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim());
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
   const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')][0];
   const r = fila.children[col].getBoundingClientRect();

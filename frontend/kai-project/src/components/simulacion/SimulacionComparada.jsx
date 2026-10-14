@@ -5,6 +5,8 @@ import { useAuth } from "../../auth/AuthContext";
 import { useUniversidades } from "../../hooks/useUniversidades";
 import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { institucionPropia } from "../../reportes/documento";
+import { decimal, porcentaje } from "../../utils/formato";
+import { nombreCorto } from "../../utils/universidades";
 
 const PASO_STEPPER = 1;
 
@@ -123,7 +125,11 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     return <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">Selecciona al menos una institución para comparar.</div>;
   }
   if (!filas.length) {
-    return <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">No hay datos para esta selección.</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-outlineSoft text-sm text-center px-6">
+        {rankingNombre} no tiene datos de esas instituciones en {anio}{disciplinaFiltro ? ` (${disciplinaFiltro})` : ""}.
+      </div>
+    );
   }
 
   return (
@@ -176,7 +182,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
             {metricas.map(m => (
               <div key={m.id_metrica} className="text-center">
                 <div className="font-body font-medium text-[9.5px] text-[#b4b4b4] leading-tight">{m.nombre_metrica}</div>
-                <div className="font-mono text-[9px] text-[#6f6f6f] mt-0.5">{m.peso_metrica}%</div>
+                <div className="font-mono text-[9px] text-[#6f6f6f] mt-0.5">{porcentaje(m.peso_metrica)}</div>
               </div>
             ))}
             <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end">Score</div>
@@ -191,8 +197,9 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                 className="grid gap-[5px] items-stretch mb-[5px]"
                 style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(90px, 1fr)) 128px`, borderLeft: `2px solid ${modificadaFila ? "oklch(0.72 0.13 250)" : "transparent"}` }}
               >
-                <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate">
-                  {fila.nombre}
+                <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate"
+                     title={fila.nombre}>
+                  {nombreCorto(fila.nombre)}
                 </div>
                 {metricas.map(m => {
                   const original = fila.valores[m.id_metrica];
@@ -211,10 +218,10 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                       }}
                     >
                       <span className="font-mono font-semibold text-[14px] tabular-nums" style={{ color: modificado ? "#fff" : "#dcdcdc" }}>
-                        {Number(actual).toFixed(1)}
+                        {decimal(actual)}
                       </span>
                       {modificado && (
-                        <span className="font-mono text-[8.5px] text-[#8a8a8a]">base {Number(original).toFixed(1)}</span>
+                        <span className="font-mono text-[8.5px] text-[#8a8a8a]">base {decimal(original)}</span>
                       )}
                       {seleccionada && (
                         <div className="absolute -top-px -right-px -bottom-px flex flex-col">
@@ -237,7 +244,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                 })}
                 <div className="flex items-center gap-2 pr-2">
                   <span className="font-mono font-semibold text-[13px] tabular-nums w-10 text-right" style={{ color: modificadaFila ? "#fff" : "#dcdcdc" }}>
-                    {score.toFixed(1)}
+                    {decimal(score)}
                   </span>
                   <div className="flex-1 h-1.5 bg-white/[.07]">
                     <div className="h-1.5" style={{ width: `${(score / maxScore) * 100}%`, background: modificadaFila ? "oklch(0.72 0.13 250)" : "rgba(255,255,255,.35)" }} />
@@ -265,11 +272,12 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                 style={{ borderLeft: `2px solid ${modificada ? "oklch(0.72 0.13 250)" : "transparent"}` }}
               >
                 <span className="font-mono text-[12px] text-[#8a8a8a]">{i + 1}</span>
-                <span className="flex-1 font-body font-semibold text-[12px] truncate" style={{ color: modificada ? "#fff" : "#dcdcdc" }}>
-                  {r.nombre}
+                <span className="flex-1 font-body font-semibold text-[12px] truncate" style={{ color: modificada ? "#fff" : "#dcdcdc" }}
+                      title={r.nombre}>
+                  {nombreCorto(r.nombre)}
                 </span>
                 <span className="font-mono font-semibold text-[12px] tabular-nums" style={{ color: modificada ? "#fff" : "#dcdcdc" }}>
-                  {r.score.toFixed(1)}
+                  {decimal(r.score)}
                 </span>
               </div>
             );

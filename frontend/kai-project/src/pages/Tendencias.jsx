@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
 
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
@@ -11,6 +11,7 @@ import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useTendenciasComparacion } from "../hooks/useTendenciasComparacion";
 import { useSeriesEvolucion } from "../hooks/useSeriesEvolucion";
+import { useRankingResumen } from "../hooks/useRankingResumen";
 
 import SelectorInstituciones from "../components/tendencias/SelectorInstituciones";
 import VistaAnual from "../components/tendencias/VistaAnual";
@@ -27,16 +28,41 @@ const VISTAS = [
 ];
 
 const MAX_CHIPS_METRICA = 6;
+const SERIES_INICIALES = 6;
+
+const porPeso = (lista) =>
+  [...lista].sort((a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0));
+
+/** La métrica que ocupa, entre las disponibles ahora, el lugar de la elegida.
+ *
+ *  Lo que el usuario eligió no se reemplaza al cambiar de modo o de disciplina:
+ *  se busca su equivalente. Primero la misma métrica; después una con el mismo
+ *  nombre (las disciplinas de Shanghai GRAS repiten nombres); después el pilar al
+ *  que pertenece o, al revés, su indicador de más peso, porque THE publica
+ *  puntajes por pilar y KAI mide sus cifras por indicador. Antes, el efecto que
+ *  validaba la selección la sobrescribía con la primera de la lista, y al volver
+ *  de «Valores» la métrica elegida ya no estaba.
+ */
+function equivalente(elegida, disponibles) {
+  if (!elegida || !disponibles.length) return null;
+  return disponibles.find(m => m.id_metrica === elegida.id_metrica)
+    || disponibles.find(m => m.nombre_metrica === elegida.nombre_metrica)
+    || disponibles.find(m => m.id_metrica === elegida.id_metrica_padre)
+    || porPeso(disponibles.filter(m => m.id_metrica_padre === elegida.id_metrica))[0]
+    || null;
+}
 
 export default function Tendencias() {
   const [vista, setVista] = useState("evolucion");
   // Sin ranking hasta que llega el catálogo: cuál se puede abrir depende del
   // plan, y arrancar en el primero pedía datos que el plan gratuito no incluye.
   const [rankingId, setRankingId] = useState(null);
+  // Lo que eligió el usuario, tal cual; null = lo que corresponda por defecto. Lo
+  // que se muestra se resuelve más abajo contra lo disponible en el modo actual.
   const [disciplina, setDisciplina] = useState(null);
   const [anio, setAnio] = useState(null);
-  const [metricaId, setMetricaId] = useState(null);
-  const [metricasSel, setMetricasSel] = useState([]);
+  const [metricaElegida, setMetricaElegida] = useState(null);
+  const [metricasElegidas, setMetricasElegidas] = useState(null);
   const [universidadesSel, setUniversidadesSel] = useState([]);
   const [proyeccion, setProyeccion] = useState(true);
 
@@ -87,32 +113,50 @@ export default function Tendencias() {
     return metricas.filter(m => m.disciplina === disciplinaActiva);
   }, [metricas, disciplinaActiva]);
 
-  // --- defaults reactivos ---
-  useEffect(() => {
-    if (disciplinaActiva !== disciplina) setDisciplina(disciplinaActiva);
-  }, [disciplinaActiva, disciplina]);
+  // La métrica de la vista de evolución y las del eje de la anual. Sin elección,
+  // las de más peso: la primera por orden alfabético era a veces una de peso 0.
+  const metricaActual = useMemo(
+    () => equivalente(metricaElegida, metricasDisponibles) || porPeso(metricasDisponibles)[0] || null,
+    [metricaElegida, metricasDisponibles]
+  );
+  const metricaId = metricaActual?.id_metrica ?? null;
 
-  useEffect(() => {
-    if (anioActivo !== anio) setAnio(anioActivo);
-  }, [anioActivo, anio]);
-
-  useEffect(() => {
-    if (!metricasDisponibles.length) return;
-    const ids = metricasDisponibles.map(m => m.id_metrica);
-    if (!metricaId || !ids.includes(metricaId)) setMetricaId(ids[0]);
-    setMetricasSel(prev => {
-      const validas = prev.filter(id => ids.includes(id));
-      return validas.length ? validas : ids.slice(0, Math.min(4, ids.length));
+  const metricasEje = useMemo(() => {
+    const vistas = new Set();
+    const lista = [];
+    (metricasElegidas || []).forEach(e => {
+      const m = equivalente(e, metricasDisponibles);
+      if (m && !vistas.has(m.id_metrica)) { vistas.add(m.id_metrica); lista.push(m); }
     });
-  }, [metricasDisponibles, metricaId]);
+    return lista.length ? lista.slice(0, MAX_CHIPS_METRICA) : porPeso(metricasDisponibles).slice(0, 4);
+  }, [metricasElegidas, metricasDisponibles]);
+  const metricasSel = useMemo(() => metricasEje.map(m => m.id_metrica), [metricasEje]);
 
-  // Solo la primera carga siembra instituciones; si no, "Limpiar" se repoblaría solo.
+  // Un chip se agrega o se quita sobre lo que está a la vista: si no, el primer
+  // clic tras cambiar de modo partiría de una selección que ya no se ve.
+  const alternarMetrica = (m) => {
+    if (metricasSel.includes(m.id_metrica)) {
+      if (metricasEje.length > 1) setMetricasElegidas(metricasEje.filter(x => x.id_metrica !== m.id_metrica));
+    } else if (metricasEje.length < MAX_CHIPS_METRICA) {
+      setMetricasElegidas([...metricasEje, m]);
+    }
+  };
+
+  // Instituciones iniciales: la del usuario y las primeras del ranking que se
+  // abre, en vez de las seis primeras por orden alfabético —cuatro de ellas
+  // «Pontificia Universidad…» o «Universidad A…», indistinguibles en los chips—.
+  // Solo la primera carga siembra; si no, «Limpiar» se repoblaría solo.
   const sembradoRef = useRef(false);
+  const semilla = useRankingResumen(
+    sembradoRef.current ? null : rankingId, sembradoRef.current ? null : anioActivo, disciplinaActiva);
   useEffect(() => {
-    if (sembradoRef.current || !universidades?.length) return;
+    if (sembradoRef.current || !universidades.length || !rankingId || !anioActivo || semilla.loading) return;
     sembradoRef.current = true;
-    setUniversidadesSel(universidades.slice(0, 6).map(u => u.id_universidad));
-  }, [universidades]);
+    const propia = institucionPropia(usuario, universidades);
+    const primeras = semilla.data.length
+      ? semilla.data.map(u => u.id_universidad) : universidades.map(u => u.id_universidad);
+    setUniversidadesSel([...new Set([propia, ...primeras].filter(Boolean))].slice(0, SERIES_INICIALES));
+  }, [universidades, rankingId, anioActivo, semilla.loading, semilla.data, usuario]);
 
   const graficadas = useMemo(
     () => (typeof maxSeries === "number" ? universidadesSel.slice(0, maxSeries) : universidadesSel),
@@ -124,8 +168,6 @@ export default function Tendencias() {
     graficadas.forEach((id, i) => { mapa[id] = colorDeIndice(i); });
     return (id) => mapa[id] || "#8a8a8a";
   }, [graficadas]);
-
-  const metricaActual = metricasDisponibles.find(m => m.id_metrica === metricaId);
 
   // --- datos ---
   const { filas: filasAnual } = useTendenciasComparacion(
@@ -140,8 +182,10 @@ export default function Tendencias() {
   const techoActual = filasAnual.length ? Number(filasAnual[0].techo) : null;
 
   // --- exportación (se conserva del gráfico anterior, adaptada a la vista activa) ---
-  const nombreUni = (id) =>
-    universidades?.find(u => u.id_universidad === id)?.nombre_universidad || String(id);
+  const nombreUni = useCallback(
+    (id) => universidades?.find(u => u.id_universidad === id)?.nombre_universidad || String(id),
+    [universidades]
+  );
 
   const filasExport = useMemo(() => {
     if (esAnual) {
@@ -165,7 +209,7 @@ export default function Tendencias() {
       Valor: Number(f.valor),
       ...(numerico ? { Unidad: f.unidad || "", "Tipo de valor": "medido" } : { "Tipo de valor": "puntaje" }),
     }));
-  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, universidades, numerico]);
+  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, nombreUni, numerico]);
 
   const handleXLSX = async () => {
     if (!filasExport.length) return;
@@ -345,8 +389,8 @@ export default function Tendencias() {
                 setRankingId(Number(e.target.value));
                 setDisciplina(null);
                 setAnio(null);
-                setMetricaId(null);
-                setMetricasSel([]);
+                setMetricaElegida(null);
+                setMetricasElegidas(null);
               }}
               className={selectClase}
             >
@@ -363,7 +407,9 @@ export default function Tendencias() {
               <span className={etiqueta}>Disciplina</span>
               <select
                 value={disciplinaActiva || ""}
-                onChange={e => { setDisciplina(e.target.value); setMetricaId(null); setMetricasSel([]); }}
+                // La métrica elegida se conserva: entre disciplinas se busca la del
+                // mismo nombre (ver `equivalente`).
+                onChange={e => setDisciplina(e.target.value)}
                 className={selectClase}
               >
                 {disciplinas.map(d => <option key={d} value={d}>{d}</option>)}
@@ -396,7 +442,8 @@ export default function Tendencias() {
                 <span className={etiqueta}>Métrica</span>
                 <select
                   value={metricaId || ""}
-                  onChange={e => setMetricaId(Number(e.target.value))}
+                  onChange={e => setMetricaElegida(
+                    metricasDisponibles.find(m => m.id_metrica === Number(e.target.value)) || null)}
                   className={selectClase}
                 >
                   {metricasDisponibles.map(m => (
@@ -458,13 +505,7 @@ export default function Tendencias() {
                   <button
                     key={m.id_metrica}
                     disabled={lleno}
-                    onClick={() =>
-                      setMetricasSel(prev =>
-                        prev.includes(m.id_metrica)
-                          ? (prev.length > 1 ? prev.filter(id => id !== m.id_metrica) : prev)
-                          : [...prev, m.id_metrica]
-                      )
-                    }
+                    onClick={() => alternarMetrica(m)}
                     className={`flex items-baseline gap-1.5 px-2.5 py-1.5 border transition-colors ${
                       on ? "bg-white/[.09] border-white/40" : "border-white/[.12] hover:border-white/30"
                     } ${lleno ? "cursor-not-allowed opacity-40" : ""}`}

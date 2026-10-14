@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { cabeceraAuth } from "../auth/AuthContext";
 import { comoLista } from "./respuesta";
+import { conNombres } from "../utils/universidades";
 
 export function useUniversidades() {
   const [universidades, setUniversidades] = useState([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/universidades`, { headers: cabeceraAuth() }) //  usa este endpoint
+    let vigente = true;
+    fetch(`${import.meta.env.VITE_API_URL}/universidades`, { headers: cabeceraAuth() })
       .then(res => res.json())
-      .then(data => {
-        setUniversidades(comoLista(data));
-      })
+      // Con sus tildes: la base guarda los nombres sin ellas (ver utils/universidades).
+      .then(data => vigente && setUniversidades(conNombres(comoLista(data))))
       .catch(err => console.error(err));
+    return () => { vigente = false; };
   }, []);
 
   return { universidades };

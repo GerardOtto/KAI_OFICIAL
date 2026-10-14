@@ -5,6 +5,7 @@ import { evaluar, pasoPara, posiciones, prepararCifras, topePara } from "../../u
 import { formatearValor } from "../../utils/valoresReales";
 import { useAuth } from "../../auth/AuthContext";
 import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
+import { conSigno, decimal, porcentaje } from "../../utils/formato";
 
 /** Simulación de una institución sobre sus cifras medidas.
  *
@@ -138,7 +139,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
               <div>
                 <label htmlFor={id} className="font-body font-semibold text-[12.5px] text-[#e6e6e6]">{m.nombre_metrica}</label>
                 <div className="font-mono text-[10px] text-[#6f6f6f] mt-1">
-                  peso {m.peso_metrica}% · {m.unidad}{m.sentido === "menor" ? " · menos es mejor" : ""}
+                  peso {porcentaje(m.peso_metrica)} · {m.unidad}{m.sentido === "menor" ? " · menos es mejor" : ""}
                 </div>
               </div>
               <div className="text-right">
@@ -146,7 +147,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
                   {actual == null ? "—" : formatearValor(actual)}
                 </div>
                 <div className="font-mono text-[9.5px] text-[#6f6f6f]">
-                  base {original == null ? "—" : formatearValor(original)} · supera al {pS.toFixed(0)}%
+                  base {original == null ? "—" : formatearValor(original)} · supera al {decimal(pS, 0)} %
                 </div>
               </div>
               <input
@@ -162,7 +163,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
               />
               <div className={`text-right font-mono font-semibold text-[12px] ${
                 efecto > 0.005 ? "text-positive" : efecto < -0.005 ? "text-negative" : "text-[#6f6f6f]"}`}>
-                {Math.abs(efecto) < 0.005 ? "—" : `${efecto > 0 ? "+" : ""}${efecto.toFixed(1)}`}
+                {Math.abs(efecto) < 0.005 ? "—" : conSigno(efecto)}
               </div>
             </div>
           );
@@ -188,10 +189,10 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
         </div>
         <p className="text-[10.5px] text-[#8a8a8a] mb-1">Puntaje</p>
         <div className="flex items-baseline gap-2">
-          <span className="font-mono font-semibold text-[26px] text-white">{totalSim.toFixed(1)}</span>
+          <span className="font-mono font-semibold text-[26px] text-white">{decimal(totalSim)}</span>
           <span className={`font-mono font-semibold text-[12px] ${
             totalSim > totalBase + 0.005 ? "text-positive" : totalSim < totalBase - 0.005 ? "text-negative" : "text-[#6f6f6f]"}`}>
-            {Math.abs(totalSim - totalBase) < 0.005 ? "—" : `${totalSim > totalBase ? "+" : ""}${(totalSim - totalBase).toFixed(1)}`}
+            {Math.abs(totalSim - totalBase) < 0.005 ? "—" : conSigno(totalSim - totalBase)}
           </span>
         </div>
         <div className="relative h-6 bg-white/[.06] mt-4 mb-1.5">

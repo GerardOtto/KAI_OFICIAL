@@ -59,7 +59,9 @@ function Globo({ rect, dimension, ranking, datos }) {
     >
       <div className="px-3 py-2 border-b border-outline/30">
         <p className="font-body text-[12px] font-semibold text-white leading-tight">{dimension}</p>
-        <p className="font-mono text-[9px] uppercase tracking-widest text-outlineSoft mt-0.5">{ranking}</p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-outlineSoft mt-0.5">
+          {ranking}{datos.edicion ? ` · edición ${datos.edicion}` : ""}
+        </p>
       </div>
 
       <div className="px-3 py-2 border-b border-outline/30">
@@ -155,7 +157,7 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
         onFocus={tieneMetrica ? entrar : undefined}
         onBlur={tieneMetrica ? salir : undefined}
         tabIndex={tieneMetrica ? 0 : undefined}
-        className={`h-14 border p-2 px-2.5 flex flex-col justify-between transition-colors ${
+        className={`h-14 min-w-0 overflow-hidden border p-2 px-2.5 flex flex-col justify-between transition-colors ${
           tieneMetrica ? "cursor-help outline-none focus:border-white/40" : ""
         }`}
         style={style}
@@ -186,9 +188,18 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
             </span>
           )}
         </span>
-        <span className="font-mono font-semibold text-[15px]"
-              style={{ color: !restringido && valor != null ? "#fff" : "#6f6f6f" }}>
-          {restringido ? "—" : valor != null ? (valorFormateado ?? numero(valor)) : "—"}
+        <span className="flex items-baseline gap-1 min-w-0">
+          <span className="font-mono font-semibold text-[15px] shrink-0"
+                style={{ color: !restringido && valor != null ? "#fff" : "#6f6f6f" }}>
+            {restringido ? "—" : valor != null ? (valorFormateado ?? numero(valor)) : "—"}
+          </span>
+          {/* En «Valores» la cifra sin su unidad no se entiende: 67,8 puede ser un
+              porcentaje o un conteo. Si no cabe entera, el título la completa. */}
+          {!restringido && valor != null && datos?.unidad && (
+            <span className="font-mono text-[9px] text-white/55 truncate" title={datos.unidad}>
+              {datos.unidad}
+            </span>
+          )}
         </span>
       </div>
 

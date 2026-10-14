@@ -20,6 +20,7 @@ import logoQs from "../assets/rankings/qs.png";
 import logoScimago from "../assets/rankings/scimago.png";
 import logoShanghai from "../assets/rankings/shanghairanking.png";
 import logoThe from "../assets/rankings/the.png";
+import { idDeInstitucion, nombreUniversidad } from "../utils/universidades";
 
 // A4 vertical, en milímetros.
 export const ANCHO = 210;
@@ -875,15 +876,12 @@ export function vacio(l, texto) {
 /** Id de la institución de quien pide el informe, por su nombre. Los informes la
  *  destacan como la del asistente destaca la que el usuario nombra. */
 export function institucionPropia(usuario, universidades) {
-  const nombre = String(usuario?.institucion || "").trim().toLowerCase();
-  if (!nombre || !universidades?.length) return null;
-  return universidades.find((u) => String(u.nombre_universidad || u.nombre || "").trim().toLowerCase() === nombre)
-    ?.id_universidad ?? null;
+  return idDeInstitucion(usuario?.institucion, universidades);
 }
 
 /** Ficha común: quién pide el informe y cuándo. */
 export const fichaDeEmision = (usuario, fecha) => [
-  usuario?.institucion && `Institución: ${usuario.institucion}`,
+  usuario?.institucion && `Institución: ${nombreUniversidad(usuario.institucion)}`,
   usuario?.nombre && `Solicitado por: ${usuario.nombre}`,
   `Emitido: ${fecha}`,
 ];

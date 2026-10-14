@@ -3,7 +3,6 @@ import {
   CALIDADES, columnas, detalleCelda, formatearValor, matriz, ordenar, sinValor,
 } from "../../utils/valoresReales";
 
-const PUCV_ID = 2;
 const numero = (v) => Number(v).toLocaleString("es-CL", { maximumFractionDigits: 1 });
 
 /** Advertencia al entrar al modo numérico: qué parte del ranking se puede mostrar
@@ -76,7 +75,7 @@ function Aviso({ datos, nombreRanking, propio }) {
 }
 
 export default function VistaValoresReales({
-  datos, loading, error, ordenPuntaje, nombreRanking, propio, anio, onElegirAnio,
+  datos, loading, error, ordenPuntaje, nombreRanking, propio, anio, onElegirAnio, idPropia = null,
 }) {
   const [criterio, setCriterio] = useState({ tipo: "posicion" });
 
@@ -166,7 +165,8 @@ export default function VistaValoresReales({
           </thead>
           <tbody>
             {filas.map((f) => {
-              const propia = f.id_universidad === PUCV_ID;
+              // La institución de la cuenta, no una fija.
+              const propia = idPropia != null && f.id_universidad === idPropia;
               return (
                 <tr key={f.id_universidad}
                   className={`border-t border-white/[.05] hover:bg-white/[.03] ${propia ? "bg-[rgba(70,130,255,.07)]" : ""}`}>

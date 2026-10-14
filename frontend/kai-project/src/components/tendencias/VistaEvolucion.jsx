@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { linearRegression, rSquared } from "../../utils/regression";
 import { fmt, decimalesPara, POSITIVO, NEGATIVO } from "./paleta";
+import { nombreCorto } from "../../utils/universidades";
 
 const H = 268;
 const DUR_TRAZO = 1.1;
@@ -376,8 +377,9 @@ export default function VistaEvolucion({
               >
                 <div className="flex items-baseline gap-2 mb-[5px]">
                   <span className="w-2 h-2 flex-none" style={{ background: r.color }} />
-                  <span className={`font-body font-semibold text-[11.5px] text-[#e6e6e6] ${claseNombre}`}>
-                    {r.nombre}
+                  <span className={`font-body font-semibold text-[11.5px] text-[#e6e6e6] ${claseNombre}`}
+                        title={estatico ? undefined : r.nombre}>
+                    {estatico ? r.nombre : nombreCorto(r.nombre)}
                   </span>
                   <span className="font-mono font-semibold text-[13px] text-white">
                     {fmt(r.valor, decimales)}
@@ -416,8 +418,9 @@ export default function VistaEvolucion({
                 return (
                   <div key={c.id} className="flex items-baseline gap-2.5">
                     <span className="w-2 h-2 flex-none" style={{ background: c.color }} />
-                    <span className={`font-body font-semibold text-[11px] text-[#c4c4c4] ${claseNombre}`}>
-                      {c.nombre}
+                    <span className={`font-body font-semibold text-[11px] text-[#c4c4c4] ${claseNombre}`}
+                          title={estatico ? undefined : c.nombre}>
+                      {estatico ? c.nombre : nombreCorto(c.nombre)}
                     </span>
                     <span className="font-mono font-semibold text-[11.5px] w-[52px] text-right" style={{ color: fg }}>
                       {`${c.total >= 0 ? "+" : "−"}${fmt(Math.abs(c.total), decimales)}`}

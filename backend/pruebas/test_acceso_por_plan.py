@@ -200,6 +200,19 @@ comprobar("las demás conservan su peso",
 glosario_pago = cliente.get("/metricas-por-tipo?tipo=Reputacion", headers=pago).json()
 comprobar("un plan de pago ve todos los pesos",
           all(not m["restringido"] for m in glosario_pago))
+# Tampoco viajan sus cifras: los valores de la institución que pinta el glosario
+# no incluyen los del ranking reservado, aunque la interfaz no los dibujara.
+tipos = cliente.get("/tipos-metrica", headers=pago).json()
+
+
+def valores_de(cabecera):
+    return [v for t in tipos for v in cliente.get(
+        "/valores-metrica-universidad", params={"tipo": t, "universidad_id": 2}, headers=cabecera).json()]
+
+
+comprobar("el plan gratuito no recibe cifras del ranking reservado",
+          not any(v["id_ranking"] == RESERVADO for v in valores_de(gratis)))
+comprobar("el de pago sí", any(v["id_ranking"] == RESERVADO for v in valores_de(pago)))
 
 print("\n=== 7. Predicciones ===")
 cap_gratis = cliente.get("/auth/yo", headers=gratis).json()["capacidades"]

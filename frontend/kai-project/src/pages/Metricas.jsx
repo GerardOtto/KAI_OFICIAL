@@ -2,12 +2,15 @@ import { useState, useMemo } from "react";
 import { useTiposMetrica } from "../hooks/useTiposMetrica";
 import { useMetricasMatriz } from "../hooks/useMetricasMatriz";
 import { useValoresMatriz } from "../hooks/useValoresMatriz";
+import { useAniosPorRanking } from "../hooks/useAniosPorRanking";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useRankings } from "../hooks/useRankings";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import HeatCell from "../components/data/HeatCell";
+import SelectorUniversidad from "../components/SelectorUniversidad";
 import { useModoValores } from "../estado/ModoValores";
 import { formatearValor } from "../utils/valoresReales";
+import { idDeInstitucion } from "../utils/universidades";
 import { useAuth } from "../auth/AuthContext";
 import { generarInformeGlosario } from "../reportes/informeGlosario";
 
@@ -27,6 +30,28 @@ const LEYENDA_PESOS = [3, 8, 13, 20, 30];
  *  no está separado por disciplinas: en una matriz cuyas filas son dimensiones
  *  transversales, esa columna no aporta nada que no diga ya QS Global. */
 const RANKINGS_OCULTOS = new Set(["QS por Disciplina"]);
+
+/** Cómo se llama cada dimensión en pantalla.
+ *
+ *  La base guarda el tipo sin tildes, y la internacionalización quedó cargada con
+ *  dos nombres según el ranking: «Internacional» en THE, QS y el Ranking KAI, e
+ *  «Internacionalizacion» en Scimago y Shanghai. Por separado, la misma dimensión
+ *  ocupaba dos filas a medio llenar; aquí se reúnen en una. */
+const NOMBRE_DIMENSION = {
+  Academicos: "Académicos",
+  "Acceso Abierto": "Acceso abierto",
+  Articulos: "Artículos",
+  "Impacto Social": "Impacto social",
+  Innovacion: "Innovación",
+  Internacional: "Internacionalización",
+  Internacionalizacion: "Internacionalización",
+  Investigacion: "Investigación",
+  Reputacion: "Reputación",
+};
+
+/** «Puntaje» no es una dimensión: es el puntaje global de QS Global (Overall,
+ *  peso 0), que en la matriz se leía como una dimensión que nadie valora. */
+const TIPOS_OCULTOS = new Set(["Puntaje"]);
 
 function alphaForPeso(peso) {
   const clamped = Math.min(peso, 25);
@@ -56,34 +81,62 @@ export default function Metricas() {
     [rankings]
   );
 
-  const [universidadId, setUniversidadId] = useState(null);
-  const [anio, setAnio] = useState("");
-  const [searchUni, setSearchUni] = useState("");
-  const [showUniPicker, setShowUniPicker] = useState(false);
+  // La institución arranca en la de la cuenta: sin elegir nada, la matriz ya
+  // muestra números. `undefined` = la de la cuenta; `null` = ninguna, a pedido.
+  const propia = useMemo(
+    () => idDeInstitucion(usuario?.institucion, universidades),
+    [usuario, universidades]
+  );
+  const [elegida, setElegida] = useState(undefined);
+  const universidadId = elegida === undefined ? propia : elegida;
+  // null = la edición más reciente de cada ranking. Un solo año para todos
+  // dejaba columnas vacías: QS Latam no tiene 2023 y Scimago no tiene 2026.
+  const [anio, setAnio] = useState(null);
 
-  const { matriz, loading } = useMetricasMatriz(tipos);
+  const tiposVisibles = useMemo(() => tipos.filter(t => !TIPOS_OCULTOS.has(t)), [tipos]);
+  const { matriz, loading } = useMetricasMatriz(tiposVisibles);
   // Switch global: en «Valores», el número de cada celda es la cifra medida.
   const { numerico } = useModoValores();
-  const { valoresMap, unidadesMap } = useValoresMatriz(
-    tipos, universidadId, anio || null, numerico ? "numerico" : "puntajes");
+  const modoDatos = numerico ? "numerico" : "puntajes";
+  const { valoresMap, unidadesMap, edicionesMap } = useValoresMatriz(
+    tiposVisibles, universidadId, anio, modoDatos);
+
+  // Los años que ofrece el selector: la unión de las ediciones de los rankings
+  // que el plan abre.
+  const idsConsultables = useMemo(
+    () => rankings.filter(r => !r.restringido).map(r => r.id_ranking),
+    [rankings]
+  );
+  const aniosPorRanking = useAniosPorRanking(idsConsultables, modoDatos);
+  const aniosDisponibles = useMemo(
+    () => [...new Set(Object.values(aniosPorRanking).flat())].sort((a, b) => b - a),
+    [aniosPorRanking]
+  );
 
   const universidadNombre = useMemo(
     () => universidades?.find(u => u.id_universidad === universidadId)?.nombre_universidad || null,
     [universidades, universidadId]
   );
 
-  const unisFiltradas = useMemo(() => {
-    if (!universidades) return [];
-    return universidades
-      .filter(u => u.nombre_universidad.toLowerCase().includes(searchUni.toLowerCase()))
-      .slice(0, 30);
-  }, [universidades, searchUni]);
-
-  // Dimensiones (filas), ordenadas por cuántas métricas reales agrupan
+  // Dimensiones (filas): los tipos de la base que en pantalla se llaman igual
+  // forman una sola; se ordenan por cuántas métricas reales agrupan.
   const dimensiones = useMemo(() => {
-    const cuantas = (t) => (matriz[t] || []).filter(m => idsVisibles.has(m.id_ranking)).length;
-    return [...tipos].sort((a, b) => cuantas(b) - cuantas(a));
-  }, [tipos, matriz, idsVisibles]);
+    const grupos = new Map();
+    tiposVisibles.forEach(t => {
+      const nombre = NOMBRE_DIMENSION[t] ?? t;
+      grupos.set(nombre, [...(grupos.get(nombre) || []), t]);
+    });
+    const cuantas = (d) => d.tipos
+      .flatMap(t => matriz[t] || []).filter(m => idsVisibles.has(m.id_ranking)).length;
+    return [...grupos].map(([nombre, tiposDe]) => ({ nombre, tipos: tiposDe }))
+      .sort((a, b) => cuantas(b) - cuantas(a));
+  }, [tiposVisibles, matriz, idsVisibles]);
+
+  const metricasDe = (dimension) => dimension.tipos.flatMap(t => matriz[t] || []);
+
+  /** Métricas de una dimensión, sin los rankings ocultos del glosario: lo que se
+   *  exporta debe coincidir con lo que se ve. */
+  const metricasVisibles = (dimension) => metricasDe(dimension).filter(m => idsVisibles.has(m.id_ranking));
 
   /** Una métrica entra en el reparto del 100 % del ranking.
    *
@@ -123,9 +176,10 @@ export default function Metricas() {
    *  cociente entre pesos de la misma disciplina, además es robusto frente a las
    *  filas duplicadas que trae la fuente.
    */
-  const celda = (tipo, idRanking) => {
-    const items = (matriz[tipo] || []).filter(m => m.id_ranking === idRanking);
+  const celda = (dimension, idRanking) => {
+    const items = metricasDe(dimension).filter(m => m.id_ranking === idRanking);
     if (items.length === 0) return null;
+    const edicion = edicionesMap[idRanking] ?? null;
 
     const perfil = perfilRanking[idRanking];
     const nDisciplinas = perfil?.disciplinas.size ?? 1;
@@ -140,6 +194,7 @@ export default function Metricas() {
         (a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0))[0];
       return {
         peso,
+        edicion,
         multi: false,
         // Ninguna métrica de la dimensión compone el total: el ranking sí la mide,
         // pero dentro de otro pilar. Sin esta distinción la celda mostraría 0 %,
@@ -210,6 +265,7 @@ export default function Metricas() {
 
     return {
       peso,
+      edicion,
       multi: true,
       nDisciplinas,
       soloReferencia: peso === 0 && metricas.length > 0,
@@ -220,7 +276,7 @@ export default function Metricas() {
     };
   };
 
-  const contextoCargado = universidadId && anio;
+  const contextoCargado = Boolean(universidadId);
 
   // Si ninguna columna visible es multidisciplinaria, la nota sobre el promedio
   // sobra: explicaría una marca que no aparece en ninguna celda.
@@ -236,22 +292,21 @@ export default function Metricas() {
     [matriz, idsVisibles]
   );
 
-  /** Métricas de una dimensión, sin los rankings ocultos del glosario: lo que se
-   *  exporta debe coincidir con lo que se ve. */
-  const metricasVisibles = (tipo) =>
-    (matriz[tipo] || []).filter(m => idsVisibles.has(m.id_ranking));
-
   const handleCSV = async () => {
     if (!(await descarga.permitir("xlsx"))) return;
     const filas = [
       ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", "Compone el total", "Parte de",
-       ...(contextoCargado ? ["Valor"] : [])],
+       ...(contextoCargado ? ["Institución", "Edición", numerico ? "Valor medido" : "Puntaje", "Unidad"] : [])],
     ];
-    dimensiones.forEach(tipo => {
-      metricasVisibles(tipo).forEach(m => {
-        const fila = [tipo, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica,
+    dimensiones.forEach(d => {
+      metricasVisibles(d).forEach(m => {
+        const fila = [d.nombre, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica,
                       pondera(m) ? "Sí" : "No", m.nombre_metrica_padre || ""];
-        if (contextoCargado) fila.push(valoresMap[m.id_metrica] ?? "");
+        if (contextoCargado) {
+          const hay = valoresMap[m.id_metrica] != null;
+          fila.push(universidadNombre, hay ? edicionesMap[m.id_ranking] ?? "" : "",
+                    valoresMap[m.id_metrica] ?? "", unidadesMap[m.id_metrica] ?? "");
+        }
         filas.push(fila);
       });
     });
@@ -267,15 +322,16 @@ export default function Metricas() {
     if (!(await descarga.permitir("pdf"))) return;
     await generarInformeGlosario({
       rankings: rankings.map(r => ({ id: r.id_ranking, nombre: r.nombre_ranking, restringido: r.restringido })),
-      dimensiones: dimensiones.map(tipo => ({
-        nombre: tipo,
+      dimensiones: dimensiones.map(d => ({
+        nombre: d.nombre,
         celdas: Object.fromEntries(
-          rankings.map(r => [r.id_ranking, celda(tipo, r.id_ranking)]).filter(([, c]) => c)),
+          rankings.map(r => [r.id_ranking, celda(d, r.id_ranking)]).filter(([, c]) => c)),
       })),
       institucion: contextoCargado ? universidadNombre : null,
       anio: contextoCargado ? anio : null,
+      ediciones: contextoCargado ? edicionesMap : null,
       numerico,
-      totalMetricas: dimensiones.reduce((s, tipo) => s + metricasVisibles(tipo).length, 0),
+      totalMetricas: dimensiones.reduce((s, d) => s + metricasVisibles(d).length, 0),
       usuario,
     });
   };
@@ -288,13 +344,18 @@ export default function Metricas() {
         <section className="flex items-start justify-between gap-6 flex-wrap mb-6">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-2 font-mono">
-              Análisis transversal{universidadNombre ? ` · ${universidadNombre}` : ""}{anio ? ` · ${anio}` : ""}
+              Análisis transversal{universidadNombre ? ` · ${universidadNombre}` : ""}
+              {universidadNombre ? (anio ? ` · ${anio}` : " · ediciones más recientes") : ""}
             </p>
             <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-2">
               Qué mide cada ranking, y cuánto pesa
             </h2>
             <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed">
-              Intensidad = peso de la métrica en ese ranking. Número = {numerico ? "cifra medida" : "puntaje"} {universidadNombre ? `de ${universidadNombre}` : "de la institución seleccionada"}.
+              Intensidad = peso de la métrica en ese ranking. Número = {numerico ? "cifra medida" : "puntaje"}{" "}
+              {universidadNombre ? `de ${universidadNombre}` : "de la institución seleccionada"}
+              {universidadNombre
+                ? anio ? ` en ${anio}` : ", en la edición más reciente de cada ranking (la indica cada columna)"
+                : ""}.
               {numerico ? " Los rankings que solo publican puntajes quedan sin número. " : " "}
               Celda vacía = el ranking no mide esa dimensión. Pasa el cursor por una celda para ver su desglose.
             </p>
@@ -341,66 +402,43 @@ export default function Metricas() {
           </div>
         </section>
 
-        {/* Selector de institución + año */}
+        {/* Selector de institución + edición */}
         <div className="mb-8 p-5 bg-surfaceHigh border border-outline/20 flex flex-wrap items-end gap-6">
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="flex-1 min-w-[220px]">
             <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-1.5">Institución</p>
-            <button
-              onClick={() => setShowUniPicker(v => !v)}
-              className={`w-full border py-2.5 px-3 text-sm text-left flex items-center justify-between transition-colors ${
+            <SelectorUniversidad
+              universidades={universidades}
+              valor={universidadId}
+              onCambio={setElegida}
+              idPropia={propia}
+              ancho={420}
+              claseBoton={`w-full border py-2.5 px-3 text-xs text-left flex items-center justify-between gap-3 transition-colors ${
                 universidadNombre
                   ? "bg-white text-black border-white font-medium"
                   : "bg-background border-outline/40 text-outlineSoft hover:border-white hover:text-white"
               }`}
-            >
-              <span className="text-xs truncate">{universidadNombre || "Seleccionar institución..."}</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
-            {showUniPicker && (
-              <div className="absolute top-full left-0 right-0 z-30 bg-[#1a1a1a] border border-outline/40 max-h-56 overflow-y-auto shadow-xl">
-                <div className="p-2 border-b border-outline/20">
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Buscar..."
-                    value={searchUni}
-                    onChange={e => setSearchUni(e.target.value)}
-                    className="w-full bg-transparent text-white text-xs px-2 py-1.5 outline-none placeholder:text-outlineSoft"
-                  />
-                </div>
-                {unisFiltradas.map(u => (
-                  <button
-                    key={u.id_universidad}
-                    onClick={() => { setUniversidadId(u.id_universidad); setShowUniPicker(false); setSearchUni(""); }}
-                    className="w-full text-left px-3 py-2.5 text-xs text-outlineSoft hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    {u.nombre_universidad}
-                  </button>
-                ))}
-              </div>
-            )}
+            />
           </div>
 
-          <div className="w-36">
-            <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-1.5">Año</p>
-            <input
-              type="number"
-              placeholder="Ej: 2024"
-              value={anio}
-              onChange={e => setAnio(e.target.value)}
-              className={`w-full border py-2.5 px-3 text-sm focus:outline-none transition-colors ${
+          <div className="w-60">
+            <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-1.5">Edición</p>
+            <select
+              value={anio ?? ""}
+              onChange={e => setAnio(e.target.value ? Number(e.target.value) : null)}
+              className={`w-full border py-2.5 px-3 text-xs focus:outline-none transition-colors ${
                 anio
                   ? "bg-white text-black border-white font-medium"
-                  : "bg-background border-outline/40 text-outlineSoft focus:border-white focus:text-white"
+                  : "bg-background border-outline/40 text-[#cfcfcf] focus:border-white"
               }`}
-            />
+            >
+              <option value="">La más reciente de cada ranking</option>
+              {aniosDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           </div>
 
           {(universidadId || anio) && (
             <button
-              onClick={() => { setUniversidadId(null); setAnio(""); setSearchUni(""); }}
+              onClick={() => { setElegida(null); setAnio(null); }}
               className="self-end text-[10px] uppercase tracking-wider px-3 py-2.5 bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500 hover:text-white transition-all"
             >
               ✕ Limpiar
@@ -415,31 +453,40 @@ export default function Metricas() {
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
               {/* Encabezado de rankings */}
-              <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, 1fr)` }}>
+              <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, minmax(0, 1fr))` }}>
                 <div />
                 {rankings.map(r => (
                   <div key={r.id_ranking}
                        className={`font-mono text-[10px] uppercase tracking-widest text-center py-2 ${
                          r.restringido ? "text-[#5f5f5f]" : "text-outlineSoft"}`}>
                     {r.nombre_ranking}
+                    {/* De qué edición son los números de la columna: cada ranking
+                        aporta la suya. */}
+                    {universidadId && !r.restringido && (
+                      <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-[#6f6f6f]">
+                        {edicionesMap[r.id_ranking] ? `edición ${edicionesMap[r.id_ranking]}`
+                          : numerico && !r.tiene_valores_reales ? "solo puntajes"
+                          : anio ? `sin edición ${anio}` : "sin datos"}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
 
               {/* Filas */}
               <div className="space-y-1.5">
-                {dimensiones.map(tipo => (
-                  <div key={tipo} className="grid gap-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, 1fr)` }}>
+                {dimensiones.map(d => (
+                  <div key={d.nombre} className="grid gap-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, minmax(0, 1fr))` }}>
                     <div className="flex flex-col justify-center pr-3">
-                      <span className="font-body font-semibold text-[12.5px] text-[#e6e6e6]">{tipo}</span>
+                      <span className="font-body font-semibold text-[12.5px] text-[#e6e6e6]">{d.nombre}</span>
                     </div>
                     {rankings.map(r => {
-                      const c = celda(tipo, r.id_ranking);
+                      const c = celda(d, r.id_ranking);
                       return (
                         <HeatCell
                           key={r.id_ranking}
                           datos={c}
-                          dimension={tipo}
+                          dimension={d.nombre}
                           ranking={r.nombre_ranking}
                           restringido={r.restringido}
                           valorFormateado={c ? (numerico ? formatearValor(c.valor) : formatNumero(c.valor)) : null}

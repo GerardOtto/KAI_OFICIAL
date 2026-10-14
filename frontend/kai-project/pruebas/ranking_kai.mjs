@@ -51,7 +51,9 @@ await cdp("Console.enable");
 const { token } = await crearSesion();
 await cdp("Page.navigate", { url: APP });
 await esperar(1200);
-await ev(`localStorage.setItem("kai_token", ${JSON.stringify(token)});`);
+// Arranca en Puntajes aunque otra sonda haya dejado «Valores» guardado: en ese
+// modo el Resumen muestra la tabla de cifras y no la de puntajes.
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(token)}); localStorage.removeItem("kai_modo_valores");`);
 await cdp("Emulation.setDeviceMetricsOverride", { width: 1500, height: 1100, deviceScaleFactor: 1, mobile: false });
 await cdp("Page.navigate", { url: `${APP}/ranking` });
 await esperar(4000);
