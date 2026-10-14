@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
 import { useAnios } from "../hooks/useAnios";
 import { useUniversidades } from "../hooks/useUniversidades";
 import { useMetricas } from "../hooks/useMetricas";
 import { useRankingResumen } from "../hooks/useRankingResumen";
+import { rutaSimulacion, transformarSimulacion, NOMBRE_SIMULACION } from "../hooks/useSimulacion";
+import { otroModo, precargar } from "../hooks/cache";
 import { useAuth } from "../auth/AuthContext";
 import SelectorUniversidad from "../components/SelectorUniversidad";
 import SimulacionUnitaria from "../components/simulacion/SimulacionUnitaria";
@@ -106,6 +108,22 @@ export default function Simulacion() {
     : institucionesComparada;
   const faltantes = conDatos ? elegidasAhora.filter(id => !conDatos.has(id)) : [];
   const dondeSeVe = [rankingNombre, disciplinaActiva, anioActivo].filter(Boolean).join(" · ");
+
+  // El otro modo, ya pedido: en los rankings que se simulan sobre la cifra
+  // (Ranking KAI, Scimago) alternar Puntajes y Valores cambia de vista, y la
+  // nueva no debe esperar al servidor. La de cifras usa todas las universidades
+  // del año; la de puntajes, las elegidas.
+  const puedeCifras = Boolean(rankingSel?.tiene_valores_reales) && rankingSel?.normalizacion === "percentil";
+  const modoOtro = otroModo(enCifras ? "numerico" : "puntajes");
+  const aniosOtro = useAnios(puedeCifras ? rankingId : null, modoOtro);
+  const anioOtro = aniosOtro.length ? (anio && aniosOtro.includes(anio) ? anio : aniosOtro[0]) : null;
+  useEffect(() => {
+    if (!puedeCifras || !anioOtro) return;
+    const elegidas = modo === "unitaria" ? (institucionUnitaria ? [institucionUnitaria] : []) : institucionesComparada;
+    if (modoOtro === "puntajes" && !elegidas.length) return;
+    precargar(rutaSimulacion(rankingId, anioOtro, modoOtro === "numerico" ? [] : elegidas, modoOtro),
+      transformarSimulacion, NOMBRE_SIMULACION);
+  }, [puedeCifras, anioOtro, modoOtro, modo, institucionUnitaria, institucionesComparada, rankingId]);
 
   const handleRankingChange = (id) => {
     setRankingId(id);

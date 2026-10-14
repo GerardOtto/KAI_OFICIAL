@@ -9,8 +9,11 @@ import AvisoModo from "../components/data/AvisoModo";
 import { useAnios } from "../hooks/useAnios";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
-import { useTendenciasComparacion } from "../hooks/useTendenciasComparacion";
-import { useSeriesEvolucion } from "../hooks/useSeriesEvolucion";
+import {
+  useTendenciasComparacion, rutaComparacion, transformarComparacion, NOMBRE_COMPARACION,
+} from "../hooks/useTendenciasComparacion";
+import { useSeriesEvolucion, rutaSeries, transformarSeries, NOMBRE_SERIES } from "../hooks/useSeriesEvolucion";
+import { otroModo, precargar } from "../hooks/cache";
 import { useRankingResumen } from "../hooks/useRankingResumen";
 
 import SelectorInstituciones from "../components/tendencias/SelectorInstituciones";
@@ -50,6 +53,21 @@ function equivalente(elegida, disponibles) {
     || disponibles.find(m => m.id_metrica === elegida.id_metrica_padre)
     || porPeso(disponibles.filter(m => m.id_metrica_padre === elegida.id_metrica))[0]
     || null;
+}
+
+/** La métrica que se muestra: la equivalente a la elegida o, sin elección, la de más peso. */
+const resolverMetrica = (elegida, disponibles) =>
+  equivalente(elegida, disponibles) || porPeso(disponibles)[0] || null;
+
+/** Las métricas del eje de la vista anual, resueltas igual. */
+function resolverEje(elegidas, disponibles) {
+  const vistas = new Set();
+  const lista = [];
+  (elegidas || []).forEach(e => {
+    const m = equivalente(e, disponibles);
+    if (m && !vistas.has(m.id_metrica)) { vistas.add(m.id_metrica); lista.push(m); }
+  });
+  return lista.length ? lista.slice(0, MAX_CHIPS_METRICA) : porPeso(disponibles).slice(0, 4);
 }
 
 export default function Tendencias() {
@@ -116,20 +134,15 @@ export default function Tendencias() {
   // La métrica de la vista de evolución y las del eje de la anual. Sin elección,
   // las de más peso: la primera por orden alfabético era a veces una de peso 0.
   const metricaActual = useMemo(
-    () => equivalente(metricaElegida, metricasDisponibles) || porPeso(metricasDisponibles)[0] || null,
+    () => resolverMetrica(metricaElegida, metricasDisponibles),
     [metricaElegida, metricasDisponibles]
   );
   const metricaId = metricaActual?.id_metrica ?? null;
 
-  const metricasEje = useMemo(() => {
-    const vistas = new Set();
-    const lista = [];
-    (metricasElegidas || []).forEach(e => {
-      const m = equivalente(e, metricasDisponibles);
-      if (m && !vistas.has(m.id_metrica)) { vistas.add(m.id_metrica); lista.push(m); }
-    });
-    return lista.length ? lista.slice(0, MAX_CHIPS_METRICA) : porPeso(metricasDisponibles).slice(0, 4);
-  }, [metricasElegidas, metricasDisponibles]);
+  const metricasEje = useMemo(
+    () => resolverEje(metricasElegidas, metricasDisponibles),
+    [metricasElegidas, metricasDisponibles]
+  );
   const metricasSel = useMemo(() => metricasEje.map(m => m.id_metrica), [metricasEje]);
 
   // Un chip se agrega o se quita sobre lo que está a la vista: si no, el primer
@@ -176,6 +189,33 @@ export default function Tendencias() {
   const { filas: filasEvol } = useSeriesEvolucion(
     esAnual ? null : rankingId, metricaId, graficadas, modo
   );
+  // --- el otro modo, ya pedido ---
+  // Alternar Puntajes y Valores no debe esperar al servidor: se deja pedido lo
+  // que se verá en el otro modo —con la métrica equivalente, que en THE es otra:
+  // el indicador en vez del pilar— y el switch solo cambia qué se muestra. Las
+  // métricas y los años del otro modo ya los pidieron useMetricas y useAnios.
+  const alterna = Boolean(rankingSel?.tiene_valores_reales);
+  const modoOtro = otroModo(modo);
+  const metricasOtro = useMetricas(alterna ? rankingId : null, modoOtro);
+  const aniosOtro = useAnios(alterna ? rankingId : null, modoOtro);
+  useEffect(() => {
+    if (!alterna || !graficadas.length) return;
+    const disponibles = disciplinaActiva
+      ? metricasOtro.filter(m => m.disciplina === disciplinaActiva) : metricasOtro;
+    if (!disponibles.length) return;
+    if (esAnual) {
+      const anioOtro = anio && aniosOtro.includes(anio) ? anio : aniosOtro[0];
+      if (!anioOtro) return;
+      const eje = resolverEje(metricasElegidas, disponibles).map(m => m.id_metrica);
+      precargar(rutaComparacion(rankingId, anioOtro, eje, graficadas, modoOtro),
+        transformarComparacion, NOMBRE_COMPARACION);
+    } else {
+      const m = resolverMetrica(metricaElegida, disponibles);
+      if (m) precargar(rutaSeries(rankingId, m.id_metrica, graficadas, modoOtro), transformarSeries, NOMBRE_SERIES);
+    }
+  }, [alterna, graficadas, disciplinaActiva, metricasOtro, aniosOtro, esAnual, anio, rankingId,
+      metricasElegidas, metricaElegida, modoOtro]);
+
   // La unidad de lo que se grafica, para el título. En puntajes no hace falta.
   const unidadActual = numerico ? (metricaActual?.unidad || filasEvol[0]?.unidad || null) : null;
 

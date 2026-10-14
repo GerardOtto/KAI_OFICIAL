@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
-import { cabeceraAuth } from "../auth/AuthContext";
-import { comoLista } from "./respuesta";
+import { useEffect, useMemo, useState } from "react";
 import { metricasDe } from "../utils/rankingPonderado";
-import { conNombres } from "../utils/universidades";
+import { leer, pedir } from "./cache";
+import { NOMBRE_SIMULACION, rutaSimulacion, transformarSimulacion } from "./useSimulacion";
 
 const VACIO = { porAnio: {}, metricas: [] };
+
+const armar = (pares) => ({
+  porAnio: Object.fromEntries(pares),
+  metricas: metricasDe(pares.flatMap(([, filas]) => filas)),
+});
 
 /** Puntajes por métrica de cada año de un ranking, para reponderarlo en el cliente.
  *
@@ -16,40 +20,41 @@ const VACIO = { porAnio: {}, metricas: [] };
  * de fábrica, y las flechas de subida o bajada no significarían nada.
  *
  * El resultado se guarda junto con la petición que lo produjo: así, al cambiar de
- * ranking, lo anterior deja de valer sin tener que vaciarlo a mano.
+ * ranking, lo anterior deja de valer sin tener que vaciarlo a mano. Cada año pasa
+ * por la caché compartida: volver al Ranking KAI no repite las peticiones.
  */
 export function useRankingPonderado(rankingId, anios, activo) {
   const [estado, setEstado] = useState({ clave: "", ...VACIO });
 
   const clave = activo && rankingId && anios.length
     ? `${rankingId}|${[...anios].sort((a, b) => a - b).join(",")}` : "";
+  const rutas = useMemo(
+    () => (clave ? clave.split("|")[1].split(",").map(Number)
+      .map(anio => ({ anio, ruta: rutaSimulacion(rankingId, anio, [], "puntajes") })) : []),
+    [clave, rankingId]
+  );
+  const completo = rutas.length > 0 && rutas.every(r => leer(r.ruta, NOMBRE_SIMULACION) !== undefined);
+  const desdeCache = useMemo(
+    () => (completo ? armar(rutas.map(r => [r.anio, leer(r.ruta, NOMBRE_SIMULACION)])) : null),
+    [completo, rutas]
+  );
 
   useEffect(() => {
-    if (!clave) return;
-    const [id, lista] = clave.split("|");
+    if (!clave || completo) return;
     let vigente = true;
-
     Promise.all(
-      lista.split(",").map(Number).map((anio) =>
-        fetch(`${import.meta.env.VITE_API_URL}/simulacion?ranking_id=${id}&anio=${anio}`,
-              { headers: cabeceraAuth() })
-          .then((r) => r.json())
-          .then((d) => [anio, conNombres(comoLista(d))])
-          .catch(() => [anio, []])
-      )
+      rutas.map(({ anio, ruta }) =>
+        pedir(ruta, transformarSimulacion, NOMBRE_SIMULACION)
+          .then(filas => [anio, filas])
+          .catch(() => [anio, []]))
     ).then((pares) => {
       // Si el usuario cambió de ranking mientras esto viajaba, se descarta.
-      if (!vigente) return;
-      setEstado({
-        clave,
-        porAnio: Object.fromEntries(pares),
-        metricas: metricasDe(pares.flatMap(([, filas]) => filas)),
-      });
+      if (vigente) setEstado({ clave, ...armar(pares) });
     });
-
     return () => { vigente = false; };
-  }, [clave]);
+  }, [clave, completo, rutas]);
 
+  if (desdeCache) return { ...desdeCache, loading: false };
   const vigente = clave && estado.clave === clave;
   return {
     ...(vigente ? estado : VACIO),

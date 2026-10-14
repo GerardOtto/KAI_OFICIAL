@@ -1,28 +1,36 @@
 import { useEffect, useState } from "react";
-import { cabeceraAuth } from "../auth/AuthContext";
 import { comoLista } from "./respuesta";
+import { leer, otroModo, pedir, precargar } from "./cache";
 
 const SIN_ANIOS = [];
+export const NOMBRE_ANIOS = "anios";
+const NOMBRE = NOMBRE_ANIOS;
+
+export const rutaAnios = (rankingId, modo) => `/anios?ranking_id=${rankingId}&modo=${modo}`;
 
 /** Años con datos de un ranking en el modo pedido, del más reciente al más antiguo.
  *
- * Ligado a la petición que lo produjo, igual que useMetricas: al cambiar de
- * ranking no se ven, ni por un instante, los años del anterior.
+ * Pasa por la caché compartida (hooks/cache.js) y deja pedido el otro modo, para
+ * que alternar Puntajes y Valores no espere al servidor. El resultado queda
+ * ligado a la petición: al cambiar de ranking no se ven, ni por un instante, los
+ * años del anterior.
  */
 export function useAnios(rankingId, modo = "puntajes") {
-  const [estado, setEstado] = useState({ clave: "", anios: SIN_ANIOS });
-  const clave = rankingId ? `${rankingId}|${modo}` : "";
+  const [estado, setEstado] = useState({ ruta: "", anios: SIN_ANIOS });
+  const ruta = rankingId ? rutaAnios(rankingId, modo) : "";
+  const enCache = leer(ruta, NOMBRE);
 
   useEffect(() => {
-    if (!clave) return;
-    const [id, m] = clave.split("|");
+    if (!rankingId) return;
+    precargar(rutaAnios(rankingId, otroModo(modo)), comoLista, NOMBRE);
+    if (leer(ruta, NOMBRE) !== undefined) return;
     let vigente = true;
-    fetch(`${import.meta.env.VITE_API_URL}/anios?ranking_id=${id}&modo=${m}`, { headers: cabeceraAuth() })
-      .then(r => r.json())
-      .then(d => vigente && setEstado({ clave, anios: comoLista(d) }))
+    pedir(ruta, comoLista, NOMBRE)
+      .then(d => vigente && setEstado({ ruta, anios: d }))
       .catch(console.error);
     return () => { vigente = false; };
-  }, [clave]);
+  }, [ruta, rankingId, modo]);
 
-  return clave && estado.clave === clave ? estado.anios : SIN_ANIOS;
+  if (enCache !== undefined) return enCache;
+  return ruta && estado.ruta === ruta ? estado.anios : SIN_ANIOS;
 }

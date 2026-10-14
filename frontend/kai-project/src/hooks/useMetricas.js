@@ -1,31 +1,34 @@
 import { useEffect, useState } from "react";
-import { cabeceraAuth } from "../auth/AuthContext";
 import { comoLista } from "./respuesta";
+import { leer, otroModo, pedir, precargar } from "./cache";
 
 const SIN_METRICAS = [];
+const NOMBRE = "metricas-con-datos";
+
+export const rutaMetricas = (rankingId, modo) => `/metricas-con-datos?ranking_id=${rankingId}&modo=${modo}`;
 
 /** Métricas de un ranking que tienen datos en el modo pedido.
  *
- * El resultado queda ligado a la petición que lo produjo, como en
- * useValoresReales: al cambiar de ranking o de modo, la lista anterior deja de
- * valer en el acto, y una respuesta que llega tarde no pisa a la vigente. Sin
- * eso, alternar Puntajes y Valores deprisa podía dejar en pantalla las métricas
- * del modo equivocado.
+ * Pasa por la caché compartida y deja pedido el otro modo: al alternar Puntajes
+ * y Valores, el selector, el nombre de la métrica y su peso ya están, sin volver
+ * al servidor. Una respuesta que llega tarde no pisa a la vigente.
  */
 export function useMetricas(rankingId, modo = "puntajes") {
-  const [estado, setEstado] = useState({ clave: "", metricas: SIN_METRICAS });
-  const clave = rankingId ? `${rankingId}|${modo}` : "";
+  const [estado, setEstado] = useState({ ruta: "", metricas: SIN_METRICAS });
+  const ruta = rankingId ? rutaMetricas(rankingId, modo) : "";
+  const enCache = leer(ruta, NOMBRE);
 
   useEffect(() => {
-    if (!clave) return;
-    const [id, m] = clave.split("|");
+    if (!rankingId) return;
+    precargar(rutaMetricas(rankingId, otroModo(modo)), comoLista, NOMBRE);
+    if (leer(ruta, NOMBRE) !== undefined) return;
     let vigente = true;
-    fetch(`${import.meta.env.VITE_API_URL}/metricas-con-datos?ranking_id=${id}&modo=${m}`, { headers: cabeceraAuth() })
-      .then(r => r.json())
-      .then(d => vigente && setEstado({ clave, metricas: comoLista(d) }))
+    pedir(ruta, comoLista, NOMBRE)
+      .then(d => vigente && setEstado({ ruta, metricas: d }))
       .catch(console.error);
     return () => { vigente = false; };
-  }, [clave]);
+  }, [ruta, rankingId, modo]);
 
-  return clave && estado.clave === clave ? estado.metricas : SIN_METRICAS;
+  if (enCache !== undefined) return enCache;
+  return ruta && estado.ruta === ruta ? estado.metricas : SIN_METRICAS;
 }

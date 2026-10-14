@@ -147,7 +147,8 @@ export default function Ranking() {
   // en «Valores» para cuando se vuelva a uno que sí tenga.
   const conValores = Boolean(rankingActual?.tiene_valores_reales);
   const numerico = pidioNumerico && conValores;
-  const valores = useValoresReales(rankingId, anio, numerico);
+  // Se piden aunque se esté en «Puntajes»: al pasar a «Valores» la tabla ya está.
+  const valores = useValoresReales(rankingId, anio, conValores);
   const ordenPuntaje = useMemo(() => data.map(u => u.id_universidad), [data]);
 
   // La edición anterior del ranking, para la variación de puestos. `anios` viene

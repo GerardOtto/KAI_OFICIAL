@@ -1,38 +1,40 @@
 import { useEffect, useState } from "react";
-import { cabeceraAuth } from "../auth/AuthContext";
 import { conNombres } from "../utils/universidades";
+import { leer, pedir } from "./cache";
+
+const NOMBRE = "valores-reales";
+// Un rechazo trae su motivo en `detail`; la caché no lo guarda (solo las
+// respuestas correctas), así que se vuelve a intentar la próxima vez.
+const transformar = (cuerpo, r) => (r.ok
+  ? { datos: { ...cuerpo, valores: conNombres(cuerpo?.valores) }, error: null }
+  : { datos: null, error: cuerpo?.detail || `Error ${r.status}` });
 
 /** Valores medidos de un ranking en un año, para el modo numérico.
  *
  * Como en el reponderado, el resultado queda ligado a la petición que lo
  * produjo: al cambiar de ranking o de año lo anterior deja de valer solo, sin
- * vaciarlo dentro del efecto.
+ * vaciarlo dentro del efecto. Con caché: el Resumen lo pide aunque se esté en
+ * «Puntajes», y al pasar a «Valores» la tabla ya está.
  */
 export function useValoresReales(rankingId, anio, activo) {
-  const [estado, setEstado] = useState({ clave: "", datos: null, error: null });
-  const clave = activo && rankingId && anio ? `${rankingId}|${anio}` : "";
+  const [estado, setEstado] = useState({ ruta: "", datos: null, error: null });
+  const ruta = activo && rankingId && anio ? `/valores-reales?ranking_id=${rankingId}&anio=${anio}` : "";
+  const enCache = leer(ruta, NOMBRE);
 
   useEffect(() => {
-    if (!clave) return;
-    const [id, a] = clave.split("|");
+    if (!ruta || leer(ruta, NOMBRE) !== undefined) return;
     let vigente = true;
-    fetch(`${import.meta.env.VITE_API_URL}/valores-reales?ranking_id=${id}&anio=${a}`,
-          { headers: cabeceraAuth() })
-      .then(async (r) => {
-        const cuerpo = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(cuerpo.detail || `Error ${r.status}`);
-        return cuerpo;
-      })
-      .then((datos) => vigente && setEstado({
-        clave, datos: { ...datos, valores: conNombres(datos.valores) }, error: null }))
-      .catch((e) => vigente && setEstado({ clave, datos: null, error: e.message }));
+    pedir(ruta, transformar, NOMBRE)
+      .then(({ datos, error }) => vigente && setEstado({ ruta, datos, error }))
+      .catch((e) => vigente && setEstado({ ruta, datos: null, error: e.message }));
     return () => { vigente = false; };
-  }, [clave]);
+  }, [ruta]);
 
-  const vigente = clave && estado.clave === clave;
+  if (enCache !== undefined) return { ...enCache, loading: false };
+  const vigente = ruta && estado.ruta === ruta;
   return {
     datos: vigente ? estado.datos : null,
     error: vigente ? estado.error : null,
-    loading: Boolean(clave) && !vigente,
+    loading: Boolean(ruta) && !vigente,
   };
 }
