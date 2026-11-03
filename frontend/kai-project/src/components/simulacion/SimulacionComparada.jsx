@@ -66,8 +66,11 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
 
   const handleReset = () => setOverrides({});
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!filas.length) return;
+    // Descuenta la planilla del plan, como el CSV del Glosario: si no, el CSV
+    // entregaba sin tope lo que el límite de descargas acota.
+    if (!(await descarga.permitir("xlsx"))) return;
     const headers = ["Institución", ...metricas.map(m => `${m.nombre_metrica} (${m.peso_metrica}%)`), "Score Total"];
     const rows = filas.map(f => [
       f.nombre,
@@ -161,7 +164,9 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
           </button>
           <button
             onClick={handleExportCSV}
-            className="font-body font-semibold text-[11px] py-2 px-3 bg-white text-[#111] hover:bg-white/80 transition-colors"
+            disabled={descarga.agotado("xlsx")}
+            title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+            className="font-body font-semibold text-[11px] py-2 px-3 bg-white text-[#111] hover:bg-white/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Exportar CSV
           </button>

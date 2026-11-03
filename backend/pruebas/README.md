@@ -40,6 +40,7 @@ psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados (y sus cifras fuera del glosario del plan gratuito), descargas contadas y asistente por dominio |
+| `limites` | Topes de inicio de sesión (por cuenta y por conexión) y de registro, que el tope no revele qué cuentas existen, que `X-Forwarded-For` no se pueda falsificar, contraseñas de más de 72 bytes y el largo máximo de un mensaje al asistente |
 | `contacto` | Formulario «Contratar ahora»: se guarda y se envía (con el correo sustituido por un doble), no se pierde si el correo falla, valida, frena robots y abusos, y el asistente no lo lee |
 | `dominios` | Catálogo de dominios institucionales, institución asignada al entrar con Google y no editable, correos parecidos que no se confunden y el asistente cerrado a las cuentas con contraseña |
 | `pesos` | Que cada ranking reparta su 100 % una sola vez: pilares e indicadores no se suman a la vez |

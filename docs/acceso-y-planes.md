@@ -39,7 +39,7 @@ dejaría fuera precisamente a las cuentas que tienen que entrar a rellenarla.
 | Rankings THE y QS | los ve, no los abre | completos | completos |
 | Resto de rankings | completos | completos | completos |
 | Proyección en Tendencias | no | sí | sí |
-| Informes por módulo | 1 PDF y 1 XLSX, una sola vez | sin tope | sin tope |
+| Informes por módulo | 1 PDF y 1 planilla (XLSX o CSV), una sola vez | sin tope | sin tope |
 | Asistente | 3 consultas por cuenta, que no se reponen | según el plan | sin tope |
 | Asistente fuera de la PUCV | no | no | sí |
 
@@ -54,7 +54,15 @@ modo que un THE o un QS que se cargue mañana queda restringido sin tocar códig
 navegador, así que la interfaz pide permiso antes de generarlos
 (`POST /descargas`) y solo continúa si se concede. Contar en el cliente no
 serviría: bastaría con borrar los datos del sitio o cambiar de equipo. El tope es
-histórico, no una cuota que se reponga.
+histórico, no una cuota que se reponga. Toda exportación tabular —el XLSX de
+Tendencias y los CSV de Resumen, Simulación y Glosario— gasta la misma planilla
+del módulo: si el CSV no contara, los datos que el límite acota saldrían sin tope
+por esa vía.
+
+**La proyección se bloquea solo en la interfaz, y basta.** La regresión de
+Tendencias se calcula en el navegador con la serie histórica, que el plan
+gratuito sí puede ver: el servidor no entrega ningún dato que haya que negarle.
+Lo que el plan de pago agrega es el cálculo hecho y dibujado, no información.
 
 **El asistente gratuito es una prueba, no una cuota.** El plan gratuito trae tres
 consultas por cuenta, seguidas y sin espera, que no se reponen nunca: para seguir
@@ -108,6 +116,14 @@ retirarlos es una limpieza pendiente.
 | `KAI_TOPE_FILAS` | 80 | Filas máximas de un resultado de herramienta |
 | `KAI_VENTANA_MENSAJES` | 10 | Mensajes del historial que se reenvían al modelo |
 | `KAI_MENSAJES_INTACTOS` | 4 | Cuántos de ellos van sin recortar |
+| `KAI_LOGIN_FALLOS_POR_CUENTA` | 10 | Inicios fallidos contra una cuenta en 15 minutos antes de frenarla |
+| `KAI_LOGIN_FALLOS_POR_IP` | 50 | Inicios fallidos desde una conexión, sobre cualquier cuenta, en 15 minutos |
+| `KAI_REGISTROS_POR_IP` | 50 | Cuentas creadas desde una conexión en una hora |
+| `KAI_PROXIES_CONFIABLES` | 1 | Proxies delante del backend; decide qué entrada de `X-Forwarded-For` es la IP real |
+
+Los tres topes de autenticación viven en memoria (`app/limites.py`) y se
+reinician con el backend. Conviene subirlos para una jornada de inscripción en un
+campus, donde muchas personas salen a internet por la misma IP.
 
 Los límites del plan viven en la tabla `plan`, no en variables: `mensajes_totales`
 acota las consultas de toda la vida de la cuenta, `mensajes_por_dia` el volumen de

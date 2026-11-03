@@ -177,6 +177,21 @@ export default function Ranking() {
   };
   const nombreConDisciplina = `${rankingActual?.nombre_ranking || ""}${disciplinaActiva ? ` · ${disciplinaActiva}` : ""}`;
 
+  /** Exportación de la tabla visible, en CSV. Descuenta la planilla del plan,
+   *  igual que el CSV del Glosario: si no, el CSV entregaba sin tope los mismos
+   *  datos que el límite de descargas pretende acotar. */
+  const handleExportar = async () => {
+    const hay = numerico ? valores.datos?.valores.length : data.length;
+    if (!hay || !(await descarga.permitir("xlsx"))) return;
+    if (numerico) {
+      descargarCSV(filasCSV(valores.datos.valores, valores.datos.metricas, valores.datos.origen),
+        `valores_medidos_${rankingActual?.nombre_ranking || ""}_${anio}.csv`);
+    } else {
+      exportarCSV(data, nombreConDisciplina, anio,
+        editable ? { metricas: ponderado.metricas, pesos } : null);
+    }
+  };
+
   /** Informe PDF de la clasificación visible: orden, variación y, en el Ranking
    *  KAI, los pesos con que se calculó. */
   const handlePDF = async () => {
@@ -267,18 +282,9 @@ export default function Ranking() {
               Densidad ⇕
             </button>
             <button
-              onClick={() => {
-                if (numerico) {
-                  if (valores.datos?.valores.length) {
-                    descargarCSV(filasCSV(valores.datos.valores, valores.datos.metricas, valores.datos.origen),
-                      `valores_medidos_${rankingActual?.nombre_ranking || ""}_${anio}.csv`);
-                  }
-                } else if (data.length) {
-                  exportarCSV(data, nombreConDisciplina, anio,
-                    editable ? { metricas: ponderado.metricas, pesos } : null);
-                }
-              }}
-              disabled={numerico ? !valores.datos?.valores.length : !data.length}
+              onClick={handleExportar}
+              disabled={(numerico ? !valores.datos?.valores.length : !data.length) || descarga.agotado("xlsx")}
+              title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
               className="bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 px-3 hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Exportar

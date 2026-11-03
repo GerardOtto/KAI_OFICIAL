@@ -84,7 +84,7 @@ La lista completa de variables del backend —incluidas las del correo de «Cont
 
 | Variable | Descripción |
 |---|---|
-| `VITE_API_URL` | URL del backend, ej. `http://localhost:8000` |
+| `VITE_API_URL` | URL del backend, ej. `http://localhost:8000`. Vite la incrusta al compilar: en producción (Railway) debe existir como variable del servicio del frontend **al construir la imagen**, y cambiarla exige volver a desplegar |
 
 ## Base de datos
 
@@ -98,8 +98,11 @@ El volcado ya trae aplicadas todas las [migraciones](backend/migraciones/README.
 
 ## Docker
 
-También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-composer.yml`:
+También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-composer.yml`. Antes, copia `.env.example` como `.env` en la raíz y completa al menos `JWT_SECRET`; sin ella el arranque se detiene con un aviso.
 
 ```bash
+cp .env.example .env    # y completar JWT_SECRET
 docker compose -f docker-composer.yml up
 ```
+
+El frontend del contenedor es la compilación de producción servida como archivos estáticos, no el servidor de desarrollo; `VITE_API_URL` se fija al construir la imagen. La base se crea con `backend/pruebas/datos_de_prueba.sql` la primera vez, con el volumen vacío. Usa PostgreSQL 18, igual que integración continua. Si levantaste antes la versión anterior, con PostgreSQL 15, borra su volumen para que se cree de nuevo: `docker compose -f docker-composer.yml down -v`.

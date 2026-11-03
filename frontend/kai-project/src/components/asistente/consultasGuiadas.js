@@ -207,6 +207,12 @@ const formatear = (v) => `CASE f.formato
  *  (lugar 21 o peor) o cuando la universidad ya está en él: del 16.º, la mitad
  *  es el 8.º, más difícil que entrar al top 10, y una tabla que pide más para
  *  la meta intermedia que para la final confunde.
+ *
+ *  Dos métricas pueden quedar empatadas en lugar y en peso. Sin un último
+ *  criterio, PostgreSQL elegía cuál entraba entre las cinco más bajas según el
+ *  orden físico de las filas, y el mismo botón podía dar dos informes distintos
+ *  —también uno con el plan gratuito y otro con el de pago—. El nombre de la
+ *  métrica desempata, siempre igual.
  */
 export function consultaSQL(c) {
   const cosa = c.pilares ? "pilar" : "métrica";
@@ -270,8 +276,8 @@ orden AS (SELECT b.*, rank() OVER w AS puesto, row_number() OVER w AS posicion,
 count(*) OVER (PARTITION BY b.id_metrica) AS total
 FROM base b WINDOW w AS (PARTITION BY b.id_metrica ORDER BY CASE WHEN b.menor THEN b.valor ELSE -b.valor END)),
 propias AS (SELECT i.n_inst, i.sigla, i.titulo, o.*,
-row_number() OVER (PARTITION BY i.sigla ORDER BY o.puesto::numeric / o.total DESC, o.peso DESC) AS peor,
-row_number() OVER (PARTITION BY i.sigla ORDER BY o.peso * (o.puesto - 1) / greatest(o.total - 1, 1) DESC, o.peso DESC) AS urgencia
+row_number() OVER (PARTITION BY i.sigla ORDER BY o.puesto::numeric / o.total DESC, o.peso DESC, o.es) AS peor,
+row_number() OVER (PARTITION BY i.sigla ORDER BY o.peso * (o.puesto - 1) / greatest(o.total - 1, 1) DESC, o.peso DESC, o.es) AS urgencia
 FROM orden o JOIN universidad u ON u.id_universidad = o.id_universidad
 JOIN inst i ON i.nombre = u.nombre_universidad),
 metas AS (SELECT p.*, ceil(p.puesto / 2.0)::int AS puesto_mitad,
@@ -315,7 +321,7 @@ bloques AS (SELECT l.n_inst,
 || ${NL} || ${NL} || '${c.pilares ? "Sus pilares, del más rezagado al menos" : "Sus métricas más bajas, de la más rezagada a la menos"}.'
 || ${NL} || ${NL} || '| ${c.pilares ? "Pilar" : "Métrica"} | Hoy | Lugar | Influencia | Meta: mitad | Meta: top 10 |'
 || ${NL} || replace('|x|x:|x:|x|x:|x:|', 'x', repeat('-', 3))
-|| ${NL} || string_agg(l.fila, ${NL} ORDER BY l.puesto::numeric / l.total DESC, l.peso DESC)
+|| ${NL} || string_agg(l.fila, ${NL} ORDER BY l.puesto::numeric / l.total DESC, l.peso DESC, l.es)
 || ${NL} || ${NL} || '**Dónde enfocarse**' || ${NL} || ${NL}
 || string_agg(l.enfoque, ${NL} ORDER BY l.urgencia) FILTER (WHERE l.urgencia <= 2) AS texto
 FROM lineas l JOIN general g ON g.id_universidad = l.id_universidad

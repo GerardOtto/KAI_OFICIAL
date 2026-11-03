@@ -123,10 +123,11 @@ export default function AuthModal({ onClose, onExito, inicial = "login" }) {
             <input id="clave" type="password" required
               autoComplete={tab === "login" ? "current-password" : "new-password"}
               minLength={tab === "register" ? 8 : undefined}
+              maxLength={tab === "register" ? 72 : undefined}
               placeholder="••••••••" className={campo}
               value={form.clave} onChange={cambiar("clave")} disabled={enviando} />
             {tab === "register" && (
-              <p className="text-[10px] text-outlineSoft mt-1.5">Mínimo 8 caracteres.</p>
+              <p className="text-[10px] text-outlineSoft mt-1.5">Entre 8 y 72 caracteres.</p>
             )}
           </div>
 

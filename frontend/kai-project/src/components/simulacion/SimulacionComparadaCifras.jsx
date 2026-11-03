@@ -53,7 +53,10 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
   const maxTotal = Math.max(1, ...elegidas.map((u) => simulado.get(u.id_universidad)?.total ?? 0));
   const columnas = `200px repeat(${metricas.length}, minmax(104px, 1fr)) 128px`;
 
-  const exportarCSV = () => {
+  const exportarCSV = async () => {
+    // Descuenta la planilla del plan, como el CSV del Glosario: si no, el CSV
+    // entregaba sin tope lo que el límite de descargas acota.
+    if (!(await descarga.permitir("xlsx"))) return;
     const tabla = [
       ["Ranking", rankingNombre], ["Año", anio], ["Modo", "valores medidos"], [],
       ["Institución", ...metricas.map((m) => `${m.nombre_metrica} (${m.unidad})`), "Puntaje", "Posición"],
@@ -114,7 +117,9 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
           <button onClick={() => setCifras({})} className="text-[11px] py-2 px-3 border border-white/[.14] text-[#8a8a8a] hover:text-white">
             Restablecer
           </button>
-          <button onClick={exportarCSV} className="text-[11px] font-semibold py-2 px-3 bg-white text-[#111] hover:bg-white/80">
+          <button onClick={exportarCSV} disabled={descarga.agotado("xlsx")}
+            title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+            className="text-[11px] font-semibold py-2 px-3 bg-white text-[#111] hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
             Exportar CSV
           </button>
           <button onClick={exportarPDF} disabled={descarga.agotado("pdf")}

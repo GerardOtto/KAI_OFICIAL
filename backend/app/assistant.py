@@ -39,6 +39,13 @@ HERRAMIENTAS_WEB = [
     {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": MAX_BUSQUEDAS},
 ]
 
+# Tope de llamadas a la API por turno, contando las reanudaciones de un turno
+# pausado. Sin él, un modelo que insistiera en volver a consultar encadenaría
+# llamadas sin límite, y cada una reenvía el contexto entero: es el motor caro,
+# y era el único sin freno (Gemini tiene GEMINI_MAX_CICLOS). Un turno corriente
+# usa dos o tres; una comparación entre instituciones y años, cuatro o cinco.
+MAX_CICLOS = int(os.getenv("CLAUDE_MAX_CICLOS", "8"))
+
 # El cliente se crea a demanda: instanciarlo al importar reventaría el arranque
 # del backend si falta la clave, dejando caída también la parte pública de la API.
 _cliente = None
@@ -97,32 +104,57 @@ def responder(mensajes: list[dict]) -> dict:
         return _res("El servidor no tiene configurada ANTHROPIC_API_KEY: el motor Claude "
                     "está deshabilitado. Ver docs/asistente-creditos.md.", ok=False)
 
-    entrada = salida = busquedas = 0
+    entrada = salida = busquedas = llamadas = 0
+    final = None
+    # Lo que el modelo va produciendo en este turno, llevado a la par del
+    # `tool_runner` y solo con sus métodos públicos. Hace falta para reanudar un
+    # turno pausado, que se reenvía entero.
+    historial = list(mensajes)
+    # Texto de las partes del turno que la API pausó: forma parte de la respuesta.
+    pausado = []
     try:
-        runner = cliente().beta.messages.tool_runner(
-            model=MODEL,
-            max_tokens=4096,
-            output_config={"effort": "medium"},
-            system=system_prompt(),
-            tools=[*TOOLS, *HERRAMIENTAS_WEB],
-            messages=mensajes,
-        )
-        final = None
-        for message in runner:
-            final = message
-            # El ciclo de herramientas hace varias llamadas a la API; el consumo
-            # es la suma de todas, no solo el de la última.
-            uso = getattr(message, "usage", None)
-            if uso is not None:
-                entrada += (getattr(uso, "input_tokens", 0) or 0)
-                entrada += (getattr(uso, "cache_read_input_tokens", 0) or 0)
-                entrada += (getattr(uso, "cache_creation_input_tokens", 0) or 0)
-                salida += (getattr(uso, "output_tokens", 0) or 0)
-                # Las búsquedas web se facturan por uso, aparte de los tokens.
-                servidor = getattr(uso, "server_tool_use", None)
-                if servidor is not None:
-                    busquedas += (getattr(servidor, "web_search_requests", 0) or 0)
-                    busquedas += (getattr(servidor, "web_fetch_requests", 0) or 0)
+        while llamadas < MAX_CICLOS:
+            runner = cliente().beta.messages.tool_runner(
+                model=MODEL,
+                max_tokens=4096,
+                output_config={"effort": "medium"},
+                system=system_prompt(),
+                tools=[*TOOLS, *HERRAMIENTAS_WEB],
+                messages=historial,
+                max_iterations=MAX_CICLOS - llamadas,
+            )
+            for message in runner:
+                final = message
+                llamadas += 1
+                # El ciclo de herramientas hace varias llamadas a la API; el
+                # consumo es la suma de todas, no solo el de la última.
+                uso = getattr(message, "usage", None)
+                if uso is not None:
+                    entrada += (getattr(uso, "input_tokens", 0) or 0)
+                    entrada += (getattr(uso, "cache_read_input_tokens", 0) or 0)
+                    entrada += (getattr(uso, "cache_creation_input_tokens", 0) or 0)
+                    salida += (getattr(uso, "output_tokens", 0) or 0)
+                    # Las búsquedas web se facturan por uso, aparte de los tokens.
+                    servidor = getattr(uso, "server_tool_use", None)
+                    if servidor is not None:
+                        busquedas += (getattr(servidor, "web_search_requests", 0) or 0)
+                        busquedas += (getattr(servidor, "web_fetch_requests", 0) or 0)
+                historial.append({"role": "assistant", "content": message.content})
+                # El runner ejecuta las herramientas con este mismo método y lo
+                # guarda en caché: llamarlo aquí no las ejecuta dos veces. Un
+                # rechazo no se toca: el runner tampoco ejecuta sus herramientas.
+                if message.stop_reason != "refusal":
+                    respuesta = runner.generate_tool_call_response()
+                    if respuesta is not None:
+                        historial.append(respuesta)
+
+            # `pause_turn`: la API cortó el turno a mitad de una búsqueda web
+            # larga. El runner lo da por terminado —no trae herramientas que
+            # ejecutar—, y sin esto se entregaba la respuesta a medias. Se reanuda
+            # reenviando el turno tal cual, que ya está al final del historial.
+            if final is None or final.stop_reason != "pause_turn":
+                break
+            pausado.extend(_textos(final))
 
     # El orden importa: las tres primeras son subclases de APIStatusError y deben
     # ir antes que ella, de lo más específico a lo más general.
@@ -187,12 +219,24 @@ def responder(mensajes: list[dict]) -> dict:
         return _res("El modelo declinó responder a esa consulta por sus políticas de uso. Reformúlala.",
                     entrada, salida, ok=False, busquedas=busquedas)
 
-    # Se concatenan todos los bloques de texto, no solo el primero: cuando el
-    # modelo usa la búsqueda web, la respuesta final llega partida en varios
-    # bloques con los resultados de búsqueda intercalados, y quedarse con el
-    # primero devolvería la respuesta a medias.
-    texto = "\n\n".join(b.text for b in final.content if b.type == "text" and b.text.strip())
+    # Se agotó el tope con el modelo todavía pidiendo herramientas, o con el
+    # turno aún en pausa: no hay respuesta que entregar.
+    if final.stop_reason in ("tool_use", "pause_turn"):
+        logger.warning("Turno de Claude cortado por el tope de %d llamadas", MAX_CICLOS)
+        return _res(f"El asistente encadenó más de {MAX_CICLOS} consultas sin llegar a una "
+                    "respuesta. Acota la pregunta.", entrada, salida, ok=False, busquedas=busquedas)
+
+    texto = "\n\n".join([*pausado, *_textos(final)])
     if not texto:
         return _res("El modelo no devolvió una respuesta de texto.", entrada, salida,
                     ok=False, busquedas=busquedas)
+    logger.info("Turno de Claude resuelto en %d llamada(s) · entrada %d · salida %d · búsquedas %d",
+                llamadas, entrada, salida, busquedas)
     return _res(texto, entrada, salida, ok=True, busquedas=busquedas)
+
+
+def _textos(mensaje) -> list[str]:
+    """Los bloques de texto de un mensaje, todos y no solo el primero: cuando el
+    modelo usa la búsqueda web, la respuesta llega partida en varios bloques con
+    los resultados intercalados, y quedarse con el primero la dejaba a medias."""
+    return [b.text for b in mensaje.content if b.type == "text" and b.text.strip()]

@@ -200,7 +200,7 @@ finally:
 for c in creadas:
     cliente.delete(f"/conversaciones/{c}", headers=CAB)
 db = main.SessionLocal()
-quedan = db.execute(text("SELECT count(*) FROM conversacion WHERE id_conversacion = ANY(:ids)"),
+quedan = db.execute(text("SELECT count(*) FROM conversacion WHERE id_conversacion = ANY(:ids) AND NOT archivada"),
                     {"ids": creadas}).scalar()
 db.close()
 print(f"\nConversaciones de prueba eliminadas: {len(creadas)} (quedan {quedan})")

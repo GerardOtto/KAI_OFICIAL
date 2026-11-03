@@ -92,7 +92,10 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
     return `Te faltan ${decimal(gap)} pts para superar a ${siguiente.nombre_universidad}`;
   }, [pares, scoreSimulado, movimiento]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
+    // Descuenta la planilla del plan, como el CSV del Glosario: si no, el CSV
+    // entregaba sin tope lo que el límite de descargas acota.
+    if (!(await descarga.permitir("xlsx"))) return;
     const filas = [
       ["Institución", nombreInstitucion],
       ["Ranking", rankingNombre],
@@ -310,7 +313,9 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
         <div className="flex gap-2 mt-5">
           <button
             onClick={handleExportCSV}
-            className="flex-1 py-2.5 bg-white text-[#111] text-[11px] font-semibold hover:bg-white/80 transition-colors"
+            disabled={descarga.agotado("xlsx")}
+            title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+            className="flex-1 py-2.5 bg-white text-[#111] text-[11px] font-semibold hover:bg-white/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Exportar CSV
           </button>

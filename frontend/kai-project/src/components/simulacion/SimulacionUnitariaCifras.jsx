@@ -70,7 +70,10 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
     (simulado.get(idPropia)?.puntajes[m.id_metrica] ?? 0).toFixed(1),
   ]);
 
-  const exportarCSV = () => {
+  const exportarCSV = async () => {
+    // Descuenta la planilla del plan, como el CSV del Glosario: si no, el CSV
+    // entregaba sin tope lo que el límite de descargas acota.
+    if (!(await descarga.permitir("xlsx"))) return;
     const tabla = [
       ["Institución", propia.nombre], ["Ranking", rankingNombre], ["Año", anio], ["Modo", "valores medidos"], [],
       ["Métrica", "Unidad", "Peso (%)", "Cifra base", "Cifra simulada", "Percentil base", "Percentil simulado"],
@@ -224,7 +227,9 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
             className="py-2.5 px-3 border border-white/[.18] text-[#cfcfcf] text-[11px] hover:border-white/40 disabled:opacity-40">
             Restablecer
           </button>
-          <button onClick={exportarCSV} className="flex-1 py-2.5 bg-white text-[#111] text-[11px] font-semibold hover:bg-white/80">
+          <button onClick={exportarCSV} disabled={descarga.agotado("xlsx")}
+            title={descarga.agotado("xlsx") ? motivoAgotado("xlsx") : undefined}
+            className="flex-1 py-2.5 bg-white text-[#111] text-[11px] font-semibold hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed">
             Exportar CSV
           </button>
           <button onClick={exportarPDF} disabled={descarga.agotado("pdf")}

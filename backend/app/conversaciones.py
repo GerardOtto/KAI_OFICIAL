@@ -1,8 +1,10 @@
 """Persistencia de conversaciones del asistente y contabilidad de tokens.
 
 El consumo se registra por mensaje, no como un contador agregado en la fila del
-usuario. Eso permite recalcular el gasto de cualquier período, auditar de dónde
-salió cada cifra y borrar una conversación sin dejar el contador descuadrado.
+usuario. Eso permite recalcular el gasto de cualquier período y auditar de dónde
+salió cada cifra. Por lo mismo, borrar una conversación no borra sus mensajes:
+la archiva y vacía su texto, y las cifras con que se cobra siguen contando (ver
+`eliminar_conversacion`).
 """
 import os
 from datetime import datetime, timedelta
@@ -71,7 +73,7 @@ def obtener_conversacion(db, id_conversacion: int, id_usuario: int) -> dict | No
     conversación ajena es indistinguible de una inexistente."""
     cab = db.execute(text("""
         SELECT id_conversacion, titulo, motor, fecha_creacion, fecha_actualizacion
-        FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u
+        FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u AND NOT archivada
     """), {"c": id_conversacion, "u": id_usuario}).first()
     if cab is None:
         return None
@@ -94,21 +96,37 @@ def motor_de_conversacion(db, id_conversacion: int, id_usuario: int) -> str | No
     validar el acceso.
     """
     return db.execute(text("""
-        SELECT motor FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u
+        SELECT motor FROM conversacion
+         WHERE id_conversacion = :c AND id_usuario = :u AND NOT archivada
     """), {"c": id_conversacion, "u": id_usuario}).scalar()
 
 
 def eliminar_conversacion(db, id_conversacion: int, id_usuario: int) -> bool:
+    """Retira una conversación del historial sin devolver la cuota que gastó.
+
+    No se borra la fila. El consumo —las consultas del día, los tokens del mes—
+    se calcula sumando los mensajes, y borrarlos lo reponía entero: vaciando el
+    historial se volvía a empezar el día y el mes, y el costo máximo de un plan
+    dejaba de estar acotado. Se archiva, y se vacía lo que escribió la persona
+    —el título y el texto de cada mensaje—: quedan solo las cifras con que se
+    cobra, que son tokens, modelo y fecha. Una conversación archivada no se
+    lista, no se abre y no admite mensajes nuevos.
+    """
     resultado = db.execute(text("""
-        DELETE FROM conversacion WHERE id_conversacion = :c AND id_usuario = :u
+        UPDATE conversacion SET archivada = TRUE, titulo = 'Conversación eliminada'
+        WHERE id_conversacion = :c AND id_usuario = :u AND NOT archivada
     """), {"c": id_conversacion, "u": id_usuario})
-    return resultado.rowcount > 0
+    if resultado.rowcount == 0:
+        return False
+    db.execute(text("UPDATE mensaje SET contenido = '' WHERE id_conversacion = :c"),
+               {"c": id_conversacion})
+    return True
 
 
 def renombrar_conversacion(db, id_conversacion: int, id_usuario: int, titulo: str) -> bool:
     resultado = db.execute(text("""
         UPDATE conversacion SET titulo = :t, fecha_actualizacion = CURRENT_TIMESTAMP
-        WHERE id_conversacion = :c AND id_usuario = :u
+        WHERE id_conversacion = :c AND id_usuario = :u AND NOT archivada
     """), {"t": titulo[:200], "c": id_conversacion, "u": id_usuario})
     return resultado.rowcount > 0
 
@@ -136,9 +154,10 @@ def guardar_mensaje(db, id_conversacion: int, rol: str, contenido: str,
 def _contar_consulta(db, id_conversacion: int, delta: int) -> None:
     """Sube o baja el contador de consultas de la cuenta dueña de la conversación.
 
-    Es un contador aparte, y no un recuento de mensajes, porque borrar una
-    conversación borra sus mensajes: el tope de por vida del plan gratuito se
-    recuperaría borrando el historial (migración 016).
+    Es un contador aparte, y no un recuento de mensajes, porque nació cuando
+    borrar una conversación borraba sus mensajes: el tope de por vida del plan
+    gratuito se recuperaba borrando el historial (migración 016). Hoy el borrado
+    archiva, pero el contador sigue siendo la fuente de esas consultas.
     """
     db.execute(text("""
         UPDATE usuario SET consultas_asistente = GREATEST(0, consultas_asistente + :d)

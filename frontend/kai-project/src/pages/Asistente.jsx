@@ -16,6 +16,11 @@ import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 const hora = (fecha) =>
   new Date(fecha).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
 
+/** Largo máximo de lo que se escribe, el mismo que acepta el servidor
+ *  (`MAX_MENSAJE` en backend/app/main.py). Las consultas guiadas no pasan por el
+ *  campo y caben con holgura. */
+const MAX_MENSAJE = 20000;
+
 const SendIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
     <path d="M2 21 23 12 2 3v7l15 2-15 2z" />
@@ -467,6 +472,7 @@ export default function Asistente() {
             <input
               ref={inputRef}
               type="text"
+              maxLength={MAX_MENSAJE}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}

@@ -198,7 +198,9 @@ comprobar("y deja el asistente como excedido", uso_prueba["excedido"] is True, u
 for r in seguidas:
     cliente.delete(f"/conversaciones/{r.json()['id_conversacion']}", headers=prueba)
 db = main.SessionLocal()
-quedan_conv = db.execute(text("SELECT count(*) FROM conversacion WHERE id_usuario = :u"), {"u": uid_g}).scalar()
+# Borrar archiva: la conversación desaparece para la persona, no de la base.
+quedan_conv = db.execute(text("SELECT count(*) FROM conversacion WHERE id_usuario = :u AND NOT archivada"),
+                         {"u": uid_g}).scalar()
 db.close()
 comprobar("se borraron sus conversaciones", quedan_conv == 0, quedan_conv)
 tras_borrar = chat(prueba, "¿y ahora?", motor="gemini")
@@ -239,13 +241,41 @@ db.execute(text("""
 db.commit()
 db.close()
 _, diario = crear_usuario(codigo_diario)
-for i in range(TOPE_DIARIO):
-    chat(diario, f"consulta {i}", motor="gemini")
+del_dia = [chat(diario, f"consulta {i}", motor="gemini") for i in range(TOPE_DIARIO)]
 r = chat(diario, "una más", motor="gemini")
 comprobar(f"tras {TOPE_DIARIO} consultas del día responde 429", r.status_code == 429, r.status_code)
 comprobar("el mensaje habla del límite diario", "límite diario" in r.json()["detail"], r.json()["detail"])
 comprobar("y ahora sí queda excedido",
           cliente.get("/uso", headers=diario).json()["excedido"] is True)
+
+# Borrar el historial no repone ni el día ni el mes: el consumo se calcula
+# sumando los mensajes, y antes el borrado se los llevaba.
+antes = cliente.get("/uso", headers=diario).json()
+ids_dia = [r.json()["id_conversacion"] for r in del_dia]
+borrados = [cliente.delete(f"/conversaciones/{c}", headers=diario).status_code for c in ids_dia]
+comprobar("se pueden borrar", borrados == [200] * TOPE_DIARIO, borrados)
+despues = cliente.get("/uso", headers=diario).json()
+comprobar("borrar no repone las consultas del día",
+          despues["mensajes_hoy"] == antes["mensajes_hoy"] == TOPE_DIARIO, (antes["mensajes_hoy"], despues["mensajes_hoy"]))
+comprobar("ni los tokens del mes",
+          despues["motores"]["gemini"]["tokens_total"] == antes["motores"]["gemini"]["tokens_total"] > 0,
+          (antes["motores"]["gemini"]["tokens_total"], despues["motores"]["gemini"]["tokens_total"]))
+r = chat(diario, "tras borrar", motor="gemini")
+comprobar("y el tope diario sigue frenando: 429", r.status_code == 429, r.status_code)
+comprobar("la conversación borrada no se lista",
+          not {c["id_conversacion"] for c in cliente.get("/conversaciones", headers=diario).json()} & set(ids_dia))
+comprobar("ni se abre: 404", cliente.get(f"/conversaciones/{ids_dia[0]}", headers=diario).status_code == 404)
+r = chat(diario, "seguir", motor="gemini", id_conv=ids_dia[0])
+comprobar("ni admite mensajes nuevos: 404", r.status_code == 404, r.status_code)
+comprobar("borrarla otra vez: 404",
+          cliente.delete(f"/conversaciones/{ids_dia[0]}", headers=diario).status_code == 404)
+db = main.SessionLocal()
+textos = db.execute(text("""
+    SELECT m.contenido, c.titulo FROM mensaje m JOIN conversacion c USING (id_conversacion)
+     WHERE c.id_conversacion = ANY(:ids)"""), {"ids": ids_dia}).fetchall()
+db.close()
+comprobar("del texto no queda nada: ni mensajes ni título",
+          textos and all(f.contenido == "" and "consulta" not in f.titulo for f in textos), textos[:2])
 
 print("\n=== 8. Administrador: acceso completo ===")
 _, admin = crear_usuario("admin")

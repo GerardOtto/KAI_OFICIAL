@@ -1,0 +1,7 @@
+# Lo que el contenedor reconstruye o no debe llevar. Un .env local se colaría
+# en la compilación y Vite lo leería.
+node_modules
+dist
+dist-prueba
+.env
+.env.*

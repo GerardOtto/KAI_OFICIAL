@@ -160,6 +160,8 @@ Además de la migración, el servicio de backend necesita estas variables
 | `SMTP_USUARIO` | sí, para «Contratar ahora» | La cuenta que envía esos correos |
 | `SMTP_CLAVE` | sí, para «Contratar ahora» | Su contraseña de aplicación (en Gmail: Cuenta de Google → Seguridad → Contraseñas de aplicaciones). Nunca en el repositorio |
 | `SMTP_HOST`, `SMTP_PORT` | no | Por defecto `smtp.gmail.com` y `587` |
+| `KAI_PROXIES_CONFIABLES` | no | Por defecto 1, el proxy de Railway. Súbelo si se pone otro delante (una CDN): de él depende qué IP ven los topes |
+| `KAI_LOGIN_FALLOS_POR_CUENTA`, `KAI_LOGIN_FALLOS_POR_IP`, `KAI_REGISTROS_POR_IP` | no | Topes de autenticación; ver `docs/acceso-y-planes.md` §6 |
 
 Sin las tres de contacto, las solicitudes se guardan igual en `solicitud_contacto`
 con `enviado = FALSE` y el motivo en `error_envio`: se pueden revisar con

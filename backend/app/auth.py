@@ -63,12 +63,22 @@ def verificar_clave(clave: str, hash_guardado: Optional[str]) -> bool:
 
 CORREO_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+# bcrypt solo usa los primeros 72 bytes de la contraseña, y la versión fijada
+# (5.x) ya no los recorta en silencio: lanza ValueError, que llegaba al cliente
+# como un 500. El tope es de bytes y no de caracteres porque una tilde ocupa
+# dos en UTF-8.
+MAX_BYTES_CLAVE = 72
+
 
 def validar_registro(correo: str, clave: str, nombre: str) -> None:
     if not CORREO_RE.match(correo or ""):
         raise HTTPException(status_code=400, detail="El correo electrónico no tiene un formato válido.")
     if len(clave or "") < 8:
         raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres.")
+    if len((clave or "").encode("utf-8")) > MAX_BYTES_CLAVE:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña es demasiado larga: admite hasta 72 caracteres (menos si usa tildes o símbolos).")
     if not (nombre or "").strip():
         raise HTTPException(status_code=400, detail="El nombre es obligatorio.")
 

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-from . import acceso, auth, contacto, conversaciones as conv, herramientas, motores
+from . import acceso, auth, contacto, conversaciones as conv, herramientas, limites, motores
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -165,10 +165,21 @@ def auth_config():
     }
 
 
+MENSAJE_DEMASIADOS_REGISTROS = ("Se crearon demasiadas cuentas desde tu conexión en la última hora. "
+                                "Inténtalo más tarde o entra con Google.")
+MENSAJE_DEMASIADOS_FALLOS = ("Demasiados intentos fallidos. Espera 15 minutos antes de volver a "
+                             "intentarlo, o entra con Google.")
+
+
 @app.post("/auth/registro")
-def registro(req: RegistroRequest):
+def registro(req: RegistroRequest, request: Request):
     correo = (req.correo or "").strip().lower()
     auth.validar_registro(correo, req.clave, req.nombre)
+    # Después de validar el formulario —un error de tipeo no gasta el tope— y
+    # antes de mirar la base: el aviso de correo ya registrado revela qué
+    # cuentas existen, y el tope también frena ese recorrido.
+    if not limites.REGISTROS_POR_IP.permitir(_ip(request)):
+        raise HTTPException(status_code=429, detail=MENSAJE_DEMASIADOS_REGISTROS)
 
     db = SessionLocal()
     try:
@@ -198,8 +209,16 @@ def registro(req: RegistroRequest):
 
 
 @app.post("/auth/login")
-def login(req: LoginRequest):
+def login(req: LoginRequest, request: Request):
     correo = (req.correo or "").strip().lower()
+    ip = _ip(request)
+    # Antes de consultar la base, y por el correo tal como llega: el tope se
+    # aplica igual a una cuenta que no existe, así que no revela cuáles existen.
+    # Mientras dura, ni siquiera la contraseña correcta entra: si entrara, el
+    # tope no impediría seguir probando.
+    if limites.FALLOS_POR_CUENTA.excedido(correo) or limites.FALLOS_POR_IP.excedido(ip):
+        raise HTTPException(status_code=429, detail=MENSAJE_DEMASIADOS_FALLOS)
+
     db = SessionLocal()
     try:
         fila = db.execute(text("""
@@ -215,8 +234,13 @@ def login(req: LoginRequest):
         # Mismo mensaje para correo inexistente y clave incorrecta: revelar cuál
         # de los dos falló permitiría enumerar las cuentas registradas.
         if fila is None or not auth.verificar_clave(req.clave, fila.clave_usuario):
+            limites.FALLOS_POR_CUENTA.registrar(correo)
+            limites.FALLOS_POR_IP.registrar(ip)
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
+        # Acertar limpia los fallos de la cuenta, no los de la IP: quien prueba
+        # contraseñas ajenas no debe quedar limpio por entrar a la suya.
+        limites.FALLOS_POR_CUENTA.olvidar(correo)
         db.execute(text("UPDATE usuario SET ultimo_acceso = CURRENT_TIMESTAMP WHERE id_usuario = :i"),
                    {"i": fila.id_usuario})
         db.commit()
@@ -516,10 +540,24 @@ def _linea(valor: str | None, maximo: int) -> str:
     return " ".join((valor or "").split())[:maximo]
 
 
+# Proxies de confianza delante del backend: cada uno agrega a X-Forwarded-For,
+# por la derecha, la IP de quien le habló. En Railway hay uno. Si se pone otro
+# delante (una CDN, por ejemplo), hay que subir este número.
+PROXIES_CONFIABLES = int(os.getenv("KAI_PROXIES_CONFIABLES", "1"))
+
+
 def _ip(request: Request) -> str:
-    # Detrás del proxy de Railway, la IP del cliente viene en X-Forwarded-For.
-    reenviada = request.headers.get("x-forwarded-for", "")
-    return reenviada.split(",")[0].strip() or (request.client.host if request.client else "?")
+    """IP del cliente, para los topes por conexión.
+
+    Se cuenta desde la derecha de X-Forwarded-For, tantos saltos como proxies de
+    confianza haya. La primera entrada, la de la izquierda, la escribe el propio
+    cliente: tomándola, bastaba con cambiarla en cada envío para estrenar un tope
+    nuevo cada vez. Sin la cabecera —en local, sin proxy— vale la del socket.
+    """
+    saltos = [s.strip() for s in request.headers.get("x-forwarded-for", "").split(",") if s.strip()]
+    if saltos and PROXIES_CONFIABLES > 0:
+        return saltos[-min(PROXIES_CONFIABLES, len(saltos))]
+    return request.client.host if request.client else "?"
 
 
 @app.post("/contacto")
@@ -600,6 +638,15 @@ class ChatRequest(BaseModel):
     motor: str | None = None
 
 
+# Largo máximo de un mensaje al asistente, en caracteres. Todo lo que llega se
+# guarda y se reenvía al modelo en los turnos siguientes, así que sin tope un
+# solo mensaje podía inflar el costo de toda la conversación. Debe dejar pasar
+# las consultas guiadas, que viajan con sus instrucciones y su SQL: la más larga
+# ronda los 11.100 caracteres. El compositor del frontend usa el mismo tope
+# (`MAX_MENSAJE` en pages/Asistente.jsx).
+MAX_MENSAJE = 20000
+
+
 @app.post("/chat")
 def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     """Envía una consulta al asistente dentro de una conversación del usuario.
@@ -615,6 +662,11 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     texto = (req.mensaje or "").strip()
     if not texto:
         raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío.")
+    if len(texto) > MAX_MENSAJE:
+        raise HTTPException(
+            status_code=400,
+            detail=(f"El mensaje es demasiado largo ({conv._miles(len(texto))} caracteres; el máximo "
+                    f"es {conv._miles(MAX_MENSAJE)}). Acórtalo o divídelo en varias consultas."))
 
     # El asistente está reservado, por ahora, a las cuentas de la institución que
     # financia el proyecto. Se comprueba aquí y no solo en el catálogo de motores
