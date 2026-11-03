@@ -66,6 +66,11 @@ jobs:
         # notificaciones. Ver backend/pruebas/README.md.
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 
+      - name: Crear el rol del asistente
+        # Los roles son del servidor y no viajan en el volcado. Sin este, la
+        # consulta SQL libre del asistente se niega y fallan sus baterías.
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
+
       - name: Ejecutar las baterías
         working-directory: backend
         run: python pruebas/ejecutar.py

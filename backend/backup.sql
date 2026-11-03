@@ -12070,7 +12070,6 @@ COPY public.universidad_ranking (id_universidad, id_ranking, anio_ranking, posic
 --
 
 COPY public.usuario (id_usuario, nombre_usuario, institucion_usuario, clave_usuario, correo_usuario, notificaciones_switch, plan_usuario, fecha_creacion, fecha_facturacion) FROM stdin;
-2	Gerard Otto	PUCV	claveKai420	ottosagredo@gmail.com	t	ADMIN	2026-04-07 00:38:51.974658	\N
 \.
 
 

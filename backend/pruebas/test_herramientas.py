@@ -102,6 +102,64 @@ finally:
     db.rollback()
     db.close()
 
+print("\n=== 3b. El filtro reconoce el SQL escrito como texto ===")
+# Cada una se probó contra la base: armando el nombre por partes al ejecutar,
+# leían tablas vetadas que el filtro anterior no veía. Se exige que las rechace
+# el filtro mismo, no solo que fallen: si el filtro dejara de verlas, los
+# privilegios de la sección siguiente las frenarían igual y la prueba pasaría
+# en silencio.
+DINAMICAS = [
+    ("ts_stat con el nombre partido",
+     "SELECT ts_stat('select to_tsvector(''simple'', correo_usuario) fr'||'om us'||'uario') LIMIT 5"),
+    ("ts_stat entre comillas", "SELECT \"ts_stat\"('select to_tsvector(contenido) fr'||'om men'||'saje') LIMIT 5"),
+    ("query_to_xml con el nombre partido",
+     "SELECT query_to_xml('sel'||'ect correo_usuario fr'||'om us'||'uario', true, true, '') LIMIT 1"),
+    ("table_to_xml con el nombre partido", "SELECT table_to_xml(('us'||'uario')::regclass, true, false, '') LIMIT 1"),
+    ("ts_rewrite con una consulta", "SELECT ts_rewrite('a'::tsquery, 'select ''a''::tsquery, ''b''::tsquery') LIMIT 1"),
+    ("recuperar privilegios con set_config", "SELECT set_config('role', 'postgres', true) LIMIT 1"),
+    ("tabla vetada con escape Unicode", 'SELECT * FROM U&"\\0075suario" LIMIT 1'),
+]
+for nombre, sql in DINAMICAS:
+    motivo = h._revisar_sql(sql)
+    comprobar(f"el filtro rechaza: {nombre}", motivo is not None, sql[:80])
+    comprobar(f"  y no se ejecuta: {nombre}", h.consulta_sql(sql).startswith("ERROR"))
+
+# Con el filtro anterior esta pasaba y le entregaba al plan gratuito las 1.340
+# filas de puntajes de THE: TABLE no figura entre las palabras que preceden a
+# una tabla, y el esquema escrito con U& esquivaba la sombra de los CTE.
+with h.con_rankings_vedados({1, 2, 5, 7}):
+    escapada = h.consulta_sql(
+        'SELECT count(*) AS n FROM (TABLE U&"\\0070ublic".metrica_universidad) t WHERE id_metrica IN '
+        '(SELECT id_metrica FROM (TABLE U&"\\0070ublic".metrica) x WHERE id_ranking = 1) LIMIT 1')
+comprobar("con el plan gratuito, TABLE y un esquema escrito con U& no esquivan el veto de THE",
+          escapada.startswith("ERROR"), escapada[:120])
+
+print("\n=== 3c. Si el filtro fallara, los privilegios de la base frenan ===")
+# Se desactiva el filtro a propósito: lo que queda es el rol de solo lectura
+# (migración 019), la garantía que da PostgreSQL.
+revisar_original = h._revisar_sql
+h._revisar_sql = lambda sql: None
+try:
+    directa = h.consulta_sql("SELECT correo_usuario FROM usuario LIMIT 1")
+    comprobar("leer usuario directamente: permiso denegado",
+              directa.startswith("ERROR") and "InsufficientPrivilege" in directa, directa[:160])
+    dinamica = h.consulta_sql("SELECT ts_stat('select to_tsvector(''simple'', contenido) from mensaje') LIMIT 1")
+    comprobar("leerlo con SQL dinámico: permiso denegado también",
+              dinamica.startswith("ERROR") and "InsufficientPrivilege" in dinamica, dinamica[:160])
+    comprobar("las tablas académicas se siguen leyendo",
+              not h.consulta_sql("SELECT count(*) AS n FROM metrica_universidad LIMIT 1").startswith("ERROR"))
+finally:
+    h._revisar_sql = revisar_original
+
+rol_original = h.ROL_ASISTENTE
+h.ROL_ASISTENTE = "rol_que_no_existe"
+try:
+    sin_rol = h.consulta_sql("SELECT count(*) AS n FROM ranking LIMIT 1")
+    comprobar("sin el rol (falta la migración 019) la consulta se niega, no corre sin él",
+              sin_rol.startswith("ERROR") and "no está disponible" in sin_rol, sin_rol[:120])
+finally:
+    h.ROL_ASISTENTE = rol_original
+
 print("\n=== 4. Las herramientas devuelven datos ===")
 casos = [
     ("listar_rankings", lambda: h.listar_rankings()),

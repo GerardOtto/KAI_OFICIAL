@@ -24,6 +24,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `016_consultas_de_prueba.sql` | El plan gratuito pasa de «una consulta cada tres días» a 3 consultas al asistente por cuenta, que no se reponen: columnas `plan.mensajes_totales` y `usuario.consultas_asistente` (arranca con las preguntas del historial). **Aplicarla antes de desplegar el backend**: la sesión y `/planes` leen las columnas nuevas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `017_scimago_por_edicion.sql` | Scimago pasa a guardarse con el año de su **edición** y no con el que cierra su ventana de publicaciones: 2018…2023 se corre a 2020…2025 (la edición 2025 usa 2019-2023), en puntajes y cifras. Solo datos, sin cambios de esquema. Requiere la 011 | aplicada (14-10-2026) | aplicada (14-10-2026) |
 | `018_catalogo_de_universidades.sql` | Corrige el catálogo (ver `docs/hallazgos-recoleccion.md` §5): fusiona el duplicado de UNIACC —«Universidad de Artes, Ciencias y Comunicacion» se funde en «Universidad UNIACC», traspasando sus valores, dominios y cuentas— y agrega las dos estatales que faltaban, O'Higgins y Aysén (sin datos; se cargan con la recolección). Solo datos, sin cambios de esquema. El backend no depende de ella | **pendiente** | **pendiente** |
+| `019_rol_del_asistente.sql` | Rol de base `kai_asistente`, que solo lee las tablas académicas; la consulta SQL libre del asistente corre con él y, sin él, se niega. Cierra la lectura de cuentas y mensajes por SQL dinámico. Los roles no viajan en el volcado: aplicarla también tras cargar uno. **Aplicarla antes de desplegar el backend** | **pendiente** | **pendiente** |
 
 Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
 y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
@@ -162,6 +163,7 @@ Además de la migración, el servicio de backend necesita estas variables
 | `SMTP_HOST`, `SMTP_PORT` | no | Por defecto `smtp.gmail.com` y `587` |
 | `KAI_PROXIES_CONFIABLES` | no | Por defecto 1, el proxy de Railway. Súbelo si se pone otro delante (una CDN): de él depende qué IP ven los topes |
 | `KAI_LOGIN_FALLOS_POR_CUENTA`, `KAI_LOGIN_FALLOS_POR_IP`, `KAI_REGISTROS_POR_IP` | no | Topes de autenticación; ver `docs/acceso-y-planes.md` §6 |
+| `DATABASE_URL_ASISTENTE` | recomendada | Conexión propia para la consulta SQL libre del asistente, con el usuario `kai_asistente`. Ver «019» abajo |
 
 Sin las tres de contacto, las solicitudes se guardan igual en `solicitud_contacto`
 con `enviado = FALSE` y el motivo en `error_envio`: se pueden revisar con
@@ -317,3 +319,42 @@ psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/017_scimago_po
 Debe terminar con `NOTICE: Edición más reciente de Scimago Latam: 2025`. El
 backend no necesita desplegarse antes ni después: todas las pantallas y las
 consultas guiadas leen el año más reciente desde la base.
+
+## 019: el rol del asistente
+
+La consulta SQL libre del asistente (`consulta_sql`) se protegía solo con un
+filtro de texto, y se demostró que no bastaba: con funciones que ejecutan SQL
+escrito como texto (`ts_stat`, `query_to_xml`) el nombre de la tabla se arma por
+partes al ejecutar, el filtro no lo ve, y se leyeron correos y mensajes de otras
+cuentas; con un esquema escrito con escapes (`U&"..."`), el plan gratuito leía
+los puntajes de THE. El filtro rechaza ahora esas formas, y la 019 agrega la
+garantía que no depende de él: la consulta corre con el rol `kai_asistente`,
+que solo puede leer las ocho tablas académicas.
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
+```
+
+Debe terminar con `NOTICE: kai_asistente lee solo las 8 tablas académicas`. Si
+aborta diciendo que el rol puede leer otra tabla, hay un permiso concedido a
+`PUBLIC` que conviene revocar.
+
+**Recomendado en Railway: una conexión propia.** El backend entra a la base como
+superusuario, y desde una sesión de superusuario el rol se puede deshacer con
+`set_config('role', ...)`. Hoy lo impide el filtro; para que no dependa de él, el
+asistente debe conectarse con un usuario que *sea* `kai_asistente`:
+
+1. Dale contraseña al rol desde `psql`, con `\password` para que la clave no
+   quede en el historial:
+   ```
+   ALTER ROLE kai_asistente LOGIN;
+   \password kai_asistente
+   ```
+2. En las variables del backend, agrega `DATABASE_URL_ASISTENTE` con la misma
+   dirección que `DATABASE_URL` pero con ese usuario:
+   `postgresql://kai_asistente:CLAVE@postgres.railway.internal:5432/railway`.
+
+Con eso, `set_config('role', 'postgres')` responde «permiso denegado» aunque el
+filtro fallara. Sin la variable, la consulta usa la conexión común y asume el rol
+con `SET LOCAL ROLE`.
+

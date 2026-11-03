@@ -6,15 +6,20 @@ services:
     image: postgres:18
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 365153gg
+      # Del archivo .env, como las claves del backend: una contraseña escrita
+      # aquí queda publicada con el repositorio.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en un archivo .env junto a docker-composer.yml (ver README)}
       POSTGRES_DB: KAI-PROJECT
     volumes:
       # Desde la 18, la imagen guarda los datos en /var/lib/postgresql/18/docker y
       # pide montar el volumen un nivel más arriba.
       - postgres_data:/var/lib/postgresql
       # Esquema completo, con todas las migraciones aplicadas, y los datos
-      # académicos, sin ninguna cuenta. Solo se carga con el volumen vacío.
-      - ./backend/pruebas/datos_de_prueba.sql:/docker-entrypoint-initdb.d/datos.sql
+      # académicos, sin ninguna cuenta. Solo se carga con el volumen vacío, en
+      # orden alfabético: primero los datos y después el rol del asistente, que
+      # por ser del servidor no viaja en el volcado.
+      - ./backend/pruebas/datos_de_prueba.sql:/docker-entrypoint-initdb.d/01-datos.sql
+      - ./backend/migraciones/019_rol_del_asistente.sql:/docker-entrypoint-initdb.d/02-rol-del-asistente.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -29,7 +34,7 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql://postgres:365153gg@db:5432/KAI-PROJECT
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/KAI-PROJECT
       # Las claves salen del archivo .env junto a este, que no se versiona (ver
       # README). JWT_SECRET es obligatoria: sin ella todo /auth respondería 503,
       # así que el arranque se detiene antes con un aviso.

@@ -33,6 +33,7 @@ académicos cargados. Para una base vacía:
 
 ```bash
 psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
+psql "$DATABASE_URL" -f migraciones/019_rol_del_asistente.sql   # los roles no viajan en el volcado
 ```
 
 | Batería | Qué verifica |

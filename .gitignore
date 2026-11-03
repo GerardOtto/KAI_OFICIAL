@@ -17,6 +17,10 @@ dist/
 # cada archivo y con qué sha256, de modo que el crudo sea reproducible.
 KAI/Datos reales/*/raw/
 KAI/Datos reales/*/debug/
+# Capturas de depuración del scraper de Scopus (`--debug-author`). Se hacen con
+# la sesión institucional iniciada, así que llevan su identificador de sesión y
+# el correo de quien la abrió: no se versionan.
+tools/scopus_scraper/debug_output/
 # El procesado de THE lleva el mundo entero (90 MB) porque sin la distribución
 # mundial no se puede estimar la normalización. Se versiona el subconjunto
 # chileno, `procesado_chile.csv`, y el completo se regenera con el guion.

@@ -147,16 +147,30 @@ con esquema (`public.metrica`) esquivaría el CTE, así que se rechaza.
 ### `consulta_sql`: por qué existe y cómo está contenida
 
 Enumerar una herramienta por pregunta posible es imposible, así que hay una que
-acepta SQL. Su contención tiene cuatro capas, y ninguna basta sola:
+acepta SQL. Su contención tiene cinco capas, y ninguna basta sola:
 
 1. Solo se admite **una** sentencia que empiece por `SELECT` o `WITH`.
-2. Se rechazan las palabras que escriben o leen el sistema, y el catálogo interno
-   de PostgreSQL.
+2. Se rechazan las palabras que escriben o leen el sistema, el catálogo interno
+   de PostgreSQL, las funciones que ejecutan SQL escrito como texto (`ts_stat`,
+   `query_to_xml` y familia, `ts_rewrite`), `set_config` y los nombres escritos
+   con escapes `U&`.
 3. Se rechaza cualquier mención de las tablas vetadas, y toda relación citada
    tras `FROM`/`JOIN` debe estar en la lista blanca.
 4. La consulta se ejecuta en una **transacción de solo lectura** con un timeout
-   de 8 segundos. Esta es la única garantía que no depende de acertar con una
-   expresión regular: la impone el motor de la base.
+   de 8 segundos.
+5. Corre con el rol **`kai_asistente`** (migración 019), que solo puede leer las
+   tablas académicas: una tabla vetada da «permiso denegado» aunque el filtro no
+   la reconozca. Sin el rol, la consulta se niega.
+
+Las capas 4 y 5 las impone el motor de la base y no dependen de acertar con una
+expresión regular. Las capas 2 y 3 se quedaron cortas una vez: con `ts_stat` y el
+nombre de la tabla armado por partes (`'us' || 'uario'`) se leyeron correos y
+mensajes de otras cuentas, y con un esquema escrito con `U&` el plan gratuito
+leía los puntajes de THE. La 5 es la respuesta de fondo, con un matiz: si el
+backend entra como superusuario, `set_config('role', ...)` devolvería los
+privilegios, y lo impide la capa 2. Para que tampoco dependa de ella, el
+asistente puede usar una conexión propia, `DATABASE_URL_ASISTENTE` (ver
+`backend/migraciones/README.md`, «019»).
 
 Un error de SQL vuelve al modelo como resultado de la herramienta, para que
 corrija la consulta y reintente.

@@ -94,14 +94,18 @@ El esquema y los datos académicos se cargan desde [`backend/pruebas/datos_de_pr
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 ```
 
-El volcado ya trae aplicadas todas las [migraciones](backend/migraciones/README.md); una base nueva queda lista con ese solo archivo. (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
+El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema. Los roles, en cambio, son del servidor y no viajan en él: después de cargarlo, aplica la migración del rol del asistente, sin la cual su consulta SQL libre se niega.
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
+``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
 
 ## Docker
 
-También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-composer.yml`. Antes, copia `.env.example` como `.env` en la raíz y completa al menos `JWT_SECRET`; sin ella el arranque se detiene con un aviso.
+También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-composer.yml`. Antes, copia `.env.example` como `.env` en la raíz y completa al menos `POSTGRES_PASSWORD` y `JWT_SECRET`; sin ellas el arranque se detiene con un aviso.
 
 ```bash
-cp .env.example .env    # y completar JWT_SECRET
+cp .env.example .env    # y completar POSTGRES_PASSWORD y JWT_SECRET
 docker compose -f docker-composer.yml up
 ```
 

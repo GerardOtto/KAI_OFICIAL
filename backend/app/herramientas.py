@@ -17,13 +17,17 @@ a mano como de la herramienta de SQL libre, que las rechaza (ver `TABLAS_PUBLICA
 import contextlib
 import contextvars
 import functools
+import logging
 import os
 import re
 
 from anthropic import beta_tool
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from .db import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 # --- Instrucción de sistema -------------------------------------------------
 
@@ -961,17 +965,54 @@ _PROHIBIDAS = re.compile(
     re.I)
 # Esquemas y catálogos internos de PostgreSQL.
 _CATALOGOS = re.compile(r"\b(pg_catalog|information_schema|pg_[a-z_]+)\b", re.I)
+# Funciones que ejecutan una consulta escrita como texto. Con ellas el nombre de
+# la tabla se arma por partes al ejecutar ('us' || 'uario') y nada de lo que se
+# revisa aquí llega a verlo: con ts_stat se leyeron correos de cuentas y
+# mensajes ajenos. También las que cambian la configuración de la sesión:
+# set_config('role', ...) devuelve los privilegios que el rol del asistente
+# quita (ver ROL_ASISTENTE).
+_SQL_DINAMICO = re.compile(
+    r"\b(query_to_xml\w*|table_to_xml\w*|cursor_to_xml\w*|schema_to_xml\w*|database_to_xml\w*|"
+    r"ts_stat|ts_rewrite|set_config)\b", re.I)
+# Identificadores y textos escritos con escapes Unicode (U&"\0075suario"): no
+# contienen el nombre que se busca, así que esquivaban todo lo anterior.
+_ESCAPES_U = re.compile(r"\bU&\s*['\"]", re.I)
+
+
+# Rol de base con el que corre la consulta libre: solo puede leer las tablas de
+# TABLAS_PUBLICAS (migración 019). Es la garantía que no depende del filtro: lo
+# que este no reconozca, PostgreSQL lo niega igual.
+ROL_ASISTENTE = "kai_asistente"
+
+# Conexión propia para la consulta libre, opcional. Con la conexión común, que
+# entra como superusuario, el rol de arriba se puede deshacer desde la propia
+# consulta (set_config('role', ...)): solo el filtro lo impide. Con un usuario
+# de base que solo sea ese rol, ya no hay privilegios que recuperar. Ver
+# backend/migraciones/README.md, «019».
+URL_ASISTENTE = os.getenv("DATABASE_URL_ASISTENTE")
+_motor_asistente = None
+
+
+def _sesion_de_consulta() -> Session:
+    if not URL_ASISTENTE:
+        return SessionLocal()
+    global _motor_asistente
+    if _motor_asistente is None:
+        _motor_asistente = create_engine(URL_ASISTENTE, pool_pre_ping=True)
+    return Session(bind=_motor_asistente)
 
 
 def _revisar_sql(sql: str) -> str | None:
     """Devuelve el motivo del rechazo, o None si la consulta puede ejecutarse.
 
-    Cuatro capas, porque ninguna basta sola: se prohíben las palabras que
-    escriben o leen el sistema; se rechaza cualquier mención de las tablas
-    vetadas, escríbase como se escriba; se exige que toda relación citada esté en
-    la lista blanca (para que ninguna subconsulta llegue a otro sitio); y, ya en
-    la ejecución, la transacción es de solo lectura, que es la garantía que da el
-    propio motor de la base y no depende de acertar con estas expresiones.
+    Varias capas, porque ninguna basta sola: se prohíben las palabras que
+    escriben o leen el sistema, las funciones que ejecutan SQL escrito como texto
+    y los nombres escritos con escapes; se rechaza cualquier mención de las
+    tablas vetadas, escríbase como se escriba; y se exige que toda relación
+    citada esté en la lista blanca, para que ninguna subconsulta llegue a otro
+    sitio. Ya en la ejecución, la transacción es de solo lectura y corre con un
+    rol que solo puede leer las tablas académicas: esas dos garantías las da el
+    propio motor de la base y no dependen de acertar con estas expresiones.
     """
     limpio = _COMENTARIOS.sub(" ", sql or "").strip().rstrip(";")
     if not limpio:
@@ -982,6 +1023,11 @@ def _revisar_sql(sql: str) -> str | None:
         return "Solo se admiten consultas de lectura que empiecen por SELECT o WITH."
     if _PROHIBIDAS.search(limpio):
         return "La consulta contiene una operación no permitida: esta herramienta solo lee datos."
+    if _SQL_DINAMICO.search(limpio):
+        return ("La consulta usa una función que ejecuta SQL escrito como texto o cambia la "
+                "configuración de la sesión; escribe la consulta directamente.")
+    if _ESCAPES_U.search(limpio):
+        return "No se admiten nombres ni textos escritos con escapes Unicode (U&); escríbelos tal cual."
     if _CATALOGOS.search(limpio):
         return "No se puede consultar el catálogo interno de PostgreSQL."
 
@@ -1057,13 +1103,23 @@ def consulta_sql(sql: str) -> str:
         if sql is None:
             return "ERROR: escribe los nombres de las tablas sin esquema delante."
 
-    db = SessionLocal()
+    db = _sesion_de_consulta()
     try:
         # La transacción de solo lectura la impone PostgreSQL, no estas líneas de
         # Python: aunque el filtro de arriba dejara pasar una escritura, aquí
         # fallaría. El timeout evita que una consulta mal planteada bloquee el turno.
         db.execute(text("SET TRANSACTION READ ONLY"))
         db.execute(text("SET LOCAL statement_timeout = '8s'"))
+        # Lo mismo para la lectura: con este rol, una tabla fuera de las
+        # académicas da «permiso denegado» aunque el filtro no la reconozca. Sin
+        # el rol (falta la migración 019) la consulta se niega, en vez de correr
+        # con los privilegios de la conexión.
+        try:
+            db.execute(text(f"SET LOCAL ROLE {ROL_ASISTENTE}"))
+        except Exception as e:
+            logger.error("consulta_sql no puede asumir el rol %s: %s", ROL_ASISTENTE, e)
+            return ("ERROR: la consulta SQL libre no está disponible en este servidor. Responde con "
+                    "las demás herramientas.")
         resultado_sql = db.execute(text(sql))
         filas = resultado_sql.fetchall()
         columnas = list(resultado_sql.keys())
