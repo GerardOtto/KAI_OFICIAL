@@ -148,6 +148,11 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
           >
             Solo modificadas
           </button>
+          {descarga.error && (
+            <span role="alert" className="text-[10px] text-negative max-w-[280px] leading-snug">
+              {descarga.error}
+            </span>
+          )}
           <button
             onClick={handleReset}
             className="font-body font-medium text-[11px] py-2 px-3 border border-white/[.14] text-[#8a8a8a] hover:text-white transition-colors"

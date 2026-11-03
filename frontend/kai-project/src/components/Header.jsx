@@ -66,6 +66,15 @@ function MenuCompacto({ pedirSesion }) {
   );
 }
 
+const NOMBRE_MOTOR = { claude: "Claude", gemini: "Gemini" };
+
+/** Parte de la cuota mensual de un motor ya usada, de 0 a 100. Un motor que el
+ *  plan no incluye se dibuja lleno y en gris, igual que en el asistente. */
+const usoDeCuota = (m) =>
+  !m.incluido ? 100
+    : m.tokens_mensuales ? Math.min(100, (m.tokens_total / m.tokens_mensuales) * 100)
+    : 0;
+
 function MenuUsuario() {
   const { usuario, cuota, cerrarSesion } = useAuth();
   const [abierto, setAbierto] = useState(false);
@@ -100,9 +109,6 @@ function MenuUsuario() {
   }
 
   const iniciales = usuario.nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
-  const pct = cuota?.tokens_mensuales
-    ? Math.min(100, (cuota.tokens_total / cuota.tokens_mensuales) * 100)
-    : 0;
 
   return (
     <div className="relative">
@@ -131,16 +137,33 @@ function MenuUsuario() {
 
             {cuota && (
               <div className="px-4 py-3 border-b border-white/[.08]">
-                <div className="flex items-baseline justify-between mb-1.5">
-                  <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f]">Tokens del mes</span>
-                  <span className="font-mono text-[10px] text-[#c4c4c4]">
-                    {cuota.tokens_total.toLocaleString("es-CL")}
-                    {cuota.tokens_mensuales != null && ` / ${cuota.tokens_mensuales.toLocaleString("es-CL")}`}
-                  </span>
-                </div>
-                <div className="h-[3px] bg-white/[.08]">
-                  <div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${pct}%` }} />
-                </div>
+                <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f] mb-2">Tokens del mes</p>
+                {/* La cuota es de cada motor por separado (ver conversaciones.py): un
+                    total común no diría cuál se agotó ni cuál queda libre. */}
+                {Object.entries(cuota.motores || {}).map(([id, m]) => (
+                  <div key={id} className="mb-2 last:mb-0">
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#9a9a9a]">
+                        {NOMBRE_MOTOR[id] || id}
+                      </span>
+                      <span className="font-mono text-[10px] text-[#c4c4c4]">
+                        {!m.incluido
+                          ? "no incluido"
+                          : m.tokens_mensuales == null
+                            ? `${m.tokens_total.toLocaleString("es-CL")} · sin límite`
+                            : `${m.tokens_total.toLocaleString("es-CL")} / ${m.tokens_mensuales.toLocaleString("es-CL")}`}
+                      </span>
+                    </div>
+                    <div className="h-[3px] bg-white/[.08]">
+                      <div
+                        className={`h-full transition-[width] duration-500 ${
+                          !m.incluido ? "bg-outline" : m.tokens_restantes === 0 ? "bg-negative" : "bg-accent"
+                        }`}
+                        style={{ width: `${usoDeCuota(m)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
                 {cuota.mensajes_por_dia != null && (
                   <p className="font-mono text-[9px] text-[#6f6f6f] mt-1.5">
                     {cuota.mensajes_hoy} de {cuota.mensajes_por_dia} consultas hoy

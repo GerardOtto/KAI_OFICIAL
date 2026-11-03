@@ -37,14 +37,15 @@ Universidad Tecnologica de Chile,base,Universidad Tecnologica de Chile
 Universidad UNIACC,base,Universidad UNIACC
 Universidad Ucinf,base,Universidad Ucinf
 Universidad de Antofagasta,base,Universidad de Antofagasta
-"Universidad de Artes, Ciencias y Comunicacion",base,"Universidad de Artes, Ciencias y Comunicacion"
 Universidad de Atacama,base,Universidad de Atacama
+Universidad de Aysen,base,Universidad de Aysen
 Universidad de Chile,base,Universidad de Chile
 Universidad de Concepcion,base,Universidad de Concepcion
 Universidad de La Serena,base,Universidad de La Serena
 Universidad de Las Americas,base,Universidad de Las Americas
 Universidad de Los Lagos,base,Universidad de Los Lagos
 Universidad de Magallanes,base,Universidad de Magallanes
+Universidad de O'Higgins,base,Universidad de O'Higgins
 Universidad de Playa Ancha,base,Universidad de Playa Ancha
 Universidad de Santiago de Chile,base,Universidad de Santiago de Chile
 Universidad de Talca,base,Universidad de Talca
@@ -68,6 +69,7 @@ Universidad Católica del Maule,generico,Universidad Catolica del Maule
 Universidad Católica del Norte,generico,Universidad Catolica del Norte
 Universidad Santo Tomás,generico,Universidad Santo Tomas
 Universidad Técnica Federico Santa María,generico,Universidad Tecnica Federico Santa Maria
+"Universidad de Artes, Ciencias y Comunicacion",generico,Universidad UNIACC
 Universidad de Concepción,generico,Universidad de Concepcion
 Universidad de La Frontera,generico,Universidad de la Frontera
 Universidad de Magallanes,generico,Universidad de Magallanes

@@ -381,6 +381,11 @@ export default function Metricas() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {descarga.error && (
+              <span role="alert" className="text-[10px] text-negative max-w-[280px] leading-snug">
+                {descarga.error}
+              </span>
+            )}
             <button
               onClick={handleCSV}
               disabled={descarga.agotado("xlsx")}

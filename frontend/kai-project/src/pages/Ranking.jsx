@@ -228,6 +228,11 @@ export default function Ranking() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {descarga.error && (
+              <span role="alert" className="text-[10px] text-negative max-w-[280px] leading-snug">
+                {descarga.error}
+              </span>
+            )}
             {disciplinas.length > 0 && (
               <div className="relative">
                 <select

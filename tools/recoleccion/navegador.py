@@ -180,7 +180,7 @@ def mapa_de_nombres(fuente: str | None = None) -> dict[str, str]:
 
 
 def universidades_de_la_base() -> list[str]:
-    """Los 58 nombres canónicos, leídos del propio archivo de alias."""
+    """Los nombres canónicos de la tabla `universidad`, leídos del propio archivo de alias."""
     with ALIAS.open(encoding="utf-8-sig", newline="") as f:
         return sorted({fila["nombre_universidad"].strip() for fila in csv.DictReader(f)})
 

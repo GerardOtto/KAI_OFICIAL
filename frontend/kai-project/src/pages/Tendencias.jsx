@@ -377,10 +377,17 @@ export default function Tendencias() {
             {pdfEstado === "listo" && (
               <span className="font-body text-[10px] text-positive">PDF descargado</span>
             )}
+            {/* El servidor puede negar la descarga aunque el botón estuviera
+                activo —por ejemplo, si se gastó desde otra pestaña—: se dice. */}
+            {descarga.error && (
+              <span role="alert" className="font-body text-[10px] text-negative max-w-[320px] leading-snug">
+                {descarga.error}
+              </span>
+            )}
             <button
               title={descarga.agotado("pdf") ? motivoAgotado("pdf") : undefined}
               onClick={handlePDF}
-              disabled={pdfEstado === "generando" || !filasExport.length}
+              disabled={pdfEstado === "generando" || !filasExport.length || descarga.agotado("pdf")}
               className={btnSecundario}
             >
               {pdfEstado === "generando" ? "Generando…" : "↓ PDF"}

@@ -38,7 +38,7 @@ KAI_OFICIAL/
 
 ## Requisitos previos
 
-- Node.js 18+
+- Node.js 20.19+ (lo exige Vite 8)
 - Python 3.12+
 - PostgreSQL 15+
 
@@ -73,7 +73,12 @@ npm run dev
 | Variable | Descripción |
 |---|---|
 | `DATABASE_URL` | Cadena de conexión a PostgreSQL, ej. `postgresql://usuario:password@localhost:5432/KAI-PROJECT` |
-| `ANTHROPIC_API_KEY` | Clave de la API de Claude, requerida para el Asistente. Se obtiene en [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| `JWT_SECRET` | **Obligatoria.** Secreto para firmar las sesiones; sin ella todo `/auth/*` responde 503. Genérala con `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `ANTHROPIC_API_KEY` | Clave de la API de Claude, para el motor Claude del Asistente. Se obtiene en [console.anthropic.com](https://console.anthropic.com/settings/keys) |
+| `GEMINI_API_KEY` | Clave de la API de Gemini, para el motor Gemini del Asistente. Sin ella ese motor se muestra deshabilitado. Se obtiene en [aistudio.google.com](https://aistudio.google.com/apikey) |
+| `GOOGLE_CLIENT_ID` | Opcional. Sin ella, el acceso con Google no se ofrece |
+
+La lista completa de variables del backend —incluidas las del correo de «Contratar ahora»— está en [`backend/migraciones/README.md`](backend/migraciones/README.md).
 
 **`frontend/kai-project/.env`**
 
@@ -83,7 +88,13 @@ npm run dev
 
 ## Base de datos
 
-El dump con los datos (`backup.sql`) no se sube al repositorio. Se comparte por otro medio (USB, Drive, etc.); quien clone el proyecto debe colocarlo en `backend/backup.sql` antes de levantar el entorno.
+El esquema y los datos académicos se cargan desde [`backend/pruebas/datos_de_prueba.sql`](backend/pruebas/datos_de_prueba.sql), que sí está versionado y trae todas las migraciones aplicadas pero **ninguna** fila de cuentas, conversaciones ni mensajes:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
+```
+
+El volcado ya trae aplicadas todas las [migraciones](backend/migraciones/README.md); una base nueva queda lista con ese solo archivo. (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
 
 ## Docker
 

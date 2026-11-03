@@ -106,6 +106,11 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
             className={`text-[11px] py-2 px-3 border ${soloModificadas ? "bg-white text-[#111] border-white" : "bg-[#1c1c1c] border-white/[.14] text-[#9a9a9a] hover:text-white"}`}>
             Solo modificadas
           </button>
+          {descarga.error && (
+            <span role="alert" className="text-[10px] text-negative max-w-[280px] leading-snug">
+              {descarga.error}
+            </span>
+          )}
           <button onClick={() => setCifras({})} className="text-[11px] py-2 px-3 border border-white/[.14] text-[#8a8a8a] hover:text-white">
             Restablecer
           </button>

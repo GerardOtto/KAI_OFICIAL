@@ -23,6 +23,13 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `015_solicitudes_de_contacto.sql` | Tabla `solicitud_contacto`: cada solicitud del formulario «Contratar ahora», guardada antes de enviarse por correo, con `enviado` y `error_envio`. Datos personales: vetada al asistente y sin filas en el volcado de pruebas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `016_consultas_de_prueba.sql` | El plan gratuito pasa de «una consulta cada tres días» a 3 consultas al asistente por cuenta, que no se reponen: columnas `plan.mensajes_totales` y `usuario.consultas_asistente` (arranca con las preguntas del historial). **Aplicarla antes de desplegar el backend**: la sesión y `/planes` leen las columnas nuevas | aplicada (30-09-2026) | aplicada (30-09-2026) |
 | `017_scimago_por_edicion.sql` | Scimago pasa a guardarse con el año de su **edición** y no con el que cierra su ventana de publicaciones: 2018…2023 se corre a 2020…2025 (la edición 2025 usa 2019-2023), en puntajes y cifras. Solo datos, sin cambios de esquema. Requiere la 011 | aplicada (14-10-2026) | aplicada (14-10-2026) |
+| `018_catalogo_de_universidades.sql` | Corrige el catálogo (ver `docs/hallazgos-recoleccion.md` §5): fusiona el duplicado de UNIACC —«Universidad de Artes, Ciencias y Comunicacion» se funde en «Universidad UNIACC», traspasando sus valores, dominios y cuentas— y agrega las dos estatales que faltaban, O'Higgins y Aysén (sin datos; se cargan con la recolección). Solo datos, sin cambios de esquema. El backend no depende de ella | **pendiente** | **pendiente** |
+
+Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
+y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
+regenera el volcado desde una base con la 018 aplicada (ver el final de este
+documento) y cambia el 58 de `test_dominios.py` por 59. Hasta entonces, la 018
+vive solo como archivo, igual que cualquier migración recién escrita.
 
 Tras aplicar la 001 se verificó que el esquema de ambas bases es idéntico
 (mismas tablas y mismas columnas en `usuario`), y se convirtieron a bcrypt las

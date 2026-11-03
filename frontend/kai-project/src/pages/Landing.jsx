@@ -218,13 +218,12 @@ export default function Landing() {
 
       <footer className="border-t border-white/10 flex flex-col md:flex-row justify-between items-center px-6 sm:px-12 py-6 gap-4">
         <p className="text-[12px] text-outlineSoft">© 2026 KAI. Todos los derechos reservados.</p>
-        <div className="flex flex-wrap justify-center gap-6">
-          {["Privacidad", "Términos de uso", "Propiedad intelectual", "Contacto y soporte"].map((item) => (
-            <a key={item} href="#" className="text-[12px] text-outlineSoft hover:text-white transition-colors">
-              {item}
-            </a>
-          ))}
-        </div>
+        {/* Solo enlaces que llevan a algo. Privacidad, términos y propiedad
+            intelectual apuntaban a «#»: vuelven al pie cuando existan sus textos. */}
+        <button onClick={() => setContacto("")}
+                className="text-[12px] text-outlineSoft hover:text-white transition-colors">
+          Contacto
+        </button>
       </footer>
 
       {auth && (

@@ -323,6 +323,9 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
             Exportar PDF
           </button>
         </div>
+        {descarga.error && (
+          <p role="alert" className="mt-2 text-[11px] text-negative leading-snug">{descarga.error}</p>
+        )}
       </div>
     </div>
   );

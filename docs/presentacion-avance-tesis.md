@@ -116,15 +116,17 @@ El estado se representa con un anillo de progreso en cada rama, no con la palabr
 
 ### D4 — Qué se construyó
 
-Texto: «Seis módulos sobre una base común».
+Texto: «Cinco módulos sobre una base común».
 
-Visual — **mapa del sitio**. Nodo raíz «Encabezado» y seis hojas:
+Visual — **mapa del sitio**. Nodo raíz «Encabezado» y cinco hojas:
 
 - Resumen de rankings · Tendencias · Simulación (2 modos) · Glosario de métricas ·
-  Investigadores (2 vistas) · Asistente conversacional.
+  Asistente conversacional.
 
-El nodo «Asistente» lleva candado: es el único módulo que exige sesión iniciada, porque
-es el único con costo marginal por consulta. Los demás son públicos.
+Todos los módulos exigen sesión iniciada; solo la portada es pública. El nodo «Asistente»
+lleva candado aparte: es el único con costo marginal por consulta, reservado por ahora a
+las cuentas de la PUCV. (El módulo de Investigadores se retiró de la web; sus datos
+bibliométricos siguen cargados y el asistente los consulta.)
 
 ---
 

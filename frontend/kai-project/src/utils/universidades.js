@@ -26,6 +26,7 @@ const CON_TILDE = [
   "Universidad Católica del Maule",
   "Universidad Católica del Norte",
   "Universidad de Artes, Ciencias y Comunicación",
+  "Universidad de Aysén",
   "Universidad de Concepción",
   "Universidad de La Frontera",
   "Universidad de Las Américas",

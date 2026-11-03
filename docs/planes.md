@@ -5,7 +5,7 @@ Qué incluye cada plan, de dónde salen los precios y cómo se aplican los lími
 - **Catálogo:** tabla `plan` — se cambia con SQL, sin tocar código.
 - **Cuotas y bloqueos:** [`backend/app/conversaciones.py`](../backend/app/conversaciones.py)
 - **Aplicación:** `POST /chat` en [`backend/app/main.py`](../backend/app/main.py)
-- **Portada:** [`components/landing/PlanesChat.jsx`](../frontend/kai-project/src/components/landing/PlanesChat.jsx)
+- **Portada:** [`components/landing/Planes.jsx`](../frontend/kai-project/src/components/landing/Planes.jsx)
 - **Migraciones:** [`003_planes_por_tokens.sql`](../backend/migraciones/003_planes_por_tokens.sql)
   (estructura) y [`007_recalibracion_de_precios.sql`](../backend/migraciones/007_recalibracion_de_precios.sql)
   (precios y cuotas vigentes)
