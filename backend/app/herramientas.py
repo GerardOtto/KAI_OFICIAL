@@ -713,10 +713,10 @@ def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") 
         f"""
         SELECT u.nombre_universidad,
                -- Solo lo que compone el total: los indicadores de referencia y el
-               -- propio puntaje total no suman. En Shanghai GRAS cada puntaje ya
-               -- trae su peso y el total es la suma.
+               -- propio puntaje total no suman. En Shanghai GRAS, desde 2024, cada
+               -- puntaje ya trae su peso y el total es la suma.
                round(COALESCE(SUM(mu.valor_metrica * CASE
-                   WHEN COALESCE((to_jsonb(r) ->> 'puntajes_ponderados')::boolean, false) THEN 1.0
+                   WHEN mu.anio_metrica >= COALESCE((to_jsonb(r) ->> 'puntajes_ponderados_desde')::int, 9999) THEN 1.0
                    ELSE m.peso_metrica / 100.0 END) FILTER (WHERE m.pondera), 0), 2) AS score_total,
                round(max(mu.valor_metrica) FILTER (WHERE m.tipo_metrica = 'Puntaje'), 2) AS puntaje_total,
                count(*) FILTER (WHERE m.pondera) AS metricas_usadas

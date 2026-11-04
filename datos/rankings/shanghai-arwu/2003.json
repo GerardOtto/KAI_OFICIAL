@@ -1,0 +1,8 @@
+{
+  "descargado": "2026-11-04T16:51:44+00:00",
+  "error_max_contra_publicados": 5.62,
+  "fuente": "https://www.shanghairanking.com/api/pub/v1/arwu/rank?version=2003",
+  "sha256": "496d200c8793bd725745576ff118b8ff41f2c0cfa849b606372c31c30edc365a",
+  "suma_primera": 86.87,
+  "total": "sin total calculado: la metodología no reproduce los publicados"
+}

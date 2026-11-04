@@ -10,7 +10,14 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
   const rawData = useSimulacion(rankingId, anio, universidadId ? [universidadId] : []);
   // Los pares se miden en la misma disciplina que se simula: con el total de todas
   // las disciplinas, una sola quedaba siempre al fondo de la tabla.
-  const { data: resumen } = useRankingResumen(rankingId, anio, disciplinaFiltro);
+  const { data: resumenCrudo } = useRankingResumen(rankingId, anio, disciplinaFiltro);
+  // Los pares se comparan en la misma escala que se simula: la suma de cada
+  // métrica por su aporte. El Resumen ordena por el total registrado, que en THE,
+  // ARWU o GRAS puede ser otra escala (ARWU reescala a la primera del mundo).
+  const resumen = useMemo(
+    () => resumenCrudo.map(u => ({ ...u, score_total: Number(u.score_calculado ?? u.score_total) })),
+    [resumenCrudo]
+  );
 
   // { id_metrica: valor_editado }
   const [overrides, setOverrides] = useState({});
@@ -292,7 +299,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
               Puntaje total registrado en {rankingNombre}:{" "}
               <span className="font-mono font-semibold text-white">{decimal(totalRegistrado)}</span>
               {Math.abs(totalRegistrado - scoreBase) >= 0.5 &&
-                " · difiere de la suma de las métricas porque el ranking reescala su total"}
+                " · difiere de la suma de las métricas: el ranking lo calcula con su propio método (ver Glosario)"}
             </>
           ) : (
             `${rankingNombre} no publica el puntaje total de esta institución en ${anio}; se muestra la suma de sus métricas.`

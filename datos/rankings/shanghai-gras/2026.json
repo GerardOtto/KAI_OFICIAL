@@ -1,0 +1,8 @@
+{
+  "descargado": "2026-11-04T17:03:13+00:00",
+  "error_max_contra_publicados": 0.2,
+  "fuente": "https://www.shanghairanking.com/api/pub/v1/gras/subj?version=2026",
+  "materias": 57,
+  "sin_total": [],
+  "total": "suma de los indicadores, que GRAS publica ya ponderados"
+}

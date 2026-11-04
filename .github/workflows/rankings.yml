@@ -1,0 +1,128 @@
+name: Rankings oficiales
+
+# Una vez al mes revisa las fuentes oficiales de cada ranking y, si hay ediciones
+# nuevas, abre un PR con sus instantáneas (datos/rankings). Al incorporarlo a
+# main, las carga en la base. Ver tools/rankings/README.md.
+#
+#   revisar   día 5 de cada mes (y a mano): THE, ARWU y GRAS por la red; QS desde
+#             la planilla oficial que se haya dejado en KAI/QS/DatosQS; Scimago,
+#             solo si ya publicó cifras. Lo que no puede resolver solo —una
+#             planilla de QS que falta, una fuente que cambió de metodología—
+#             queda en un issue «Rankings: acción requerida».
+#   cargar    cada vez que main recibe cambios en datos/rankings: verifica cada
+#             instantánea contra la base y carga las ediciones que faltan. Usa el
+#             secreto DATABASE_URL_RANKINGS; sin él, avisa y no hace nada.
+#
+# Requiere en el repositorio: Settings → Actions → General → «Allow GitHub
+# Actions to create and approve pull requests».
+
+on:
+  schedule:
+    - cron: "0 11 5 * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["datos/rankings/**"]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: rankings
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r backend/requirements.txt
+
+      - name: Revisar las fuentes oficiales
+        id: revision
+        run: |
+          if python tools/rankings/actualizar.py --informe informe.md; then
+            echo "fallo=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "fallo=1" >> "$GITHUB_OUTPUT"
+          fi
+          cat informe.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Abrir un PR con las ediciones nuevas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- datos/rankings)" ]; then
+            echo "Sin ediciones nuevas."
+            exit 0
+          fi
+          mes="$(date -u +%Y-%m)"
+          rama="rankings/$mes"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$rama"
+          git add datos/rankings
+          git commit -m "Rankings: ediciones nuevas ($mes)"
+          git push --force -u origin "$rama"
+          if ! gh pr create --base main --head "$rama" --title "Rankings: ediciones nuevas ($mes)" --body-file informe.md; then
+            gh pr edit "$rama" --body-file informe.md
+          fi
+
+      - name: Avisar lo que requiere acción
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f informe.json ] || exit 0
+          python - <<'EOF'
+          import json, pathlib
+          informe = json.loads(pathlib.Path("informe.json").read_text(encoding="utf-8"))
+          partes = []
+          if informe["accion"]:
+              partes += ["### Requiere acción", ""] + [f"- {x}" for x in informe["accion"]] + [""]
+          if informe["errores"]:
+              partes += ["### Errores", ""] + [f"- {x}" for x in informe["errores"]] + [""]
+          pathlib.Path("aviso.md").write_text("\n".join(partes), encoding="utf-8")
+          EOF
+          [ -s aviso.md ] || exit 0
+          titulo="Rankings: acción requerida"
+          numero="$(gh issue list --state open --search "in:title \"$titulo\"" --json number --jq '.[0].number')"
+          if [ -n "$numero" ]; then
+            gh issue comment "$numero" --body-file aviso.md
+          else
+            gh issue create --title "$titulo" --body-file aviso.md
+          fi
+
+  cargar:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r backend/requirements.txt
+
+      - name: Verificar y cargar en la base
+        env:
+          DATABASE_URL_RANKINGS: ${{ secrets.DATABASE_URL_RANKINGS }}
+        run: |
+          if [ -z "$DATABASE_URL_RANKINGS" ]; then
+            echo "::notice::Sin el secreto DATABASE_URL_RANKINGS. Carga a mano: python tools/rankings/cargar.py --escribir"
+            exit 0
+          fi
+          python tools/rankings/cargar.py --escribir --url "$DATABASE_URL_RANKINGS"

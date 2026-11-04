@@ -985,36 +985,63 @@ def get_anios(ranking_id: int, modo: str = "puntajes",
 @app.get("/ranking-resumen")
 def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = None,
     usuario: dict = Depends(ranking_permitido)):
+    """Puntaje total de cada universidad en una edición, de mayor a menor.
+
+    `score_calculado` es la suma de cada métrica por su aporte: lo que la
+    Simulación mueve. `score_total` es el puntaje total que la plataforma registra
+    (migración 020) cuando **todas** las universidades de la edición lo tienen —el
+    publicado por el ranking o calculado con su método— y, si no, el calculado.
+    Mezclar los dos en un mismo orden no sirve: en QS, que solo publica el total
+    de las primeras, quedarían dos escalas distintas. El registrado manda porque es
+    el oficial: en Shanghai GRAS anterior a 2024 los pesos cambian por materia y
+    edición, y la base guarda uno solo por métrica.
+    """
     db = SessionLocal()
     try:
         # Un ranking multidisciplinario (Shanghai GRAS, QS por Disciplina) publica
         # una clasificación por disciplina, cada una con pesos que suman 100: sin
         # acotarla, el total sumaba todas las disciplinas (más de 1.600 «puntos»).
         por_disciplina = "AND m.disciplina = :disciplina" if disciplina else ""
+        # Sin disciplina, un multidisciplinario tiene un total por disciplina y
+        # ninguno es «el» de la universidad: se usa la suma.
+        totales_por_disciplina = db.execute(text("""
+            SELECT count(DISTINCT disciplina) FROM metrica
+            WHERE id_ranking = :r AND tipo_metrica = 'Puntaje'"""), {"r": ranking_id}).scalar() or 0
+        usa_registrado = bool(disciplina) or totales_por_disciplina <= 1
         result = db.execute(text(f"""
-            SELECT
-                r.id_ranking,
-                r.nombre_ranking,
-                r.descripcion_ranking,
-                u.id_universidad,
-                u.nombre_universidad,
-                u.pais_universidad,
-                COALESCE(SUM(mu.valor_metrica * {_FACTOR_TOTAL}), 0) AS score_total
-            FROM ranking r
-            JOIN metrica m ON m.id_ranking = r.id_ranking
-            JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
-            JOIN universidad u ON u.id_universidad = mu.id_universidad
-            WHERE r.id_ranking = :ranking_id
-              AND mu.anio_metrica = :anio
-              -- Solo las métricas que componen el total. Hoy las de referencia no
-              -- tienen observaciones, así que el resultado es el mismo; el filtro
-              -- impide que una carga futura en ese nivel sume dos veces el peso.
-              AND m.pondera
-              {por_disciplina}
-            GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
-                     u.id_universidad, u.nombre_universidad, u.pais_universidad
-            ORDER BY score_total DESC
-        """), {"ranking_id": ranking_id, "anio": anio, "disciplina": disciplina})
+            WITH por_universidad AS (
+                SELECT
+                    r.id_ranking,
+                    r.nombre_ranking,
+                    r.descripcion_ranking,
+                    u.id_universidad,
+                    u.nombre_universidad,
+                    u.pais_universidad,
+                    -- Solo las métricas que componen el total: las de referencia y
+                    -- el propio puntaje total no suman.
+                    COALESCE(SUM(mu.valor_metrica * {_FACTOR_TOTAL}) FILTER (WHERE m.pondera), 0) AS score_calculado,
+                    MAX(mu.valor_metrica) FILTER (WHERE m.tipo_metrica = 'Puntaje') AS registrado,
+                    COUNT(*) FILTER (WHERE m.pondera) AS componentes
+                FROM ranking r
+                JOIN metrica m ON m.id_ranking = r.id_ranking
+                JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+                JOIN universidad u ON u.id_universidad = mu.id_universidad
+                WHERE r.id_ranking = :ranking_id
+                  AND mu.anio_metrica = :anio
+                  AND (m.pondera OR m.tipo_metrica = 'Puntaje')
+                  {por_disciplina}
+                GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
+                         u.id_universidad, u.nombre_universidad, u.pais_universidad
+            )
+            SELECT id_ranking, nombre_ranking, descripcion_ranking, id_universidad,
+                   nombre_universidad, pais_universidad, score_calculado,
+                   CASE WHEN :usa_registrado AND bool_and(registrado IS NOT NULL) OVER ()
+                        THEN registrado ELSE score_calculado END AS score_total
+            FROM por_universidad
+            WHERE componentes > 0
+            ORDER BY score_total DESC, score_calculado DESC
+        """), {"ranking_id": ranking_id, "anio": anio, "disciplina": disciplina,
+               "usa_registrado": usa_registrado})
         rows = [dict(row._mapping) for row in result]
         return rows
     finally:
@@ -1330,12 +1357,13 @@ def _modo(modo: str) -> str:
     return modo
 
 
-# Lo que un punto de la métrica `m` del ranking `r` aporta al puntaje total. En
-# Shanghai GRAS el puntaje de cada indicador ya incluye su peso —el de Q1 va de 0 a
-# 100, el de CNCI de 0 a 50— y el total es la suma; multiplicarlo otra vez por el
-# peso, como se hacía, daba un total que no era el de GRAS. Se lee con to_jsonb
-# para no depender de que la migración 020 ya esté aplicada.
-_FACTOR_TOTAL = ("CASE WHEN COALESCE((to_jsonb(r) ->> 'puntajes_ponderados')::boolean, false) "
+# Lo que un punto de la métrica `m` del ranking `r` aporta al puntaje total, en la
+# edición `mu.anio_metrica`. En Shanghai GRAS, desde 2024, el puntaje de cada
+# indicador ya incluye su peso —el de Q1 va de 0 a 100, el de CNCI de 0 a 50— y el
+# total es la suma; multiplicarlo otra vez por el peso, como se hacía, daba un
+# total que no era el de GRAS. Se lee con to_jsonb para no depender de que la
+# migración 020 ya esté aplicada.
+_FACTOR_TOTAL = ("CASE WHEN mu.anio_metrica >= COALESCE((to_jsonb(r) ->> 'puntajes_ponderados_desde')::int, 9999) "
                  "THEN 1.0 ELSE m.peso_metrica / 100.0 END")
 
 

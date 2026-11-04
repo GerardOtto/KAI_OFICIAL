@@ -1,0 +1,14 @@
+{
+  "descargado": "2026-11-04T16:51:25+00:00",
+  "error_max_contra_publicados": 0.07,
+  "fuente": "https://www.timeshighereducation.com/world-university-rankings/2017/latin-america-university-rankings",
+  "pesos": {
+    "Industry": 2.5,
+    "International Outlook": 7.5,
+    "Research Environment": 34,
+    "Research Quality": 20,
+    "Teaching": 36
+  },
+  "sha256": "008cb8181ab458b01acd89730a500ed0e12e5c3169f58264b8d9df7453d68b77",
+  "total": "Overall publicado; en las bandas, calculado con los pesos de la edición"
+}

@@ -1,0 +1,379 @@
+{
+  "descargado": "2026-11-04T17:03:00+00:00",
+  "error_max_contra_publicados": 0.18,
+  "fuente": "https://www.shanghairanking.com/api/pub/v1/gras/subj?version=2018",
+  "materias": 54,
+  "pesos_deducidos": {
+    "Aerospace Engineering": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Agricultural Sciences": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Atmospheric Science": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Automation & Control": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Biological Sciences": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Biomedical Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Biotechnology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Business Administration": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Chemical Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Chemistry": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Civil Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Clinical Medicine": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Communication": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Computer Science & Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Dentistry & Oral Sciences": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Earth Sciences": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Ecology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Economics": {
+      "AWARD": 1.0,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Education": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Electrical & Electronic Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Energy Science & Engineering": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Environmental Science & Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Finance": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Food Science & Technology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Geography": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Hospitality & Tourism Management": {
+      "AWARD": 0.2,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Human Biological Sciences": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Instruments Science & Technology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Law": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Library & Information Science": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Management": {
+      "AWARD": 0.0,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Marine/Ocean Engineering": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Materials Science & Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Mathematics": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Mechanical Engineering": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Medical Technology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Metallurgical Engineering": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Nanoscience & Nanotechnology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Nursing": {
+      "AWARD": 0.2,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Pharmacy & Pharmaceutical Sciences": {
+      "AWARD": 0.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Physics": {
+      "AWARD": 1.0,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Political Sciences": {
+      "AWARD": 0.2,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Psychology": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Public Administration": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Public Health": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Remote Sensing": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Sociology": {
+      "AWARD": null,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Statistics": {
+      "AWARD": 1.0,
+      "CNCI": 0.5,
+      "IC": 0.1,
+      "PUB": 1.5,
+      "TOP": 1.0
+    },
+    "Telecommunication Engineering": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Transportation Science & Technology": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Veterinary Sciences": {
+      "AWARD": null,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    },
+    "Water Resources": {
+      "AWARD": 0.2,
+      "CNCI": 1.0,
+      "IC": 0.2,
+      "PUB": 1.0,
+      "TOP": 1.0
+    }
+  },
+  "sin_total": [
+    "Oceanography: Universidad de Concepcion",
+    "Mining & Mineral Engineering: Universidad de Chile",
+    "Mining & Mineral Engineering: Universidad Tecnica Federico Santa Maria",
+    "Mining & Mineral Engineering: Universidad de Concepcion"
+  ],
+  "total": "Σ indicador × peso de la materia; pesos deducidos de los totales publicados del top 50, que los reproducen dentro del redondeo de GRAS"
+}

@@ -14,7 +14,7 @@ La migración 020 guarda el puntaje total de cada ranking como una métrica más
   * que los pesos de THE Latam reproduzcan su total publicado;
   * y que lo lean los endpoints de Tendencias, Simulación y Glosario.
 
-Sin la migración 020 la batería se omite.
+Sin las migraciones 020 y 021 la batería se omite.
 """
 import os
 import sys
@@ -87,9 +87,9 @@ db = main.SessionLocal()
 try:
     aplicada = db.execute(text("""
         SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                       WHERE table_name = 'ranking' AND column_name = 'puntajes_ponderados')""")).scalar()
+                       WHERE table_name = 'ranking' AND column_name = 'puntajes_ponderados_desde')""")).scalar()
     if not aplicada:
-        print("  (sin la migración 020: aplica backend/migraciones/020_puntaje_total.sql)")
+        print("  (sin las migraciones 020 y 021: aplica backend/migraciones/020_puntaje_total.sql y 021_gras_por_edicion.sql)")
         print("\n" + "=" * 74 + "\nFALLOS: 0  (omitida)")
         sys.exit(0)
     ids = {r[1]: r[0] for r in db.execute(text("SELECT id_ranking, nombre_ranking FROM ranking"))}
@@ -128,6 +128,9 @@ try:
         JOIN metrica m ON m.id_metrica = mu.id_metrica AND m.pondera
         JOIN ranking r ON r.id_ranking = m.id_ranking
         WHERE NOT (r.nombre_ranking = 'Shanghai ARWU' AND mu.anio_metrica = 2003)
+          -- GRAS anterior a 2024 recibe su total del cargador de rankings
+          -- (tools/rankings), no de la migración: lo vigila la batería `rankings`.
+          AND NOT (r.nombre_ranking = 'Shanghai GRAS' AND mu.anio_metrica < 2024)
         GROUP BY r.nombre_ranking ORDER BY r.nombre_ranking""")):
         completo = f.nombre_ranking in ("THE Latam", "Scimago Latam", "Shanghai GRAS", "Shanghai ARWU", "Ranking KAI")
         if completo:
@@ -158,9 +161,12 @@ try:
                              AND tm.disciplina IS NOT DISTINCT FROM m.disciplina
               LEFT JOIN metrica_universidad t ON t.id_metrica = tm.id_metrica
                     AND t.id_universidad = mu.id_universidad AND t.anio_metrica = mu.anio_metrica
+              -- En GRAS la suma vale desde 2024; antes, cada materia tenía sus pesos.
+              WHERE NOT (r.nombre_ranking = 'Shanghai GRAS' AND mu.anio_metrica < 2024)
               GROUP BY tm.id_metrica, mu.id_universidad, mu.anio_metrica) x
             WHERE x.guardado IS DISTINCT FROM x.suma"""), {"r": nombre}).scalar()
-        comprobar(f"{nombre}: el total es la suma de sus componentes", distintos == 0, distintos)
+        comprobar(f"{nombre}: el total es la suma de sus componentes"
+                  + (" (desde 2024)" if nombre == "Shanghai GRAS" else ""), distintos == 0, distintos)
 
     print("\n=== 4. Los publicados coinciden con la fuente ===")
     # THE Latam: CSV de KAI/THE/…/csv_latam (Overall).

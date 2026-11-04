@@ -33,6 +33,8 @@ BATERIAS = [
      "Ranking KAI: pesos parejos, completitud, percentiles reproducibles y acceso", False, False),
     ("puntaje-total", "test_puntaje_total.py",
      "Puntaje total: en todos los rankings, con su método, y visible en las tres vistas", False, False),
+    ("rankings", "test_rankings_oficiales.py",
+     "Rankings oficiales: la base se reconstruye desde sus fuentes, edición por edición", False, False),
     ("valores-reales", "test_valores_reales.py",
      "Modo numérico: cobertura por componentes, calidades, ediciones y acceso", False, False),
     ("consultas-guiadas", "test_consultas_guiadas.py",

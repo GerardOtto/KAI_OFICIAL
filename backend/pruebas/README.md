@@ -40,6 +40,7 @@ psql "$DATABASE_URL" -f migraciones/020_puntaje_total.sql        # tampoco está
 | Batería | Qué verifica |
 |---|---|
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
+| `rankings` | Cargador de rankings oficiales (`tools/rankings`): cada instantánea de `datos/rankings` de una edición ya cargada coincide cifra por cifra con la base; las que faltan se cargan y releen dentro de una transacción que se deshace; las planillas de QS se leen igual; y se rechazan un total corrido de columna, una métrica desconocida y una edición cargada que difiere. Sin la 020, se omite |
 | `puntaje-total` | El puntaje total de la 020: existe en todos los rankings y nunca pondera; cubre a toda universidad clasificada en THE, Scimago, GRAS, ARWU y el Ranking KAI, y en QS solo donde QS lo publica (sin ceros); los calculados siguen su método y los publicados coinciden con las fuentes de `KAI/` y la API de ShanghaiRanking; QS Global 2026 sin columnas corridas; los pesos de THE reproducen su total; y lo leen Tendencias, Simulación, el Glosario y el asistente. Sin la 020, se omite |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados (y sus cifras fuera del glosario del plan gratuito), descargas contadas y asistente por dominio |

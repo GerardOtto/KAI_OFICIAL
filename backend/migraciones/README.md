@@ -26,6 +26,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `018_catalogo_de_universidades.sql` | Corrige el catálogo (ver `docs/hallazgos-recoleccion.md` §5): fusiona el duplicado de UNIACC —«Universidad de Artes, Ciencias y Comunicacion» se funde en «Universidad UNIACC», traspasando sus valores, dominios y cuentas— y agrega las dos estatales que faltaban, O'Higgins y Aysén (sin datos; se cargan con la recolección). Solo datos, sin cambios de esquema. El backend no depende de ella | **pendiente** | **pendiente** |
 | `019_rol_del_asistente.sql` | Rol de base `kai_asistente`, que solo lee las tablas académicas; la consulta SQL libre del asistente corre con él y, sin él, se niega. Cierra la lectura de cuentas y mensajes por SQL dinámico. Los roles no viajan en el volcado: aplicarla también tras cargar uno. **Aplicarla antes de desplegar el backend** | **pendiente** | **pendiente** |
 | `020_puntaje_total.sql` | El puntaje total de cada universidad en todos los rankings, como métrica «Puntaje total» (tipo `Puntaje`, no pondera): publicado por el ranking o calculado con su método. Corrige QS Global 2026 (cuatro columnas corridas), quita los totales en 0 de QS Global, pasa THE Latam a sus pesos latinoamericanos (35/33,5/20/4/7,5) y agrega `ranking.puntajes_ponderados` (Shanghai GRAS: el total es la suma). No está en el volcado: aplicarla también tras cargarlo. El backend funciona sin ella | **pendiente** | **pendiente** |
+| `021_gras_por_edicion.sql` | Corrige el total de Shanghai GRAS 2017-2023 que dejó la 020: hasta 2023 GRAS publicaba los indicadores de 0 a 100 y pesos propios de cada materia y edición, y la 020 los sumaba como si vinieran ponderados. Reemplaza `ranking.puntajes_ponderados` por `puntajes_ponderados_desde` (2024 en GRAS) y borra esos totales; los correctos los agrega `tools/rankings/cargar.py --escribir`. Requiere la 020. El backend nuevo la necesita para no volver a multiplicar por el peso en GRAS 2024+ | **pendiente** | **pendiente** |
 
 Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
 y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
@@ -409,6 +410,8 @@ lee la columna nueva con `to_jsonb` y, sin la 020, todo sigue como antes. Quien
 recargue los puntajes del Ranking KAI o de Scimago debe recalcular su total:
 `cargar_ranking_kai.py` ya lo hace, y la batería `puntaje-total` lo comprueba.
 
+**Corregida por la 021** en lo que toca a Shanghai GRAS anterior a 2024: ver abajo.
+
 Los totales publicados de THE y QS van escritos en la migración. Cada fila de la
 fuente se emparejó con la de la base por los valores de sus componentes —los cinco
 pilares en THE, los indicadores en QS—, no por el nombre de la universidad, que
@@ -417,3 +420,30 @@ pareja única. Una edición nueva de THE o QS necesita agregar sus totales de la
 misma forma; las de GRAS, ARWU (con la suma de la primera del mundo, que da su
 API), Scimago y el Ranking KAI se calculan en la base.
 
+## 021: el total de GRAS antes de 2024
+
+La 020 trató todas las ediciones de Shanghai GRAS como las de 2024 en adelante, en
+que cada indicador se publica ya ponderado y el total es la suma. Hasta 2023 no
+era así: GRAS publicaba cada indicador de 0 a 100, y el total era Σ indicador ×
+peso, con pesos propios de cada materia y edición (Matemáticas: CNCI 100 en 2017,
+20 en 2023). La suma contaba IC entero en vez de a un quinto; en 2017 se alejaba
+hasta 138 puntos del total publicado. Lo detectó el cargador de rankings al
+reconstruir cada edición desde la API de ShanghaiRanking.
+
+La 021 reemplaza `ranking.puntajes_ponderados` por `ranking.puntajes_ponderados_desde`
+—la primera edición en que los puntajes vienen ponderados: 2024 en GRAS, vacía en
+los demás— y borra los totales de GRAS 2017-2023 que la 020 calculó como suma
+simple (458). Los correctos los agrega el cargador, con los pesos deducidos de los
+totales que GRAS publica para su top 50: en 2023, la única edición anterior cuya
+tabla de pesos sigue publicada, coinciden con ella en las 52 materias comparables.
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
+python tools/rankings/cargar.py --escribir
+```
+
+La 021 avisa cuántas universidades de GRAS 2017-2023 quedan sin total: 458 antes
+del cargador y 4 después (2018, Oceanography y Mining & Mineral Engineering, cuyas
+ponderaciones no se dejan deducir). Es idempotente: solo borra los totales que
+coinciden con la suma simple. El backend nuevo lee `puntajes_ponderados_desde`: sin
+la 021 trata a GRAS como un ranking más, que era lo de antes de la 020.

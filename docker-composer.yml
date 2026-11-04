@@ -22,6 +22,7 @@ services:
       - ./backend/pruebas/datos_de_prueba.sql:/docker-entrypoint-initdb.d/01-datos.sql
       - ./backend/migraciones/019_rol_del_asistente.sql:/docker-entrypoint-initdb.d/02-rol-del-asistente.sql
       - ./backend/migraciones/020_puntaje_total.sql:/docker-entrypoint-initdb.d/03-puntaje-total.sql
+      - ./backend/migraciones/021_gras_por_edicion.sql:/docker-entrypoint-initdb.d/04-gras-por-edicion.sql
     ports:
       - "5432:5432"
     healthcheck:

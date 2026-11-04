@@ -97,12 +97,23 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica dos más:
 
 - la del rol del asistente: los roles son del servidor y no viajan en el volcado, y sin ella la consulta SQL libre del asistente se niega;
-- la del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran.
+- las del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran (la 020 y la 021, que corrige el de GRAS anterior a 2024); después, el cargador de rankings agrega las ediciones que faltan.
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
+python tools/rankings/cargar.py --escribir   # ediciones que faltan y totales de GRAS 2017-2023
 ``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
+
+## Rankings oficiales
+
+Las ediciones de THE Latam, QS Latam, QS Global, ARWU y GRAS llegan a la base por un solo camino: `tools/rankings/actualizar.py` las toma de la fuente oficial y escribe una instantánea versionada en `datos/rankings/`, y `tools/rankings/cargar.py` la verifica y la carga. Un flujo de GitHub Actions (`.github/workflows/rankings.yml`) revisa las fuentes el día 5 de cada mes y abre un PR con las ediciones nuevas. QS no se deja descargar de forma automática: su planilla oficial se deja a mano en `KAI/QS/DatosQS/`. Detalles en [`tools/rankings/README.md`](tools/rankings/README.md).
+
+```bash
+python tools/rankings/cargar.py              # compara las instantáneas con la base
+python tools/rankings/cargar.py --escribir   # carga las ediciones que faltan
+```
 
 ## Docker
 
