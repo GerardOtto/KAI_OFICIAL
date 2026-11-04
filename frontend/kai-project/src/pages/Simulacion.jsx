@@ -17,6 +17,7 @@ import SimulacionComparadaCifras from "../components/simulacion/SimulacionCompar
 import SimulacionObjetivo from "../components/simulacion/SimulacionObjetivo";
 import GruposGuardados from "../components/GruposGuardados";
 import AvisoModo from "../components/data/AvisoModo";
+import AvisoEdicion from "../components/data/AvisoEdicion";
 import { useModoValores } from "../estado/ModoValores";
 import { idDeInstitucion } from "../utils/universidades";
 
@@ -251,6 +252,7 @@ export default function Simulacion() {
         </div>
 
         {aviso && <AvisoModo tipo={aviso} ranking={rankingNombre} />}
+        <AvisoEdicion ranking={rankingSel} />
 
         {faltantes.length > 0 && (
           <p className="mb-3 text-[11.5px] leading-relaxed text-warn">

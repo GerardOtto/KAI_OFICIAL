@@ -136,7 +136,9 @@ def contexto_de_datos() -> str:
         lineas = [f"- `{f.id_ranking}` **{f.nombre_ranking}** ({f.nivel_ranking}): "
                   f"{f.metricas} métricas"
                   + (f" en {f.disciplinas} disciplinas" if (f.disciplinas or 0) > 1 else "")
-                  + (f", {f.universidades} universidades con datos entre {f.desde} y {f.hasta}."
+                  # Compacto: cada ranking que se agrega suma una línea al bloque fijo
+                  # de cada consulta (ver la batería `entrada`).
+                  + (f", {f.universidades} universidades, {f.desde}–{f.hasta}."
                      if f.desde else ", sin valores cargados.")
                   for f in filas]
         _contexto = (

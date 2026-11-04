@@ -1,0 +1,35 @@
+{
+  "QS Global": {
+    "como": "fuente",
+    "ultima_publicada": 2027
+  },
+  "QS Latam": {
+    "como": "fuente",
+    "ultima_publicada": 2027
+  },
+  "QS por Disciplina": {
+    "como": "calendario",
+    "ultima_publicada": 2026
+  },
+  "Scimago Latam": {
+    "como": "calendario",
+    "nota": "SCImago publicó la edición 2026 sin las cifras de cada indicador que usa la plataforma; la más reciente con cifras es la 2025.",
+    "ultima_publicada": 2026
+  },
+  "Shanghai ARWU": {
+    "como": "fuente",
+    "ultima_publicada": 2026
+  },
+  "Shanghai GRAS": {
+    "como": "fuente",
+    "ultima_publicada": 2026
+  },
+  "THE Latam": {
+    "como": "fuente",
+    "ultima_publicada": 2026
+  },
+  "THE World": {
+    "como": "fuente",
+    "ultima_publicada": 2027
+  }
+}

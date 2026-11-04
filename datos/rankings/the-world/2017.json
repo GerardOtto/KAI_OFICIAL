@@ -1,0 +1,15 @@
+{
+  "descargado": "2026-11-04T23:20:32+00:00",
+  "error_max_contra_publicados": 0.075,
+  "fuente": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2017",
+  "pesos": {
+    "Industry": 2.5,
+    "International Outlook": 7.5,
+    "Research Environment": 30,
+    "Research Quality": 30,
+    "Teaching": 30
+  },
+  "sha256": "ddcf174356158c57022774ff234d8992e0c676a701090dccf99c227628ea19b8",
+  "sin_banda_publicada": 10,
+  "total": "Overall publicado; en las bandas, calculado con los pesos de la edición"
+}

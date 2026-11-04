@@ -1,0 +1,14 @@
+{
+  "descargado": "2026-11-04T23:20:33+00:00",
+  "error_max_contra_publicados": 0.076,
+  "fuente": "https://www.timeshighereducation.com/json/ranking_tables/world_university_rankings/2024",
+  "pesos": {
+    "Industry": 4,
+    "International Outlook": 7.5,
+    "Research Environment": 29,
+    "Research Quality": 30,
+    "Teaching": 29.5
+  },
+  "sha256": "649ce6ea1305e15c07eca838ba5c2c6d6fdde9093b1cc1f439cb8d50fd92453c",
+  "total": "Overall publicado; en las bandas, calculado con los pesos de la edición"
+}

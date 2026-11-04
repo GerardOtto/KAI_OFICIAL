@@ -37,12 +37,15 @@ psql "$DATABASE_URL" -f migraciones/019_rol_del_asistente.sql   # los roles no v
 psql "$DATABASE_URL" -f migraciones/020_puntaje_total.sql        # tampoco está en el volcado
 psql "$DATABASE_URL" -f migraciones/021_gras_por_edicion.sql
 psql "$DATABASE_URL" -f migraciones/022_grupos_de_comparacion.sql
+psql "$DATABASE_URL" -f migraciones/023_posicion_y_actualizacion.sql
+psql "$DATABASE_URL" -f migraciones/024_the_world.sql
 ```
 
 | Batería | Qué verifica |
 |---|---|
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
 | `analisis` | Grupos de comparación (guardar, reemplazar por nombre, borrar, validar y aislar entre cuentas; el asistente no los lee) y el lugar en cada ranking (coincide con el orden del Resumen, sin los rankings por disciplina ni los que el plan no incluye). Sin la 022, comprueba que los grupos respondan vacío y 503 |
+| `actualizacion` | Puesto oficial y estado de cada ranking (023) y THE World (024): el puesto publicado se traduce a rango («=6», «501–600», «151+»); el cargador guarda el de cada universidad en cada edición tal como está en las instantáneas, y en `estado_ranking` lo de `datos/rankings/estado.json`, sin cambios en una segunda pasada; `/rankings` entrega la última edición cargada y la publicada, y `/ranking-resumen` el puesto oficial; THE World reparte 100 % entre sus pilares, tiene puntaje total y queda reservado al plan de pago. Sin la 023, se omite |
 | `rankings` | Cargador de rankings oficiales (`tools/rankings`): cada instantánea de `datos/rankings` de una edición ya cargada coincide cifra por cifra con la base; las que faltan se cargan y releen dentro de una transacción que se deshace; las planillas de QS se leen igual; y se rechazan un total corrido de columna, una métrica desconocida y una edición cargada que difiere. Sin la 020, se omite |
 | `puntaje-total` | El puntaje total de la 020: existe en todos los rankings y nunca pondera; cubre a toda universidad clasificada en THE, Scimago, GRAS, ARWU y el Ranking KAI, y en QS solo donde QS lo publica (sin ceros); los calculados siguen su método y los publicados coinciden con las fuentes de `KAI/` y la API de ShanghaiRanking; QS Global 2026 sin columnas corridas; los pesos de THE reproducen su total; y lo leen Tendencias, Simulación, el Glosario y el asistente. Sin la 020, se omite |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |

@@ -131,8 +131,12 @@ try:
           -- GRAS anterior a 2024 recibe su total del cargador de rankings
           -- (tools/rankings), no de la migración: lo vigila la batería `rankings`.
           AND NOT (r.nombre_ranking = 'Shanghai GRAS' AND mu.anio_metrica < 2024)
+          -- THE World 2016 no tiene total: THE no publicó el de las universidades
+          -- en bandas y sus pesos no reproducen los exactos (tools/rankings).
+          AND NOT (r.nombre_ranking = 'THE World' AND mu.anio_metrica = 2016)
         GROUP BY r.nombre_ranking ORDER BY r.nombre_ranking""")):
-        completo = f.nombre_ranking in ("THE Latam", "Scimago Latam", "Shanghai GRAS", "Shanghai ARWU", "Ranking KAI")
+        completo = f.nombre_ranking in ("THE Latam", "THE World", "Scimago Latam", "Shanghai GRAS",
+                                        "Shanghai ARWU", "Ranking KAI")
         if completo:
             comprobar(f"{f.nombre_ranking}: toda universidad clasificada tiene total",
                       f.con_total == f.clasificadas, f"{f.con_total} de {f.clasificadas}")

@@ -28,6 +28,8 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `020_puntaje_total.sql` | El puntaje total de cada universidad en todos los rankings, como métrica «Puntaje total» (tipo `Puntaje`, no pondera): publicado por el ranking o calculado con su método. Corrige QS Global 2026 (cuatro columnas corridas), quita los totales en 0 de QS Global, pasa THE Latam a sus pesos latinoamericanos (35/33,5/20/4/7,5) y agrega `ranking.puntajes_ponderados` (Shanghai GRAS: el total es la suma). No está en el volcado: aplicarla también tras cargarlo. El backend funciona sin ella | **pendiente** | **pendiente** |
 | `021_gras_por_edicion.sql` | Corrige el total de Shanghai GRAS 2017-2023 que dejó la 020: hasta 2023 GRAS publicaba los indicadores de 0 a 100 y pesos propios de cada materia y edición, y la 020 los sumaba como si vinieran ponderados. Reemplaza `ranking.puntajes_ponderados` por `puntajes_ponderados_desde` (2024 en GRAS) y borra esos totales; los correctos los agrega `tools/rankings/cargar.py --escribir`. Requiere la 020. El backend nuevo la necesita para no volver a multiplicar por el peso en GRAS 2024+ | **pendiente** | **pendiente** |
 | `022_grupos_de_comparacion.sql` | Tabla `grupo_comparacion`: grupos de instituciones guardados por cada cuenta para Tendencias y la simulación comparada. Datos personales: el rol del asistente no la lee y el filtro de la consulta libre la veta. El backend funciona sin ella (los grupos se ven vacíos) | **pendiente** | **pendiente** |
+| `023_posicion_y_actualizacion.sql` | Tablas `posicion_oficial` (el puesto de cada universidad tal como lo publica el ranking —«=6», «501-600»— con su rango numérico) y `estado_ranking` (la última edición publicada de cada ranking, según la fuente o su calendario). Las llena `tools/rankings/cargar.py --escribir`. El backend funciona sin ella (no muestra el puesto oficial ni el aviso de edición nueva) | **pendiente** | **pendiente** |
+| `024_the_world.sql` | Agrega el ranking THE World (World University Rankings) con sus cinco pilares de 2024 en adelante (29,5/29/30/4/7,5) y su puntaje total. Sus ediciones 2016-2027 las carga `tools/rankings/cargar.py --escribir`. Reservado al plan de pago, como todo «THE …». El backend funciona sin ella | **pendiente** | **pendiente** |
 
 Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
 y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
@@ -465,3 +467,31 @@ Debe terminar con `NOTICE: grupo_comparacion lista`. Comprueba que `kai_asistent
 no pueda leer la tabla; el filtro de `consulta_sql` la veta además por nombre. El
 backend se puede desplegar antes: sin la tabla, `/grupos` responde una lista vacía y
 guardar responde 503.
+
+## 023 y 024: puesto oficial, edición nueva y THE World
+
+La 023 crea dos tablas que llena el cargador a partir de `datos/rankings/`:
+
+- `posicion_oficial`: el puesto que publica el ranking para cada universidad,
+  edición y disciplina, en texto tal cual («=6», «501-600», «1601–1800») y como
+  rango (`desde`, `hasta`; «151+» queda sin `hasta`). El Resumen lo muestra junto al
+  nombre y lo agrega al CSV; «Su lugar en cada ranking» lo añade al globo.
+- `estado_ranking`: la última edición publicada de cada ranking, que escribe la
+  revisión mensual en `datos/rankings/estado.json`. Si es más nueva que la cargada,
+  el Resumen, Tendencias y Simulación lo avisan.
+
+La 024 agrega THE World. Sus pesos cambiaron en 2024 (antes 30/30/30/2,5/7,5); la
+métrica guarda los vigentes y el cargador verifica cada edición con los de su época.
+La edición 2016 no reproduce su total con ningún reparto y se carga solo con los
+pilares.
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/023_posicion_y_actualizacion.sql
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/024_the_world.sql
+python tools/rankings/cargar.py --escribir
+```
+
+Deben terminar con `NOTICE: posicion_oficial y estado_ranking listas…` y `NOTICE:
+THE World listo…`. Requieren la 020 (por el tipo `Puntaje`) y conviene aplicarlas
+después de la 021 y la 022. El rol del asistente no recibe permiso sobre las tablas
+nuevas: no las necesita. El backend se puede desplegar antes que ellas.

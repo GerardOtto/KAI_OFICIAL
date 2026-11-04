@@ -970,14 +970,25 @@ def get_rankings(usuario: dict = Depends(auth.usuario_actual)):
             "EXISTS (SELECT 1 FROM valor_real_universidad v JOIN metrica m "
             "ON m.id_metrica = v.id_metrica WHERE m.id_ranking = r.id_ranking)"
             if _hay_tabla(db, "valor_real_universidad") else "false")
+        # La última edición cargada y, con la 023, la última publicada según la
+        # revisión mensual: la interfaz avisa cuando hay una que aún no está.
+        estado = ("LEFT JOIN estado_ranking e ON e.id_ranking = r.id_ranking"
+                  if _hay_tabla(db, "estado_ranking") else
+                  "LEFT JOIN (SELECT NULL::int AS id_ranking, NULL::int AS ultima_publicada, "
+                  "NULL::text AS como, NULL::text AS nota) e ON false")
         result = db.execute(text(f"""
             SELECT r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
+                   (SELECT max(mu.anio_metrica) FROM metrica_universidad mu
+                    JOIN metrica m ON m.id_metrica = mu.id_metrica
+                    WHERE m.id_ranking = r.id_ranking) AS ultima_cargada,
+                   e.ultima_publicada, e.como AS ultima_publicada_como, e.nota AS ultima_publicada_nota,
                    COALESCE((to_jsonb(r) ->> 'pesos_editables')::boolean, false) AS pesos_editables,
                    COALESCE((to_jsonb(r) ->> 'valores_son_crudos')::boolean, false)
                        OR {con_valores} AS tiene_valores_reales,
                    to_jsonb(r) ->> 'normalizacion' AS normalizacion,
                    to_jsonb(r) ->> 'origen_valores' AS origen_valores
             FROM ranking r
+            {estado}
             ORDER BY r.id_ranking"""))
         # Los rankings reservados se devuelven igualmente, marcados: el plan
         # gratuito ve que existen y qué se pierde, en lugar de encontrarse una
@@ -1094,6 +1105,14 @@ def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = Non
             SELECT count(DISTINCT disciplina) FROM metrica
             WHERE id_ranking = :r AND tipo_metrica = 'Puntaje'"""), {"r": ranking_id}).scalar() or 0
         usa_registrado = bool(disciplina) or totales_por_disciplina <= 1
+        # El puesto que publica el ranking (migración 023), tal como lo escribe.
+        if _hay_tabla(db, "posicion_oficial"):
+            posicion_columna = "po.posicion AS posicion_oficial"
+            posicion_join = ("LEFT JOIN posicion_oficial po ON po.id_ranking = p.id_ranking "
+                             "AND po.id_universidad = p.id_universidad AND po.anio = :anio "
+                             "AND po.disciplina = COALESCE(:disciplina, 'General')")
+        else:
+            posicion_columna, posicion_join = "NULL::text AS posicion_oficial", ""
         result = db.execute(text(f"""
             WITH por_universidad AS (
                 SELECT
@@ -1119,13 +1138,15 @@ def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = Non
                 GROUP BY r.id_ranking, r.nombre_ranking, r.descripcion_ranking,
                          u.id_universidad, u.nombre_universidad, u.pais_universidad
             )
-            SELECT id_ranking, nombre_ranking, descripcion_ranking, id_universidad,
-                   nombre_universidad, pais_universidad, score_calculado,
-                   CASE WHEN :usa_registrado AND bool_and(registrado IS NOT NULL) OVER ()
-                        THEN registrado ELSE score_calculado END AS score_total
-            FROM por_universidad
-            WHERE componentes > 0
-            ORDER BY score_total DESC, score_calculado DESC
+            SELECT p.id_ranking, p.nombre_ranking, p.descripcion_ranking, p.id_universidad,
+                   p.nombre_universidad, p.pais_universidad, p.score_calculado,
+                   CASE WHEN :usa_registrado AND bool_and(p.registrado IS NOT NULL) OVER ()
+                        THEN p.registrado ELSE p.score_calculado END AS score_total,
+                   {posicion_columna}
+            FROM por_universidad p
+            {posicion_join}
+            WHERE p.componentes > 0
+            ORDER BY score_total DESC, p.score_calculado DESC
         """), {"ranking_id": ranking_id, "anio": anio, "disciplina": disciplina,
                "usa_registrado": usa_registrado})
         rows = [dict(row._mapping) for row in result]
@@ -1146,6 +1167,7 @@ def get_posiciones_por_ranking(universidad_id: int, usuario: dict = Depends(auth
     db = SessionLocal()
     try:
         vedados = sorted(acceso.ids_vedados(db, usuario))
+        hay_oficial = _hay_tabla(db, "posicion_oficial")
         filas = db.execute(text(f"""
             WITH multidisciplinarios AS (
                 SELECT id_ranking FROM metrica GROUP BY id_ranking HAVING count(DISTINCT disciplina) > 1
@@ -1173,8 +1195,10 @@ def get_posiciones_por_ranking(universidad_id: int, usuario: dict = Depends(auth
                        count(*) OVER (PARTITION BY id_ranking, anio) AS de
                 FROM con_total
             )
-            SELECT o.id_ranking, r.nombre_ranking, o.anio, o.posicion, o.de, round(o.total::numeric, 2) AS total
+            SELECT o.id_ranking, r.nombre_ranking, o.anio, o.posicion, o.de, round(o.total::numeric, 2) AS total,
+                   {"po.posicion" if hay_oficial else "NULL::text"} AS posicion_oficial
             FROM ordenadas o JOIN ranking r ON r.id_ranking = o.id_ranking
+            {"LEFT JOIN posicion_oficial po ON po.id_ranking = o.id_ranking AND po.id_universidad = o.id_universidad AND po.anio = o.anio AND po.disciplina = 'General'" if hay_oficial else ""}
             WHERE o.id_universidad = :u
             ORDER BY r.id_ranking, o.anio
         """), {"u": universidad_id, "vedados": vedados})

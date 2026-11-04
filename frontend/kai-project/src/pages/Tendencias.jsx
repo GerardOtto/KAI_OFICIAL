@@ -6,6 +6,7 @@ import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import { useAuth } from "../auth/AuthContext";
 import { useModoValores } from "../estado/ModoValores";
 import AvisoModo from "../components/data/AvisoModo";
+import AvisoEdicion from "../components/data/AvisoEdicion";
 import { useAnios } from "../hooks/useAnios";
 import { useMetricas } from "../hooks/useMetricas";
 import { useUniversidades } from "../hooks/useUniversidades";
@@ -342,6 +343,7 @@ export default function Tendencias() {
         {pidioNumerico && rankingSel && !rankingSel.tiene_valores_reales && (
           <AvisoModo tipo="sinValores" ranking={rankingSel.nombre_ranking} />
         )}
+        <AvisoEdicion ranking={rankingSel} />
 
         {/* Contexto + título + exportación */}
         <section className="flex items-start justify-between gap-6 flex-wrap">

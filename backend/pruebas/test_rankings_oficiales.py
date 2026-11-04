@@ -106,7 +106,8 @@ with engine.connect() as conexion:
                       not cargar.comparar(valores, metricas, releidos))
             con_total = {u for (m, u) in valores if metricas[m].tipo_metrica == "Puntaje"}
             universidades = {u for (m, u) in valores}
-            if clave in ("the-latam", "shanghai-gras", "shanghai-arwu"):
+            if clave in ("the-latam", "the-world", "shanghai-gras", "shanghai-arwu") \
+                    and not (clave == "the-world" and edicion == 2016):
                 comprobar(f"{etiqueta}: toda universidad trae su puntaje total", con_total == universidades,
                           len(universidades - con_total))
         finally:

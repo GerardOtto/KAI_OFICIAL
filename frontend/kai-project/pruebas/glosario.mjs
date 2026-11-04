@@ -3,6 +3,7 @@
 import fs from "fs";
 import { crearSesion } from "./sesion.mjs";
 const APP = process.env.KAI_APP_URL || "http://localhost:5199";
+const API = process.env.KAI_API_URL || "http://localhost:8000";
 // Las capturas van junto a la sonda, no a una carpeta temporal de una
 // maquina concreta. Se crea si no existe.
 const SALIDA = new URL("./capturas/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -65,11 +66,15 @@ const columnas = await ev(`
 comprobar("hay columnas de rankings", columnas.length > 0, JSON.stringify(columnas));
 comprobar("«QS por Disciplina» no aparece como columna",
   !columnas.some(c => /QS POR DISCIPLINA/i.test(c)), JSON.stringify(columnas));
-// El Ranking KAI —el índice propio, migración 009— es la séptima columna.
+// Una columna por ranking del catálogo, menos QS por Disciplina. Se cuenta desde
+// /rankings para que agregar un ranking (THE World, migración 024) no rompa la sonda.
+const catalogo = await (await fetch(`${API}/rankings`, { headers: { Authorization: `Bearer ${TESTIGO}` } })).json();
+const esperadas = catalogo.map(r => r.nombre_ranking).filter(n => n !== "QS por Disciplina");
 comprobar("los demás rankings siguen, incluido el Ranking KAI",
   ["THE Latam", "QS Latam", "Scimago Latam", "Shanghai GRAS", "QS Global", "Shanghai ARWU", "Ranking KAI"]
     .every(n => columnas.some(c => c.toUpperCase() === n.toUpperCase())), JSON.stringify(columnas));
-comprobar("quedan siete columnas", columnas.length === 7, columnas.length);
+comprobar(`hay una columna por ranking del catálogo (${esperadas.length})`,
+  columnas.length === esperadas.length, `${columnas.length} vs ${esperadas.length}`);
 
 console.log("\n=== 1b. Institución, ediciones y dimensiones ===");
 // La cuenta de la sonda tiene institución: el glosario arranca con ella y cada
@@ -105,7 +110,7 @@ if (total) {
   console.log("  " + JSON.stringify(total));
   comprobar("es la primera fila de la matriz", total.primera);
   comprobar("se llama «Puntaje total»", /^Puntaje total/.test(total.titulo), total.titulo);
-  comprobar("tiene una celda por ranking", total.celdas.length === 7, total.celdas.length);
+  comprobar("tiene una celda por ranking", total.celdas.length === esperadas.length, total.celdas.length);
   comprobar("con un decimal, como lo publican los rankings",
     total.celdas.filter(c => /\d/.test(c)).every(c => /\d,\d$/.test(c)), JSON.stringify(total.celdas));
   comprobar("ninguna celda del total muestra un porcentaje de peso",
@@ -244,9 +249,10 @@ if (globo) {
 }
 
 console.log("\n=== 5. El globo no lo recorta el scroll horizontal ===");
-// Se estrecha la ventana para forzar el desplazamiento horizontal, y se busca en
-// la última columna una celda CON datos: una que diga «no mide» no tiene globo
-// por diseño, y probar con ella daría un falso fallo.
+// Se estrecha la ventana para forzar el desplazamiento horizontal, y se busca la
+// celda CON datos más a la derecha: una que diga «no mide» o «plan de pago» no
+// tiene globo por diseño (con el plan gratuito, la última columna es THE World,
+// reservada), y probar con ella daría un falso fallo.
 // 820 px: la matriz declara min-w-[900px], así que por debajo de ~965 px el
 // contenedor desborda de verdad y hay algo que desplazar.
 await cdp("Emulation.setDeviceMetricsOverride", { width: 820, height: 950, deviceScaleFactor: 1, mobile: false });
@@ -255,16 +261,19 @@ const ultimaCol = await ev(`
   const cont = document.querySelector('.overflow-x-auto');
   cont.scrollLeft = cont.scrollWidth;
   const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')];
-  for (const f of filas) {
-    const c = f.children[f.children.length - 1];
-    if (!c || /no mide/.test(c.innerText)) continue;
-    const r = c.getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
-             dim: f.children[0].innerText.trim(), desplazado: cont.scrollLeft > 0 };
+  const columnas = Math.max(0, ...filas.map(f => f.children.length));
+  for (let i = columnas - 1; i > 0; i--) {
+    for (const f of filas) {
+      const c = f.children[i];
+      if (!c || /no mide|plan de pago/i.test(c.innerText)) continue;
+      const r = c.getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), columna: i,
+               dim: f.children[0].innerText.trim(), desplazado: cont.scrollLeft > 0 };
+    }
   }
   return null;
 `);
-comprobar("se encontró una celda con datos en la última columna", ultimaCol !== null, JSON.stringify(ultimaCol));
+comprobar("se encontró la celda con datos más a la derecha", ultimaCol !== null, JSON.stringify(ultimaCol));
 comprobar("la tabla quedó desplazada horizontalmente", ultimaCol?.desplazado === true, JSON.stringify(ultimaCol));
 await esperar(300);
 await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: ultimaCol.x, y: ultimaCol.y });
@@ -275,7 +284,7 @@ const globo2 = await ev(`
   const r = g.getBoundingClientRect();
   return { dentro: r.left >= 0 && r.right <= window.innerWidth + 1, right: Math.round(r.right), vw: window.innerWidth };
 `);
-comprobar("en la última columna el globo sigue visible y dentro de la ventana",
+comprobar("en esa columna el globo sigue visible y dentro de la ventana",
   globo2 !== null && globo2.dentro, JSON.stringify(globo2));
 
 const r2 = await cdp("Page.captureScreenshot", { format: "png" });

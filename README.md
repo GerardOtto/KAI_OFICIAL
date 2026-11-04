@@ -95,22 +95,25 @@ El esquema y los datos académicos se cargan desde [`backend/pruebas/datos_de_pr
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 ```
 
-El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica dos más:
+El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica las siguientes:
 
 - la del rol del asistente: los roles son del servidor y no viajan en el volcado, y sin ella la consulta SQL libre del asistente se niega;
-- las del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran (la 020 y la 021, que corrige el de GRAS anterior a 2024); después, el cargador de rankings agrega las ediciones que faltan.
+- las del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran (la 020 y la 021, que corrige el de GRAS anterior a 2024);
+- la de grupos de comparación (022), la del puesto oficial y el estado de cada ranking (023) y la de THE World (024); después, el cargador de rankings agrega las ediciones que faltan, el puesto oficial de cada universidad y la última edición publicada de cada ranking.
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_comparacion.sql
-python tools/rankings/cargar.py --escribir   # ediciones que faltan y totales de GRAS 2017-2023
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/023_posicion_y_actualizacion.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/024_the_world.sql
+python tools/rankings/cargar.py --escribir   # ediciones que faltan, THE World, puesto oficial y estado de cada ranking
 ``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
 
 ## Rankings oficiales
 
-Las ediciones de THE Latam, QS Latam, QS Global, ARWU y GRAS llegan a la base por un solo camino: `tools/rankings/actualizar.py` las toma de la fuente oficial y escribe una instantánea versionada en `datos/rankings/`, y `tools/rankings/cargar.py` la verifica y la carga. Un flujo de GitHub Actions (`.github/workflows/rankings.yml`) revisa las fuentes el día 5 de cada mes y abre un PR con las ediciones nuevas. QS no se deja descargar de forma automática: su planilla oficial se deja a mano en `KAI/QS/DatosQS/`. Detalles en [`tools/rankings/README.md`](tools/rankings/README.md).
+Las ediciones de THE Latam, THE World, QS Latam, QS Global, ARWU y GRAS llegan a la base por un solo camino: `tools/rankings/actualizar.py` las toma de la fuente oficial y escribe una instantánea versionada en `datos/rankings/`, y `tools/rankings/cargar.py` la verifica y la carga. Un flujo de GitHub Actions (`.github/workflows/rankings.yml`) revisa las fuentes el día 5 de cada mes y abre un PR con las ediciones nuevas. La misma revisión anota en `datos/rankings/estado.json` la última edición publicada de cada ranking: si es más nueva que la cargada, el Resumen, Tendencias y Simulación lo avisan. El Resumen muestra además el puesto oficial de cada universidad tal como lo publica el ranking («=6», «501-600»). QS no se deja descargar de forma automática: su planilla oficial se deja a mano en `KAI/QS/DatosQS/`. Detalles en [`tools/rankings/README.md`](tools/rankings/README.md).
 
 ```bash
 python tools/rankings/cargar.py              # compara las instantáneas con la base

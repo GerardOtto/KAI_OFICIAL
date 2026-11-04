@@ -41,6 +41,7 @@ COLUMNAS = ["ranking", "edicion", "disciplina", "universidad", "nombre_fuente", 
 # Cada ranking que el cargador conoce: carpeta de sus instantáneas y nombre en la base.
 RANKINGS = {
     "the-latam": "THE Latam",
+    "the-world": "THE World",
     "qs-latam": "QS Latam",
     "qs-global": "QS Global",
     "shanghai-arwu": "Shanghai ARWU",
@@ -188,3 +189,19 @@ def leer_instantanea(clave: str, edicion: int) -> tuple[list[Fila], dict]:
     meta_ruta = ruta.with_suffix(".json")
     meta = json.loads(meta_ruta.read_text(encoding="utf-8")) if meta_ruta.exists() else {}
     return filas, meta
+
+
+def rango_posicion(texto: str) -> tuple[int | None, int | None]:
+    """El puesto publicado como rango numérico: «22» → (22, 22), «=6» → (6, 6),
+    «501-600» o «501–600» → (501, 600), «151+» → (151, None). Lo que no se reconoce
+    (vacío, «Reporter») → (None, None)."""
+    import re
+
+    t = str(texto or "").strip().replace("–", "-").replace("=", "").replace(" ", "")
+    if m := re.fullmatch(r"(\d+)\+", t):
+        return int(m.group(1)), None
+    if m := re.fullmatch(r"(\d+)-(\d+)", t):
+        return int(m.group(1)), int(m.group(2))
+    if m := re.fullmatch(r"(\d+)", t):
+        return int(m.group(1)), int(m.group(1))
+    return None, None

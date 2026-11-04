@@ -38,9 +38,14 @@ from comun import ErrorDeFuente, ediciones_guardadas, escribir_instantanea  # no
 from fuentes import qs, scimago, shanghai, the  # noqa: E402
 import verificar  # noqa: E402
 
-AUTOMATICAS = ("the-latam", "shanghai-arwu", "shanghai-gras")
-PRIMERA = {"the-latam": the.PRIMERA, "shanghai-arwu": shanghai.PRIMERA_ARWU,
-           "shanghai-gras": shanghai.PRIMERA_GRAS}
+AUTOMATICAS = ("the-latam", "the-world", "shanghai-arwu", "shanghai-gras")
+PRIMERA = {"the-latam": the.PRIMERA, "the-world": the.PRIMERA_MUNDIAL,
+           "shanghai-arwu": shanghai.PRIMERA_ARWU, "shanghai-gras": shanghai.PRIMERA_GRAS}
+
+# La última edición publicada de cada ranking, para que la página avise cuando hay
+# una que aún no está cargada. Se escribe sin fecha a propósito: el archivo solo
+# cambia cuando cambia una edición, y la revisión mensual no abre un PR cada mes.
+ESTADO = comun.INSTANTANEAS / "estado.json"
 
 # Mes en que QS suele publicar cada edición, y cuántos años adelanta su nombre: la
 # edición 2027 de QS World salió en junio de 2026, la de Latam en octubre de 2026.
@@ -50,6 +55,8 @@ CALENDARIO_QS = {"qs-latam": (10, 1), "qs-global": (6, 1)}
 def obtener(clave: str, edicion: int):
     if clave == "the-latam":
         return the.latam(edicion)
+    if clave == "the-world":
+        return the.mundial(edicion)
     if clave == "shanghai-arwu":
         return shanghai.arwu(edicion)
     if clave == "shanghai-gras":
@@ -62,6 +69,8 @@ def obtener(clave: str, edicion: int):
 def existe(clave: str, edicion: int) -> bool:
     if clave == "the-latam":
         return the.existe(edicion)
+    if clave == "the-world":
+        return the.existe_mundial(edicion)
     return shanghai.existe(clave, edicion)
 
 
@@ -93,10 +102,13 @@ def guardar(clave: str, edicion: int, informe: dict) -> None:
     print(f"  {clave} {edicion}: {estado} ({universidades} universidades, {len(filas)} cifras)")
 
 
-def revisar(informe: dict, hoy: date) -> None:
+def revisar(informe: dict, hoy: date) -> dict:
+    """Revisa todas las fuentes; devuelve la última edición publicada de cada una."""
+    estado = {}
     for clave in AUTOMATICAS:
         guardadas = ediciones_guardadas(clave)
         ultima = max(guardadas) if guardadas else PRIMERA[clave] - 1
+        publicada = ultima
         # Hasta el año próximo: varias fuentes nombran la edición por el año
         # siguiente al de su publicación.
         for edicion in range(ultima + 1, hoy.year + 2):
@@ -106,14 +118,21 @@ def revisar(informe: dict, hoy: date) -> None:
                 informe["errores"].append(f"{comun.RANKINGS[clave]}: no se pudo consultar ({e})")
                 break
             if hay:
+                publicada = edicion
                 guardar(clave, edicion, informe)
         informe["al_dia"].append(f"{comun.RANKINGS[clave]}: última edición {max(ediciones_guardadas(clave) or [0])}")
+        if publicada >= PRIMERA[clave]:
+            estado[comun.RANKINGS[clave]] = {"ultima_publicada": publicada, "como": "fuente"}
 
     for clave, (mes, adelanto) in CALENDARIO_QS.items():
         disponibles = qs.planillas(clave)
         for edicion in sorted(set(disponibles) - set(ediciones_guardadas(clave))):
             guardar(clave, edicion, informe)
         esperada = hoy.year + adelanto if hoy.month >= mes else hoy.year + adelanto - 1
+        estado[comun.RANKINGS[clave]] = (
+            {"ultima_publicada": max(disponibles), "como": "fuente"} if max(disponibles, default=0) >= esperada
+            else {"ultima_publicada": esperada, "como": "calendario",
+                  "nota": "QS no deja descargar sus tablas de forma automática: la carga espera su planilla oficial."})
         if esperada not in disponibles:
             informe["accion"].append(
                 f"{comun.RANKINGS[clave]} {esperada}: por el calendario de QS ya debió publicarse, y su "
@@ -134,6 +153,31 @@ def revisar(informe: dict, hoy: date) -> None:
             f"tools/recoleccion/scimago.py y la migración de percentiles (ver tools/rankings/README.md).")
     elif con_cifras:
         informe["al_dia"].append(f"Scimago: sin cifras nuevas (la última con cifras es {con_cifras})")
+
+    # SCImago publica en abril; su edición lleva el año de publicación.
+    publicada = hoy.year if hoy.month >= 4 else hoy.year - 1
+    con = con_cifras or scimago.CARGADA
+    estado["Scimago Latam"] = (
+        {"ultima_publicada": publicada, "como": "calendario",
+         "nota": (f"SCImago publicó la edición {publicada} sin las cifras de cada indicador que usa la plataforma; "
+                  f"la más reciente con cifras es la {con}.")}
+        if publicada > con else {"ultima_publicada": con, "como": "fuente"})
+    # QS por Disciplina sale en marzo, con el año de publicación; su carga no está
+    # automatizada (planillas por materia).
+    publicada = hoy.year if hoy.month >= 4 else hoy.year - 1
+    estado["QS por Disciplina"] = {"ultima_publicada": publicada, "como": "calendario"}
+    return estado
+
+
+def escribir_estado(estado: dict) -> bool:
+    """Escribe estado.json si cambió. Devuelve si cambió."""
+    texto = json.dumps(estado, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    anterior = ESTADO.read_text(encoding="utf-8") if ESTADO.exists() else None
+    if anterior == texto:
+        return False
+    ESTADO.parent.mkdir(parents=True, exist_ok=True)
+    ESTADO.write_text(texto, encoding="utf-8")
+    return True
 
 
 def escribir_informe(informe: dict, ruta: Path | None) -> str:
@@ -163,7 +207,7 @@ def main() -> int:
             guardar(args.ranking, edicion, informe)
     elif args.todas:
         for clave in AUTOMATICAS:
-            for edicion in range(PRIMERA[clave], date.today().year + 1):
+            for edicion in range(PRIMERA[clave], date.today().year + 2):
                 if clave == "the-latam" and edicion in the.SIN_EDICION:
                     continue
                 if existe(clave, edicion):
@@ -172,7 +216,8 @@ def main() -> int:
             for edicion in qs.planillas(clave):
                 guardar(clave, edicion, informe)
     else:
-        revisar(informe, date.today())
+        if escribir_estado(revisar(informe, date.today())):
+            informe["cambios"].append("estado.json: cambió la última edición publicada de algún ranking")
 
     print("\n" + escribir_informe(informe, args.informe))
     return 1 if informe["errores"] else 0

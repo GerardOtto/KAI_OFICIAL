@@ -72,7 +72,9 @@ export default function PosicionEntreRankings({ universidadId, universidadNombre
                   <div key={`${r.id}-${a}`}
                        className="h-12 border border-white/[.08] flex flex-col items-center justify-center"
                        style={{ background: `oklch(0.72 0.13 250 / ${(0.06 + lugar * 0.42).toFixed(2)})` }}
-                       title={`${r.nombre} ${a}: puesto ${e.posicion} de ${e.de} chilenas · total ${Number(e.total).toLocaleString("es-CL")}`}
+                       title={`${r.nombre} ${a}: puesto ${e.posicion} de ${e.de} chilenas`
+                         + (e.posicion_oficial ? ` · puesto oficial ${e.posicion_oficial}` : "")
+                         + ` · total ${Number(e.total).toLocaleString("es-CL")}`}
                        data-celda-posicion>
                     <span className="font-mono font-semibold text-[14px] text-white leading-none">
                       {e.posicion}<span className="text-[10px] text-white/55">/{e.de}</span>

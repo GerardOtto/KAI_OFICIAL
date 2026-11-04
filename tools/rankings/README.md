@@ -14,6 +14,7 @@ tools/rankings/
   fuentes/           una fuente por módulo: the, qs, shanghai (ARWU y GRAS), scimago
 datos/rankings/<ranking>/<edición>.csv   la edición, reducida a las chilenas
 datos/rankings/<ranking>/<edición>.json  de dónde salió y qué se comprobó
+datos/rankings/estado.json               última edición publicada de cada ranking
 ```
 
 Una instantánea trae una fila por universidad y métrica, con el nombre de la
@@ -27,6 +28,7 @@ método.
 | Ranking | Fuente | Automático | Total |
 |---|---|---|---|
 | THE Latam | página oficial (tabla en `__NEXT_DATA__`) | sí | Overall publicado; en las bandas, con los pesos de la edición |
+| THE World | JSON oficial de la tabla de THE, desde 2016 | sí | Overall publicado; en las bandas, con los pesos de su época (30/30/30/2,5/7,5 hasta 2023; 29,5/29/30/4/7,5 desde 2024), dentro de la banda publicada. 2016 no lo reproduce con ningún reparto: solo pilares |
 | Shanghai ARWU | API pública de shanghairanking.com | sí | 100 × suma ponderada / la de la primera del mundo |
 | Shanghai GRAS | API pública, 57 materias | sí | desde 2024, suma de los indicadores (ya ponderados); antes, cada indicador por el peso de su materia y edición, deducido de los totales publicados del top 50 |
 | QS Latam, QS Global | planilla oficial en `KAI/QS/DatosQS/` | la lectura sí; la descarga no | Overall publicado |
@@ -62,6 +64,35 @@ redondeo de GRAS. Los pesos deducidos quedan en el `.json` de cada edición. En
 filas chilenas quedan sin total. La migración 020 los había calculado como suma
 simple; la 021 los borra y `cargar.py --escribir` agrega los correctos.
 
+**Rankings que no se agregaron.** Se revisaron y quedaron fuera:
+
+- *CNA (acreditación)*: no es un ranking ni tiene datos abiertos; su buscador
+  (ASP.NET) no ofrece descarga y lo que entrega son años y áreas de acreditación,
+  no puntajes comparables.
+- *Webometrics*: su dominio no resuelve.
+- *QS Sustainability*: QS bloquea toda descarga automática (ver arriba); se podría
+  cargar desde su planilla oficial dejada a mano, con una migración para sus
+  métricas.
+- *THE Impact Rankings*: su total suma los tres mejores ODS de cada universidad
+  más el ODS 17, distintos en cada una, y no cabe en el modelo de pesos fijos por
+  métrica.
+
+## El puesto oficial y el estado de cada ranking (migración 023)
+
+La plataforma ordena a las universidades chilenas por su puntaje, pero cada
+ranking publica además un **puesto oficial** («=6», «501-600», «1601–1800»). Las
+instantáneas lo traen en la columna `posicion` tal como lo publica la fuente;
+`cargar.py` lo lleva a `posicion_oficial` con su rango numérico (`desde`, `hasta`)
+en cada pasada, también para ediciones ya cargadas, y solo reescribe una edición si
+algo cambió. El Resumen lo muestra junto al nombre.
+
+`actualizar.py` anota en `estado.json` la **última edición publicada** de cada
+ranking: preguntándole a la fuente cuando se puede (THE, ShanghaiRanking, QS si su
+planilla está) o según su calendario cuando no (QS sin planilla, Scimago, QS por
+Disciplina), con una nota si hace falta. `cargar.py` la copia a `estado_ranking`, y
+si es más nueva que la cargada el Resumen, Tendencias y Simulación lo avisan. El
+archivo no lleva fechas, así que solo cambia cuando cambia algo.
+
 ## Uso
 
 ```bash
@@ -78,7 +109,7 @@ python tools/rankings/cargar.py the-latam 2026 --escribir --reemplazar
 ```
 
 `cargar.py` usa la `DATABASE_URL` de `backend/.env` salvo que se pase `--url`, y
-requiere las migraciones 020 y 021. Antes de escribir una edición comprueba que cada
+requiere las migraciones 020 y 021 (y la 023 para el puesto oficial y el estado, y la 024 para THE World; sin ellas, los omite). Antes de escribir una edición comprueba que cada
 métrica exista en su época (GRAS cambió de indicadores en 2020 y 2024), que cada
 universidad esté en el catálogo y que el total cuadre con sus componentes; si la
 base ya tiene esa edición, la instantánea debe coincidir cifra por cifra; si
@@ -96,9 +127,9 @@ agrega a `tools/recoleccion/nombres_universidades.csv`.
 `.github/workflows/rankings.yml` corre el día 5 de cada mes (y a mano, desde la
 pestaña Actions):
 
-1. `actualizar.py` pregunta a THE y a ShanghaiRanking por las ediciones
-   posteriores a la última guardada, convierte las planillas de QS nuevas y mira si
-   Scimago publicó cifras.
+1. `actualizar.py` pregunta a THE (Latam y World) y a ShanghaiRanking por las
+   ediciones posteriores a la última guardada, convierte las planillas de QS
+   nuevas, mira si Scimago publicó cifras y actualiza `estado.json`.
 2. Si hay instantáneas nuevas, abre un PR `rankings/AAAA-MM` con ellas y el informe.
 3. Lo que necesita a una persona —una planilla de QS que falta, una fuente que
    cambió su metodología o no respondió— va a un issue «Rankings: acción
@@ -117,4 +148,5 @@ Actions to create and approve pull requests*.
 instantánea de una edición ya cargada coincida con la base, que las que faltan se
 puedan cargar sin dejar rastro, que las planillas de QS se lean igual y que el
 cargador rechace un total corrido de columna, una métrica desconocida y una edición
-cargada que difiere.
+cargada que difiere. La batería `actualizacion` cubre el puesto oficial, el estado
+de cada ranking y THE World.

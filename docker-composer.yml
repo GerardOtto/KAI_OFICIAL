@@ -17,13 +17,16 @@ services:
       # Esquema completo, con todas las migraciones aplicadas, y los datos
       # académicos, sin ninguna cuenta. Solo se carga con el volumen vacío, en
       # orden alfabético: primero los datos, después el rol del asistente, que
-      # por ser del servidor no viaja en el volcado, y al final el puntaje total
-      # de cada ranking (migración 020), que tampoco está en él.
+      # por ser del servidor no viaja en el volcado, y al final las migraciones
+      # 020 a 024 (puntaje total, grupos, puesto oficial y THE World), que
+      # tampoco están en él. Las ediciones las agrega tools/rankings/cargar.py.
       - ./backend/pruebas/datos_de_prueba.sql:/docker-entrypoint-initdb.d/01-datos.sql
       - ./backend/migraciones/019_rol_del_asistente.sql:/docker-entrypoint-initdb.d/02-rol-del-asistente.sql
       - ./backend/migraciones/020_puntaje_total.sql:/docker-entrypoint-initdb.d/03-puntaje-total.sql
       - ./backend/migraciones/021_gras_por_edicion.sql:/docker-entrypoint-initdb.d/04-gras-por-edicion.sql
       - ./backend/migraciones/022_grupos_de_comparacion.sql:/docker-entrypoint-initdb.d/05-grupos-de-comparacion.sql
+      - ./backend/migraciones/023_posicion_y_actualizacion.sql:/docker-entrypoint-initdb.d/06-posicion-y-actualizacion.sql
+      - ./backend/migraciones/024_the_world.sql:/docker-entrypoint-initdb.d/07-the-world.sql
     ports:
       - "5432:5432"
     healthcheck:

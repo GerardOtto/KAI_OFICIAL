@@ -14,6 +14,7 @@ import { useValoresReales } from "../hooks/useValoresReales";
 import { filasCSV } from "../utils/valoresReales";
 import { useModoValores } from "../estado/ModoValores";
 import AvisoModo from "../components/data/AvisoModo";
+import AvisoEdicion from "../components/data/AvisoEdicion";
 import { useAuth } from "../auth/AuthContext";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 import { generarInformeResumen } from "../reportes/informeResumen";
@@ -47,8 +48,9 @@ function descargarCSV(filas, nombreArchivo) {
 
 function exportarCSV(data, rankingNombre, anio, ponderacion) {
   const filas = [
-    ["Posición", "Institución", "País", "Score"],
-    ...data.map((u, i) => [i + 1, u.nombre_universidad, u.pais_universidad, Number(u.score_total).toFixed(1)]),
+    ["Posición", "Puesto oficial", "Institución", "País", "Score"],
+    ...data.map((u, i) => [i + 1, u.posicion_oficial || "", u.nombre_universidad, u.pais_universidad,
+                           Number(u.score_total).toFixed(1)]),
   ];
   // Un ranking reponderado sin sus pesos no se puede reproducir ni comparar:
   // el archivo los lleva al final.
@@ -344,6 +346,7 @@ export default function Ranking() {
         {pidioNumerico && rankingActual && !conValores && (
           <AvisoModo tipo="sinValores" ranking={rankingActual.nombre_ranking} />
         )}
+        <AvisoEdicion ranking={rankingActual} />
 
         {editable && ponderado.metricas.length > 0 && (
           <PanelPesos
@@ -394,7 +397,8 @@ export default function Ranking() {
               className="grid items-center gap-4 py-2.5 px-3 sticky top-16 bg-background z-10 border-b border-white/[.12]"
               style={{ gridTemplateColumns: gridCols }}
             >
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Pos</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]"
+                    title="Posición entre las instituciones de esta tabla. El puesto que publica el ranking va junto al nombre.">Pos</span>
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Institución</span>
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Score en {nombreConDisciplina}{modificados ? " · tus pesos" : ""}</span>
               <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Δ año ant.</span>
@@ -443,6 +447,15 @@ export default function Ranking() {
                           {uni.nombre_universidad}
                         </span>
                         <span className="text-[11px] text-[#6f6f6f] shrink-0">{uni.pais_universidad}</span>
+                        {/* El puesto que publica el ranking (migración 023), tal como
+                            lo escribe: «22», «=6», «851-900». */}
+                        {uni.posicion_oficial && (
+                          <span className="font-mono text-[10px] text-[#9a9a9a] border border-white/[.12] px-1.5 py-px shrink-0"
+                                title={`Puesto que publica ${rankingActual?.nombre_ranking || "el ranking"}`}
+                                data-posicion-oficial>
+                            oficial {uni.posicion_oficial}
+                          </span>
+                        )}
                       </div>
                     </div>
 

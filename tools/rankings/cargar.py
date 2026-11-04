@@ -43,7 +43,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from comun import RAIZ, RANKINGS, TOTAL, Fila, ediciones_guardadas, forma, leer_instantanea  # noqa: E402
+from comun import (  # noqa: E402
+    INSTANTANEAS, RAIZ, RANKINGS, TOTAL, Fila, ediciones_guardadas, forma, leer_instantanea, rango_posicion)
 import verificar  # noqa: E402
 
 TOLERANCIA = 0.005
@@ -159,7 +160,7 @@ def coherencia(base: Base, clave: str, edicion: int, valores: dict, metricas: di
         suma = sum(v * factor(metricas[mid]) for mid, v in vals.items() if metricas[mid].tipo_metrica != "Puntaje")
         pares.append((total, suma))
     problemas = []
-    if clave == "the-latam" and edicion >= 2024:
+    if clave in ("the-latam", "the-world") and edicion >= 2024:
         peor = max((abs(t - s) for t, s in pares), default=0)
         if peor > 0.15:
             problemas.append(f"el total no cuadra con los pilares y sus pesos (diferencia de hasta {peor:.2f})")
@@ -218,6 +219,69 @@ def escribir(base: Base, edicion: int, valores: dict, metricas: dict) -> None:
         [{"m": m, "u": u, "v": v, "a": edicion} for (m, u), v in valores.items()])
 
 
+def _hay_tabla(conexion, nombre: str) -> bool:
+    from sqlalchemy import text
+
+    return bool(conexion.execute(text("SELECT to_regclass(:t) IS NOT NULL"), {"t": f"public.{nombre}"}).scalar())
+
+
+def sincronizar_posiciones(base: Base, clave: str, edicion: int, filas: list[Fila], escribir: bool) -> bool:
+    """Lleva a `posicion_oficial` (migración 023) el puesto publicado de cada
+    universidad en esa edición. Es dato de la fuente, sin nada que verificar contra
+    la base: se reemplaza la edición entera si cambió. Devuelve si había cambios."""
+    id_ranking = base.rankings[RANKINGS[clave]].id_ranking
+    nuevas = {}
+    for f in filas:
+        uid = base.universidades.get(f.universidad)
+        if uid is not None and f.posicion:
+            nuevas[(f.disciplina, uid)] = f.posicion
+    actuales = {(r.disciplina, r.id_universidad): r.posicion for r in base.c.execute(base.text("""
+        SELECT disciplina, id_universidad, posicion FROM posicion_oficial
+        WHERE id_ranking = :r AND anio = :a"""), {"r": id_ranking, "a": edicion})}
+    if actuales == nuevas:
+        return False
+    if escribir:
+        base.c.execute(base.text("DELETE FROM posicion_oficial WHERE id_ranking = :r AND anio = :a"),
+                       {"r": id_ranking, "a": edicion})
+        if nuevas:
+            base.c.execute(base.text("""
+                INSERT INTO posicion_oficial (id_ranking, disciplina, id_universidad, anio, posicion, desde, hasta)
+                VALUES (:r, :d, :u, :a, :p, :desde, :hasta)"""),
+                [{"r": id_ranking, "d": d, "u": u, "a": edicion, "p": p,
+                  "desde": rango_posicion(p)[0], "hasta": rango_posicion(p)[1]} for (d, u), p in nuevas.items()])
+    return True
+
+
+def sincronizar_estado(base: Base, escribir: bool) -> list[str]:
+    """Lleva a `estado_ranking` (migración 023) la última edición publicada de cada
+    ranking, según el estado.json que deja la revisión mensual."""
+    import json
+
+    ruta = INSTANTANEAS / "estado.json"
+    if not ruta.exists():
+        return []
+    cambios = []
+    for nombre, e in json.loads(ruta.read_text(encoding="utf-8")).items():
+        ranking = base.rankings.get(nombre)
+        if ranking is None:
+            continue
+        actual = base.c.execute(base.text("""
+            SELECT ultima_publicada, como, nota FROM estado_ranking WHERE id_ranking = :r"""),
+            {"r": ranking.id_ranking}).first()
+        nuevo = (e.get("ultima_publicada"), e.get("como"), e.get("nota"))
+        if actual is not None and tuple(actual) == nuevo:
+            continue
+        cambios.append(f"{nombre}: última publicada {nuevo[0]} ({nuevo[1]})")
+        if escribir:
+            base.c.execute(base.text("""
+                INSERT INTO estado_ranking (id_ranking, ultima_publicada, como, nota, actualizado_en)
+                VALUES (:r, :u, :c, :n, now())
+                ON CONFLICT (id_ranking) DO UPDATE SET ultima_publicada = EXCLUDED.ultima_publicada,
+                    como = EXCLUDED.como, nota = EXCLUDED.nota, actualizado_en = now()"""),
+                {"r": ranking.id_ranking, "u": nuevo[0], "c": nuevo[1], "n": nuevo[2]})
+    return cambios
+
+
 def sql_de(clave: str, edicion: int, ranking_id: int, valores: dict, metricas: dict, nombres: dict) -> str:
     """SQL autocontenido de una edición nueva: comprueba que las métricas sean las
     mismas que en la base de origen y que la edición no esté ya cargada."""
@@ -260,6 +324,7 @@ def main() -> int:
         else [(c, e) for c in RANKINGS for e in ediciones_guardadas(c)]
     motor = create_engine(args.url or url_por_defecto())
     resultado = defaultdict(list)
+    rechazadas = set()
     sql = ["BEGIN;"]
     with motor.connect() as conexion:
         base = Base(conexion)
@@ -322,12 +387,31 @@ def main() -> int:
             except Rechazo as e:
                 transaccion.rollback()
                 resultado["rechazada"].append(f"{etiqueta}: {e}")
+                rechazadas.add((clave, edicion))
+
+        # Segunda pasada: la posición oficial de cada edición y el estado de cada
+        # ranking (migración 023). Sin la 023, se omite.
+        if not args.sql and _hay_tabla(conexion, "posicion_oficial"):
+            conexion.rollback()
+            with conexion.begin():
+                for clave, edicion in pedidas:
+                    if (clave, edicion) in rechazadas:
+                        continue
+                    filas, _ = leer_instantanea(clave, edicion)
+                    if sincronizar_posiciones(base, clave, edicion, filas, args.escribir):
+                        resultado["posiciones " + ("actualizadas" if args.escribir else "por actualizar")].append(
+                            f"{RANKINGS[clave]} {edicion}")
+                # Sin --escribir esta pasada solo lee: no hay nada que deshacer.
+                for cambio in sincronizar_estado(base, args.escribir):
+                    resultado["estado " + ("actualizado" if args.escribir else "por actualizar")].append(cambio)
 
     if args.sql:
         sql.append("COMMIT;")
         args.sql.write_text("\n".join(sql), encoding="utf-8")
     for estado in ("cargada", "completada", "reemplazada", "en el SQL", "por cargar", "por completar",
-                   "por reemplazar", "fuera del SQL: usa --escribir", "coincide", "rechazada"):
+                   "por reemplazar", "fuera del SQL: usa --escribir", "posiciones actualizadas",
+                   "posiciones por actualizar", "estado actualizado", "estado por actualizar",
+                   "coincide", "rechazada"):
         if resultado[estado]:
             print(f"\n{estado.upper()} ({len(resultado[estado])})")
             for x in resultado[estado]:
