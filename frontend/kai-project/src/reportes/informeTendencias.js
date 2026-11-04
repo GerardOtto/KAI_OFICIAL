@@ -5,7 +5,7 @@
  *  una lectura en frases, el gráfico dibujado en vectores y una tabla de una
  *  fila por institución. El detalle año a año queda en la exportación XLSX.
  */
-import { linearRegression, rSquared } from "../utils/regression";
+import { intervaloPrediccion, linearRegression, rSquared } from "../utils/regression";
 import {
   barras, cifra, cifrasClave, conSigno, crearDocumento, fichaDeEmision, guardar, hallazgos, lineas,
   nombreArchivo, nota, portada, seccion, tabla, tono,
@@ -42,6 +42,14 @@ function analizarSerie(serie, anos, acotar) {
     pendiente: reg?.slope ?? null,
     r2: reg ? rSquared(puntos, reg.slope, reg.intercept) : null,
     proyectado: reg && horizonte ? recta(horizonte) : null,
+    // Intervalo de predicción del 80 % en el horizonte, igual que la banda de la
+    // pantalla.
+    intervalo: reg && horizonte ? (() => {
+      const ip = intervaloPrediccion(puntos, reg.slope, reg.intercept, horizonte);
+      if (!ip) return null;
+      const acota = (y) => (acotar ? Math.max(0, Math.min(100, y)) : Math.max(0, y));
+      return { bajo: acota(ip.bajo), alto: acota(ip.alto) };
+    })() : null,
     proyeccion: reg && anos
       ? Array.from({ length: anos }, (_, i) => ({ x: ultimo.x + i + 1, y: recta(ultimo.x + i + 1) }))
       : [],
@@ -91,7 +99,9 @@ async function evolucion(datos) {
     pos > 0 && { etiqueta: `Posición ${anoFinal}`, valor: orden(pos), detalle: `entre las ${alDia.length} instituciones con dato ese año` },
     horizonte && ref.proyectado != null
       ? { etiqueta: `Proyección ${horizonte}`, valor: `${cifra(ref.proyectado, 1)}${u}`,
-          detalle: `tendencia lineal, R² ${cifra(ref.r2, 2)}` }
+          detalle: ref.intervalo
+            ? `entre ${cifra(ref.intervalo.bajo, 1)} y ${cifra(ref.intervalo.alto, 1)} (80 %), R² ${cifra(ref.r2, 2)}`
+            : `tendencia lineal, R² ${cifra(ref.r2, 2)}` }
       : ref.pendiente != null && { etiqueta: "Tendencia anual", valor: conSigno(ref.pendiente, 2),
           tono: tono(ref.pendiente), detalle: "pendiente de la recta ajustada" },
   ]);

@@ -956,7 +956,7 @@ TABLAS_PUBLICAS = {
 # forma de escribir la consulta se escapara del análisis de relaciones, este
 # filtro por palabra la detiene igual.
 TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan", "descarga",
-                  "solicitud_contacto"}
+                  "solicitud_contacto", "grupo_comparacion"}
 
 _COMENTARIOS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 # Identificadores en posición de tabla: lo que sigue a FROM, JOIN, INTO o UPDATE.

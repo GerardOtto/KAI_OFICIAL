@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { alpha } from "./paleta";
 import { nombreCorto } from "../../utils/universidades";
+import GruposGuardados from "../GruposGuardados";
 
 const normalizar = (s) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -161,6 +162,8 @@ export default function SelectorInstituciones({
           )}
         </AnimatePresence>
       </div>
+
+      <GruposGuardados seleccionadas={seleccionadas} onAplicar={setSeleccionadas} max={conTope ? max : null} />
 
       <div className="flex items-center gap-[5px] flex-wrap flex-1 min-w-0">
         <AnimatePresence initial={false}>

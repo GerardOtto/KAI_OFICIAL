@@ -435,6 +435,92 @@ def registrar_descarga(req: DescargaRequest, usuario: dict = Depends(auth.usuari
 
 
 # ---------------------------------------------------------------------------
+# Grupos de comparación guardados (migración 022)
+# ---------------------------------------------------------------------------
+
+MAX_GRUPOS = 30
+
+
+class GrupoRequest(BaseModel):
+    nombre: str
+    universidades: list[int]
+
+
+def _sin_grupos(db) -> bool:
+    return not _hay_tabla(db, "grupo_comparacion")
+
+
+@app.get("/grupos")
+def listar_grupos(usuario: dict = Depends(auth.usuario_actual)):
+    """Los grupos de universidades que la cuenta guardó, por nombre. Sin la 022
+    devuelve una lista vacía: la interfaz sigue funcionando, sin la opción."""
+    db = SessionLocal()
+    try:
+        if _sin_grupos(db):
+            return []
+        filas = db.execute(text("""
+            SELECT id_grupo, nombre, universidades FROM grupo_comparacion
+            WHERE id_usuario = :u ORDER BY lower(nombre)"""), {"u": usuario["id_usuario"]})
+        return [dict(f._mapping) for f in filas]
+    finally:
+        db.close()
+
+
+@app.post("/grupos")
+def guardar_grupo(req: GrupoRequest, usuario: dict = Depends(auth.usuario_actual)):
+    """Crea un grupo o, si la cuenta ya tiene uno con ese nombre, lo reemplaza."""
+    nombre = " ".join(req.nombre.split())
+    universidades = list(dict.fromkeys(req.universidades))
+    if not 1 <= len(nombre) <= 60:
+        raise HTTPException(status_code=400, detail="El nombre del grupo debe tener entre 1 y 60 caracteres.")
+    if not 1 <= len(universidades) <= 60:
+        raise HTTPException(status_code=400, detail="Un grupo lleva entre 1 y 60 instituciones.")
+    db = SessionLocal()
+    try:
+        if _sin_grupos(db):
+            raise HTTPException(status_code=503, detail="Los grupos no están disponibles todavía (falta la migración 022).")
+        existentes = db.execute(text(
+            "SELECT count(*) FROM universidad WHERE id_universidad = ANY(:ids)"), {"ids": universidades}).scalar()
+        if existentes != len(universidades):
+            raise HTTPException(status_code=400, detail="El grupo incluye instituciones que no existen.")
+        cuantos = db.execute(text("""
+            SELECT count(*) FROM grupo_comparacion WHERE id_usuario = :u AND lower(nombre) <> lower(:n)"""),
+            {"u": usuario["id_usuario"], "n": nombre}).scalar()
+        if cuantos >= MAX_GRUPOS:
+            raise HTTPException(status_code=400, detail=f"Puedes guardar hasta {MAX_GRUPOS} grupos.")
+        # Un nombre que solo difiere en mayúsculas reemplaza al existente: dos
+        # grupos «Regionales» y «regionales» no se distinguirían en la lista.
+        db.execute(text("""
+            DELETE FROM grupo_comparacion WHERE id_usuario = :u AND lower(nombre) = lower(:n)"""),
+            {"u": usuario["id_usuario"], "n": nombre})
+        fila = db.execute(text("""
+            INSERT INTO grupo_comparacion (id_usuario, nombre, universidades)
+            VALUES (:u, :n, :ids) RETURNING id_grupo, nombre, universidades"""),
+            {"u": usuario["id_usuario"], "n": nombre, "ids": universidades}).first()
+        db.commit()
+        return dict(fila._mapping)
+    finally:
+        db.close()
+
+
+@app.delete("/grupos/{id_grupo}", status_code=204)
+def eliminar_grupo(id_grupo: int, usuario: dict = Depends(auth.usuario_actual)):
+    db = SessionLocal()
+    try:
+        if _sin_grupos(db):
+            raise HTTPException(status_code=404, detail="No existe ese grupo.")
+        borrados = db.execute(text("""
+            DELETE FROM grupo_comparacion WHERE id_grupo = :g AND id_usuario = :u"""),
+            {"g": id_grupo, "u": usuario["id_usuario"]}).rowcount
+        db.commit()
+        # El de otra cuenta responde igual que uno inexistente: no se revela.
+        if not borrados:
+            raise HTTPException(status_code=404, detail="No existe ese grupo.")
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
 # Conversaciones del asistente
 # ---------------------------------------------------------------------------
 
@@ -1046,6 +1132,56 @@ def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = Non
         return rows
     finally:
         db.close()
+
+@app.get("/posiciones-por-ranking")
+def get_posiciones_por_ranking(universidad_id: int, usuario: dict = Depends(auth.usuario_actual)):
+    """El lugar de una universidad entre las chilenas de cada ranking, edición por
+    edición: lo único que se puede comparar entre rankings, cuyos puntajes viven en
+    escalas distintas (THE y QS de 0 a 100, GRAS hasta varios cientos).
+
+    El orden es el del Resumen: el total registrado si toda la edición lo tiene, si
+    no la suma ponderada. Quedan fuera los multidisciplinarios (GRAS, QS por
+    Disciplina), que no tienen un orden único, y los rankings que el plan no incluye.
+    """
+    db = SessionLocal()
+    try:
+        vedados = sorted(acceso.ids_vedados(db, usuario))
+        filas = db.execute(text(f"""
+            WITH multidisciplinarios AS (
+                SELECT id_ranking FROM metrica GROUP BY id_ranking HAVING count(DISTINCT disciplina) > 1
+            ),
+            por_universidad AS (
+                SELECT m.id_ranking, mu.anio_metrica AS anio, mu.id_universidad,
+                       SUM(mu.valor_metrica * {_FACTOR_TOTAL}) FILTER (WHERE m.pondera) AS calculado,
+                       MAX(mu.valor_metrica) FILTER (WHERE m.tipo_metrica = 'Puntaje') AS registrado,
+                       COUNT(*) FILTER (WHERE m.pondera) AS componentes
+                FROM metrica m
+                JOIN ranking r ON r.id_ranking = m.id_ranking
+                JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
+                WHERE (m.pondera OR m.tipo_metrica = 'Puntaje')
+                  AND m.id_ranking NOT IN (SELECT id_ranking FROM multidisciplinarios)
+                  {"AND m.id_ranking <> ALL(:vedados)" if vedados else ""}
+                GROUP BY m.id_ranking, mu.anio_metrica, mu.id_universidad
+            ),
+            con_total AS (
+                SELECT *, CASE WHEN bool_and(registrado IS NOT NULL) OVER (PARTITION BY id_ranking, anio)
+                               THEN registrado ELSE calculado END AS total
+                FROM por_universidad WHERE componentes > 0
+            ),
+            ordenadas AS (
+                SELECT *, rank() OVER (PARTITION BY id_ranking, anio ORDER BY total DESC) AS posicion,
+                       count(*) OVER (PARTITION BY id_ranking, anio) AS de
+                FROM con_total
+            )
+            SELECT o.id_ranking, r.nombre_ranking, o.anio, o.posicion, o.de, round(o.total::numeric, 2) AS total
+            FROM ordenadas o JOIN ranking r ON r.id_ranking = o.id_ranking
+            WHERE o.id_universidad = :u
+            ORDER BY r.id_ranking, o.anio
+        """), {"u": universidad_id, "vedados": vedados})
+        return [dict(f._mapping) for f in filas]
+    finally:
+        db.close()
+
 
 @app.get("/tipos-metrica")
 def get_tipos_metrica(usuario: dict = Depends(auth.usuario_actual)):

@@ -19,6 +19,7 @@ import { useRankingResumen } from "../hooks/useRankingResumen";
 import SelectorInstituciones from "../components/tendencias/SelectorInstituciones";
 import VistaAnual from "../components/tendencias/VistaAnual";
 import VistaEvolucion from "../components/tendencias/VistaEvolucion";
+import DesgloseCambio from "../components/tendencias/DesgloseCambio";
 import { colorDeIndice, fmt } from "../components/tendencias/paleta";
 import { generarInformeTendencias } from "../reportes/informeTendencias";
 import { institucionPropia } from "../reportes/documento";
@@ -610,6 +611,18 @@ export default function Tendencias() {
               colorDe={colorDe}
               proyeccion={proyectando}
               anosProyeccion={anosProyeccion}
+            />
+          )}
+          {/* En puntajes, la variación del total de una institución, métrica por
+              métrica. En cifras medidas no hay total que repartir. */}
+          {!esAnual && !numerico && graficadas.length > 0 && (
+            <DesgloseCambio
+              rankingId={rankingId}
+              anios={anios}
+              candidatas={graficadas}
+              universidades={universidades}
+              disciplina={disciplinaActiva}
+              foco={institucionPropia(usuario, universidades)}
             />
           )}
         </div>

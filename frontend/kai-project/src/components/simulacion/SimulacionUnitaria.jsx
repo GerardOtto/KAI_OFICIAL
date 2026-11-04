@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useRankingResumen } from "../../hooks/useRankingResumen";
@@ -6,7 +6,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { conSigno, decimal, porcentaje } from "../../utils/formato";
 
-export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, universidadId, disciplinaFiltro }) {
+export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, universidadId, disciplinaFiltro, planInicial }) {
   const rawData = useSimulacion(rankingId, anio, universidadId ? [universidadId] : []);
   // Los pares se miden en la misma disciplina que se simula: con el total de todas
   // las disciplinas, una sola quedaba siempre al fondo de la tabla.
@@ -20,8 +20,17 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
   );
 
   // { id_metrica: valor_editado }
-  const [overrides, setOverrides] = useState({});
-  useEffect(() => { setOverrides({}); }, [rankingId, anio, universidadId]);
+  // Arranca con el plan que mandó la vista Objetivo, si lo hay. El reinicio al
+  // cambiar de ranking, año o institución no corre al montar: si no, borraría el
+  // plan recién recibido.
+  const [overrides, setOverrides] = useState(() => planInicial || {});
+  const clave = `${rankingId}|${anio}|${universidadId}`;
+  const claveAnterior = useRef(clave);
+  useEffect(() => {
+    if (claveAnterior.current === clave) return;
+    claveAnterior.current = clave;
+    setOverrides({});
+  }, [clave]);
 
   const filtrado = useMemo(
     () => (disciplinaFiltro ? rawData.filter(r => r.disciplina === disciplinaFiltro) : rawData),

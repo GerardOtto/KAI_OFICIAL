@@ -15,11 +15,12 @@ import { conSigno, decimal, porcentaje } from "../../utils/formato";
  * universidades del año. El padre le pasa una `key` por ranking, año e
  * institución, de modo que el escenario empieza limpio al cambiar cualquiera.
  */
-export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombre, universidadId }) {
+export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombre, universidadId, planInicial }) {
   // Todas las universidades del año: el percentil se calcula contra ellas.
   const filas = useSimulacion(rankingId, anio, [], "numerico");
   const { metricas, universidades } = useMemo(() => prepararCifras(filas), [filas]);
-  const [cifras, setCifras] = useState({}); // { id_metrica: cifra simulada }
+  // { id_metrica: cifra simulada }. Arranca con el plan de la vista Objetivo, si lo hay.
+  const [cifras, setCifras] = useState(() => planInicial || {});
   const descarga = useDescarga("simulacion");
   const { usuario } = useAuth();
 

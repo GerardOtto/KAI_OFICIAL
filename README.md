@@ -5,9 +5,10 @@ Plataforma de análisis de rankings universitarios (THE, QS Latam, Scimago, Shan
 ## Funcionalidades
 
 - **Resumen** — ranking calculado por año a partir del puntaje ponderado de cada métrica.
-- **Tendencias** — evolución histórica por universidad y métrica, con proyección por regresión lineal y métricas de precisión (R², crecimiento anual, disciplina para Shanghai GRAS).
-- **Simulación** — edición interactiva de valores de métricas para ver cómo cambiaría el puntaje total de una institución.
-- **Glosario** — catálogo de métricas agrupadas por categoría y ranking.
+- **Tendencias** — evolución histórica por universidad y métrica, con proyección por regresión lineal, su intervalo de predicción del 80 % y métricas de precisión (R², crecimiento anual, disciplina para Shanghai GRAS). Explica, métrica por métrica, por qué cambió el total de una institución entre dos ediciones.
+- **Simulación** — edición interactiva de valores de métricas para ver cómo cambiaría el puntaje total de una institución, y simulación inversa (pestaña Objetivo): qué mover, y cuánto, para superar a otra institución o llegar a un puesto, en puntajes o en las cifras reales del Ranking KAI y Scimago.
+- **Glosario** — catálogo de métricas agrupadas por categoría y ranking, con el puntaje total y el lugar de la institución entre las chilenas en cada ranking y edición.
+- **Grupos de comparación** — conjuntos de instituciones guardados en la cuenta, para elegirlos de una vez en Tendencias y en la simulación comparada.
 - **Asistente** — chat con IA (Claude, vía tool use) que consulta la base de datos real para responder preguntas sobre rankings, tendencias y universidades.
 
 ## Stack
@@ -103,6 +104,7 @@ El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de da
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_comparacion.sql
 python tools/rankings/cargar.py --escribir   # ediciones que faltan y totales de GRAS 2017-2023
 ``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
 

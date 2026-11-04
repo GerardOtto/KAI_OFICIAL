@@ -14,6 +14,8 @@ import SimulacionComparada from "../components/simulacion/SimulacionComparada";
 import AgenteIA from "../components/simulacion/AgenteIA";
 import SimulacionUnitariaCifras from "../components/simulacion/SimulacionUnitariaCifras";
 import SimulacionComparadaCifras from "../components/simulacion/SimulacionComparadaCifras";
+import SimulacionObjetivo from "../components/simulacion/SimulacionObjetivo";
+import GruposGuardados from "../components/GruposGuardados";
 import AvisoModo from "../components/data/AvisoModo";
 import { useModoValores } from "../estado/ModoValores";
 import { idDeInstitucion } from "../utils/universidades";
@@ -23,6 +25,7 @@ import { idDeInstitucion } from "../utils/universidades";
 const MODOS = [
   { modo: "unitaria", label: "Unitaria", sub: "una institución · sliders" },
   { modo: "comparada", label: "Comparada", sub: "varias instituciones · matriz" },
+  { modo: "objetivo", label: "Objetivo", sub: "qué mover para superar a otra" },
 ];
 
 // Comparada arranca con la institución de la cuenta y las primeras del ranking.
@@ -35,6 +38,11 @@ export default function Simulacion() {
   const { modo: modoParam } = useParams();
   const navigate = useNavigate();
   const modo = MODOS.some(m => m.modo === modoParam) ? modoParam : "comparada";
+  // Unitaria y Objetivo miran una sola institución; Comparada, varias.
+  const individual = modo !== "comparada";
+  // El plan que la vista Objetivo manda a probar en Unitaria. Se descarta al
+  // cambiar de ranking, de año, de disciplina o de institución.
+  const [planPendiente, setPlanPendiente] = useState(null);
 
   // Igual que en Tendencias: la elección inicial la fija el catálogo.
   const [rankingId, setRankingId] = useState(null);
@@ -103,7 +111,7 @@ export default function Simulacion() {
   const nombreDe = (id) => universidades?.find(u => u.id_universidad === id)?.nombre_universidad;
   const nombreUnitaria = nombreDe(institucionUnitaria);
 
-  const elegidasAhora = modo === "unitaria"
+  const elegidasAhora = individual
     ? (institucionUnitaria ? [institucionUnitaria] : [])
     : institucionesComparada;
   const faltantes = conDatos ? elegidasAhora.filter(id => !conDatos.has(id)) : [];
@@ -119,16 +127,24 @@ export default function Simulacion() {
   const anioOtro = aniosOtro.length ? (anio && aniosOtro.includes(anio) ? anio : aniosOtro[0]) : null;
   useEffect(() => {
     if (!puedeCifras || !anioOtro) return;
-    const elegidas = modo === "unitaria" ? (institucionUnitaria ? [institucionUnitaria] : []) : institucionesComparada;
+    const elegidas = individual ? (institucionUnitaria ? [institucionUnitaria] : []) : institucionesComparada;
     if (modoOtro === "puntajes" && !elegidas.length) return;
     precargar(rutaSimulacion(rankingId, anioOtro, modoOtro === "numerico" ? [] : elegidas, modoOtro),
       transformarSimulacion, NOMBRE_SIMULACION);
-  }, [puedeCifras, anioOtro, modoOtro, modo, institucionUnitaria, institucionesComparada, rankingId]);
+  }, [puedeCifras, anioOtro, modoOtro, individual, institucionUnitaria, institucionesComparada, rankingId]);
 
   const handleRankingChange = (id) => {
     setRankingId(id);
     setAnio(null);
     setDisciplina(null);
+    setPlanPendiente(null);
+  };
+
+  // «Probar en la simulación unitaria»: el plan de la vista Objetivo se abre en
+  // Unitaria, con los mismos ranking, año, disciplina e institución.
+  const probarPlan = (plan) => {
+    setPlanPendiente(plan);
+    navigate("/simulacion/unitaria");
   };
 
   return (
@@ -189,7 +205,7 @@ export default function Simulacion() {
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Año</p>
             <select
               value={anioActivo || ""}
-              onChange={e => setAnio(Number(e.target.value))}
+              onChange={e => { setAnio(Number(e.target.value)); setPlanPendiente(null); }}
               className={claseControl}
             >
               {anios.map(a => (
@@ -203,7 +219,7 @@ export default function Simulacion() {
               <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Disciplina</p>
               <select
                 value={disciplinaActiva || ""}
-                onChange={e => setDisciplina(e.target.value)}
+                onChange={e => { setDisciplina(e.target.value); setPlanPendiente(null); }}
                 className={`${claseControl} max-w-[260px]`}
               >
                 {disciplinas.map(d => (
@@ -215,33 +231,48 @@ export default function Simulacion() {
 
           <div>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">
-              {modo === "unitaria" ? "Institución" : `Instituciones (${institucionesComparada.length})`}
+              {individual ? "Institución" : `Instituciones (${institucionesComparada.length})`}
             </p>
             <SelectorUniversidad
               universidades={universidades}
               multiple={modo === "comparada"}
-              valor={modo === "unitaria" ? institucionUnitaria : institucionesComparada}
-              onCambio={modo === "unitaria" ? setUnitariaElegida : setComparadasElegidas}
+              valor={individual ? institucionUnitaria : institucionesComparada}
+              onCambio={individual ? (id) => { setUnitariaElegida(id); setPlanPendiente(null); } : setComparadasElegidas}
               idPropia={propia}
               conDatos={conDatos}
               placeholder="Seleccionar..."
               claseBoton={`${claseControl} min-w-[240px] max-w-[340px] text-left flex items-center justify-between gap-3 hover:border-white/30 transition-colors`}
             />
           </div>
+
+          {modo === "comparada" && (
+            <GruposGuardados seleccionadas={institucionesComparada} onAplicar={setComparadasElegidas} />
+          )}
         </div>
 
         {aviso && <AvisoModo tipo={aviso} ranking={rankingNombre} />}
 
         {faltantes.length > 0 && (
           <p className="mb-3 text-[11.5px] leading-relaxed text-warn">
-            {modo === "unitaria"
+            {individual
               ? `${nombreDe(faltantes[0]) || "La institución elegida"} no figura en ${dondeSeVe}. Elige otra institución o cambia de ranking, de año o de disciplina.`
               : `No figuran en ${dondeSeVe}: ${faltantes.map(id => nombreDe(id) || id).join(", ")}. Se comparan las demás.`}
           </p>
         )}
 
         {/* Cuerpo por modo */}
-        {enCifras ? (
+        {modo === "objetivo" ? (
+          <SimulacionObjetivo
+            key={`${rankingId}-${anioActivo}-${disciplinaActiva}-${institucionUnitaria}-${enCifras}`}
+            rankingId={rankingId}
+            anio={anioActivo}
+            rankingNombre={rankingNombre}
+            universidadId={institucionUnitaria}
+            disciplinaFiltro={disciplinaActiva}
+            enCifras={enCifras}
+            onProbar={probarPlan}
+          />
+        ) : enCifras ? (
           modo === "unitaria" ? (
             <SimulacionUnitariaCifras
               key={`${rankingId}-${anioActivo}-${institucionUnitaria}`}
@@ -249,6 +280,7 @@ export default function Simulacion() {
               anio={anioActivo}
               rankingNombre={rankingNombre}
               universidadId={institucionUnitaria}
+              planInicial={planPendiente}
             />
           ) : (
             <SimulacionComparadaCifras
@@ -266,6 +298,7 @@ export default function Simulacion() {
             rankingNombre={rankingNombre}
             universidadId={institucionUnitaria}
             disciplinaFiltro={disciplinaActiva}
+            planInicial={planPendiente}
           />
         ) : (
           <SimulacionComparada
@@ -282,7 +315,7 @@ export default function Simulacion() {
         rankingNombre={rankingNombre}
         anio={anioActivo}
         disciplina={disciplinaActiva}
-        institucion={modo === "unitaria" ? nombreUnitaria : nombreDe(propia)}
+        institucion={individual ? nombreUnitaria : nombreDe(propia)}
       />
     </div>
   );

@@ -72,6 +72,7 @@ jobs:
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_comparacion.sql
 
       - name: Crear el rol del asistente
         # Los roles son del servidor y no viajan en el volcado. Sin este, la

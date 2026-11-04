@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { linearRegression, rSquared } from "../../utils/regression";
+import { intervaloPrediccion, linearRegression, rSquared } from "../../utils/regression";
 import { fmt, decimalesPara, POSITIVO, NEGATIVO } from "./paleta";
 import { nombreCorto } from "../../utils/universidades";
 
@@ -80,11 +80,20 @@ export default function VistaEvolucion({
         const r2 = reg ? rSquared(observados, reg.slope, reg.intercept) : null;
 
         const ultimo = aniosReales[aniosReales.length - 1];
+        // Cada año proyectado lleva su intervalo de predicción del 80 %: dónde
+        // caería el dato si la tendencia siguiera igual. Se abre con la dispersión
+        // de la serie y con la distancia a lo observado. No baja de cero.
         const proy = reg && proyeccion
-          ? Array.from({ length: anosProyeccion }, (_, j) => ({
-              anio: ultimo + j + 1,
-              valor: reg.slope * (ultimo + j + 1) + reg.intercept,
-            }))
+          ? Array.from({ length: anosProyeccion }, (_, j) => {
+              const anio = ultimo + j + 1;
+              const ip = intervaloPrediccion(observados, reg.slope, reg.intercept, anio);
+              return {
+                anio,
+                valor: reg.slope * anio + reg.intercept,
+                bajo: ip ? Math.max(0, ip.bajo) : null,
+                alto: ip ? ip.alto : null,
+              };
+            })
           : [];
 
         return {
@@ -113,7 +122,7 @@ export default function VistaEvolucion({
     let mx = 0;
     series.forEach(s => {
       s.puntos.forEach(v => { if (v !== null && v > mx) mx = v; });
-      s.proy.forEach(p => { if (p.valor > mx) mx = p.valor; });
+      s.proy.forEach(p => { mx = Math.max(mx, p.valor, p.alto ?? 0); });
     });
     const t = mx > 0 ? Math.ceil(mx / pasoBonito(mx / 4)) * pasoBonito(mx / 4) : 1;
     return { top: t, decimales: decimalesPara(t) };
@@ -142,6 +151,7 @@ export default function VistaEvolucion({
     const p = s.proy.find(x => x.anio === anio);
     return p ? p.valor : null;
   };
+  const intervaloEn = (s, anio) => s.proy.find(x => x.anio === anio && x.bajo != null) || null;
 
   const rail = useMemo(() => {
     return series
@@ -150,7 +160,7 @@ export default function VistaEvolucion({
         const idx = anios.indexOf(anioActivo);
         const prev = idx > 0 ? valorEn(s, anios[idx - 1]) : null;
         const d = v !== null && prev !== null ? v - prev : null;
-        return { ...s, valor: v, delta: d };
+        return { ...s, valor: v, delta: d, intervalo: intervaloEn(s, anioActivo) };
       })
       .filter(r => r.valor !== null)
       .sort((a, b) => b.valor - a.valor);
@@ -233,6 +243,16 @@ export default function VistaEvolucion({
                     .join(" ")
                 : "";
 
+              // Banda del intervalo de predicción: del último dato observado, que no
+              // tiene incertidumbre, a los extremos de cada año proyectado.
+              const conBanda = s.proy.filter(p => p.bajo != null);
+              const banda = conBanda.length && ultimoIdx !== undefined
+                ? [`${xAt(ultimoIdx).toFixed(1)},${yAt(s.puntos[ultimoIdx]).toFixed(1)}`]
+                    .concat(conBanda.map(p => `${xAt(anios.indexOf(p.anio)).toFixed(1)},${yAt(p.alto).toFixed(1)}`))
+                    .concat([...conBanda].reverse().map(p => `${xAt(anios.indexOf(p.anio)).toFixed(1)},${yAt(p.bajo).toFixed(1)}`))
+                    .join(" ")
+                : "";
+
               // Escalona la entrada de cada serie para que se lean como trazos
               // sucesivos y no como un bloque que aparece de golpe.
               const retraso = Math.min(si * 0.08, 0.6);
@@ -240,6 +260,17 @@ export default function VistaEvolucion({
 
               return (
                 <g key={`${claveAnim}|${s.id}`}>
+                  {banda && (
+                    <motion.polygon
+                      points={banda}
+                      fill={s.color}
+                      stroke="none"
+                      data-banda
+                      initial={entrada({ opacity: 0 })}
+                      animate={{ opacity: 0.12 }}
+                      transition={{ duration: 0.5, delay: retraso + DUR_TRAZO }}
+                    />
+                  )}
                   <motion.polyline
                     points={pts}
                     fill="none"
@@ -349,7 +380,9 @@ export default function VistaEvolucion({
 
         <p className="mt-2.5 font-body text-[10.5px] text-[#6f6f6f]">
           Línea continua = dato reportado
-          {proyeccion && rangoObs ? ` · tramo punteado = proyección por regresión lineal sobre ${rangoObs}` : ""}.
+          {proyeccion && rangoObs
+            ? ` · tramo punteado = proyección por regresión lineal sobre ${rangoObs}; la banda es su intervalo de predicción del 80 %`
+            : ""}.
           Pasa el mouse por el gráfico para fijar el año que lee el panel derecho.
         </p>
        </div>
@@ -384,6 +417,12 @@ export default function VistaEvolucion({
                   <span className="font-mono font-semibold text-[13px] text-white">
                     {fmt(r.valor, decimales)}
                   </span>
+                  {r.intervalo && (
+                    <span className="font-mono text-[9.5px] text-[#7f7f7f] whitespace-nowrap" data-intervalo
+                          title="Intervalo de predicción del 80 %">
+                      {fmt(r.intervalo.bajo, decimales)}–{fmt(r.intervalo.alto, decimales)}
+                    </span>
+                  )}
                   <span
                     className="font-mono text-[10px] min-w-[38px] text-right"
                     style={{

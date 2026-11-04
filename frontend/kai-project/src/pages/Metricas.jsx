@@ -14,6 +14,7 @@ import { idDeInstitucion } from "../utils/universidades";
 import { useAuth } from "../auth/AuthContext";
 import { generarInformeGlosario } from "../reportes/informeGlosario";
 import { TIPO_PUNTAJE_TOTAL } from "../utils/puntajeTotal";
+import PosicionEntreRankings from "../components/data/PosicionEntreRankings";
 
 const DownloadIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -601,6 +602,8 @@ export default function Metricas() {
             </div>
           </div>
         )}
+
+        <PosicionEntreRankings universidadId={universidadId} universidadNombre={universidadNombre} />
       </main>
     </div>
   );

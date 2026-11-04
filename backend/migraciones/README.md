@@ -27,6 +27,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `019_rol_del_asistente.sql` | Rol de base `kai_asistente`, que solo lee las tablas académicas; la consulta SQL libre del asistente corre con él y, sin él, se niega. Cierra la lectura de cuentas y mensajes por SQL dinámico. Los roles no viajan en el volcado: aplicarla también tras cargar uno. **Aplicarla antes de desplegar el backend** | **pendiente** | **pendiente** |
 | `020_puntaje_total.sql` | El puntaje total de cada universidad en todos los rankings, como métrica «Puntaje total» (tipo `Puntaje`, no pondera): publicado por el ranking o calculado con su método. Corrige QS Global 2026 (cuatro columnas corridas), quita los totales en 0 de QS Global, pasa THE Latam a sus pesos latinoamericanos (35/33,5/20/4/7,5) y agrega `ranking.puntajes_ponderados` (Shanghai GRAS: el total es la suma). No está en el volcado: aplicarla también tras cargarlo. El backend funciona sin ella | **pendiente** | **pendiente** |
 | `021_gras_por_edicion.sql` | Corrige el total de Shanghai GRAS 2017-2023 que dejó la 020: hasta 2023 GRAS publicaba los indicadores de 0 a 100 y pesos propios de cada materia y edición, y la 020 los sumaba como si vinieran ponderados. Reemplaza `ranking.puntajes_ponderados` por `puntajes_ponderados_desde` (2024 en GRAS) y borra esos totales; los correctos los agrega `tools/rankings/cargar.py --escribir`. Requiere la 020. El backend nuevo la necesita para no volver a multiplicar por el peso en GRAS 2024+ | **pendiente** | **pendiente** |
+| `022_grupos_de_comparacion.sql` | Tabla `grupo_comparacion`: grupos de instituciones guardados por cada cuenta para Tendencias y la simulación comparada. Datos personales: el rol del asistente no la lee y el filtro de la consulta libre la veta. El backend funciona sin ella (los grupos se ven vacíos) | **pendiente** | **pendiente** |
 
 Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
 y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
@@ -447,3 +448,20 @@ del cargador y 4 después (2018, Oceanography y Mining & Mineral Engineering, cu
 ponderaciones no se dejan deducir). Es idempotente: solo borra los totales que
 coinciden con la suma simple. El backend nuevo lee `puntajes_ponderados_desde`: sin
 la 021 trata a GRAS como un ranking más, que era lo de antes de la 020.
+
+## 022: grupos de comparación
+
+Guarda, por cuenta, conjuntos de instituciones con nombre («Regionales», «Mis
+pares») para elegirlos de una vez en Tendencias y en la simulación comparada. Son de
+la cuenta, no del navegador: se ven en cualquier equipo. Hasta 30 grupos de hasta
+60 instituciones; un nombre repetido (sin distinguir mayúsculas) reemplaza al
+anterior.
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_comparacion.sql
+```
+
+Debe terminar con `NOTICE: grupo_comparacion lista`. Comprueba que `kai_asistente`
+no pueda leer la tabla; el filtro de `consulta_sql` la veta además por nombre. El
+backend se puede desplegar antes: sin la tabla, `/grupos` responde una lista vacía y
+guardar responde 503.

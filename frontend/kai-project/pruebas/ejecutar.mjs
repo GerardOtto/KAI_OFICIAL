@@ -40,6 +40,8 @@ const SONDAS = {
   switch_global: "Switch global de valores en los cuatro módulos",
   simulacion_cifras: "Percentiles de la simulación sobre cifras",
   simulacion_total: "Puntaje total en la simulación unitaria y comparada",
+  inversa: "Lógica de la simulación inversa, el desglose del cambio y el intervalo",
+  analisis: "Simulación inversa, desglose del cambio, grupos y lugar en cada ranking",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el
