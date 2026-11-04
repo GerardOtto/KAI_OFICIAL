@@ -39,6 +39,7 @@ const SONDAS = {
   ranking_kai: "Panel de pesos del Ranking KAI",
   switch_global: "Switch global de valores en los cuatro módulos",
   simulacion_cifras: "Percentiles de la simulación sobre cifras",
+  simulacion_total: "Puntaje total en la simulación unitaria y comparada",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el

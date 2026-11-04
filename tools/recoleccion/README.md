@@ -45,7 +45,7 @@ manifiesto.json una entrada por archivo: url, fecha, sha256, notas
 | `calibrar.py` | T5.3 | La recta de QS, la hipótesis CDF de THE y la verificación de Scimago |
 | `tests/test_sies.py` | T2.1 | Valida la agregación contra cifras públicas y contra THE |
 | `tests/test_reversion.py` | T5.2-3 | Comprueba desfases, fórmulas y aritmética de la calibración |
-| `cargar_ranking_kai.py` | — | Calcula el Ranking KAI y lo carga en la base (requiere las migraciones 008 y 009) |
+| `cargar_ranking_kai.py` | — | Calcula el Ranking KAI y lo carga en la base (requiere las migraciones 008 y 009). Con la 020 aplicada, rehace también su puntaje total |
 | `cargar_valores_reales.py` | T5.4 | Carga los valores medidos de THE y QS para el modo numérico (requiere la 008) |
 
 `navegador.py` es el módulo común: descarga con caché y manifiesto, escritura del

@@ -27,7 +27,12 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     const metricaMap = {};
     data.forEach(r => {
       if (!metricaMap[r.id_metrica]) {
-        metricaMap[r.id_metrica] = { id_metrica: r.id_metrica, nombre_metrica: r.nombre_metrica, disciplina: r.disciplina, peso_metrica: Number(r.peso_metrica) || 0 };
+        metricaMap[r.id_metrica] = {
+          id_metrica: r.id_metrica, nombre_metrica: r.nombre_metrica, disciplina: r.disciplina,
+          peso_metrica: Number(r.peso_metrica) || 0,
+          // Lo que un punto aporta al total: peso / 100, o 1 en Shanghai GRAS.
+          factor: r.factor != null ? Number(r.factor) : (Number(r.peso_metrica) || 0) / 100,
+        };
       }
     });
     const metricas = Object.values(metricaMap).sort((a, b) => b.peso_metrica - a.peso_metrica);
@@ -35,7 +40,12 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     const uniMap = {};
     data.forEach(r => {
       if (!uniMap[r.id_universidad]) {
-        uniMap[r.id_universidad] = { id_universidad: r.id_universidad, nombre: r.nombre_universidad, valores: {} };
+        uniMap[r.id_universidad] = {
+          id_universidad: r.id_universidad, nombre: r.nombre_universidad, valores: {},
+          // El que registra la plataforma (publicado o calculado con el método del
+          // ranking); null donde la fuente no lo publica.
+          registrado: r.puntaje_total != null ? Number(r.puntaje_total) : null,
+        };
       }
       uniMap[r.id_universidad].valores[r.id_metrica] = Number(r.valor_metrica) || 0;
     });
@@ -51,7 +61,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
   const filaTieneOverride = (idUni) => Object.keys(overrides[idUni] || {}).length > 0;
 
   const calcScore = (fila) =>
-    metricas.reduce((acc, m) => acc + (getValor(fila.id_universidad, m.id_metrica, fila.valores[m.id_metrica]) * m.peso_metrica) / 100, 0);
+    metricas.reduce((acc, m) => acc + getValor(fila.id_universidad, m.id_metrica, fila.valores[m.id_metrica]) * m.factor, 0);
 
   const filasVisibles = useMemo(() => {
     const base = soloModificadas ? filas.filter(f => filaTieneOverride(f.id_universidad)) : filas;
@@ -71,11 +81,13 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     // Descuenta la planilla del plan, como el CSV del Glosario: si no, el CSV
     // entregaba sin tope lo que el límite de descargas acota.
     if (!(await descarga.permitir("xlsx"))) return;
-    const headers = ["Institución", ...metricas.map(m => `${m.nombre_metrica} (${m.peso_metrica}%)`), "Score Total"];
+    const headers = ["Institución", ...metricas.map(m => `${m.nombre_metrica} (${m.peso_metrica}%)`),
+      "Puntaje total", "Puntaje total registrado"];
     const rows = filas.map(f => [
       f.nombre,
       ...metricas.map(m => getValor(f.id_universidad, m.id_metrica, f.valores[m.id_metrica])),
       calcScore(f).toFixed(2),
+      f.registrado ?? "",
     ]);
     const csv = [
       `Ranking:,${rankingNombre}`, `Año:,${anio}`, `Instituciones:,${filas.length}`, "",
@@ -97,7 +109,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     if (!(await descarga.permitir("pdf"))) return;
     if (!filas.length) return;
     const scoreBase = (fila) =>
-      metricas.reduce((acc, m) => acc + ((fila.valores[m.id_metrica] ?? 0) * m.peso_metrica) / 100, 0);
+      metricas.reduce((acc, m) => acc + (fila.valores[m.id_metrica] ?? 0) * m.factor, 0);
     const posiciones = (puntaje) => new Map(
       [...filas].sort((a, b) => puntaje(b) - puntaje(a)).map((f, i) => [f.id_universidad, i + 1]));
     const posBase = posiciones(scoreBase);
@@ -186,7 +198,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
         <div className="pt-4 pr-6 pb-7 overflow-x-auto">
           <div
             className="grid gap-[5px] pb-2"
-            style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(90px, 1fr)) 128px` }}
+            style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(80px, 1fr)) 128px` }}
           >
             <div />
             {metricas.map(m => (
@@ -195,7 +207,10 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                 <div className="font-mono text-[9px] text-[#6f6f6f] mt-0.5">{porcentaje(m.peso_metrica)}</div>
               </div>
             ))}
-            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end">Score</div>
+            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end"
+                 title="La suma de cada métrica por su aporte, que se mueve al editar. Debajo, el puntaje total que registra el ranking (publicado o calculado con su método).">
+              Puntaje total
+            </div>
           </div>
 
           {filasVisibles.map(fila => {
@@ -205,7 +220,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
               <div
                 key={fila.id_universidad}
                 className="grid gap-[5px] items-stretch mb-[5px]"
-                style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(90px, 1fr)) 128px`, borderLeft: `2px solid ${modificadaFila ? "oklch(0.72 0.13 250)" : "transparent"}` }}
+                style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(80px, 1fr)) 128px`, borderLeft: `2px solid ${modificadaFila ? "oklch(0.72 0.13 250)" : "transparent"}` }}
               >
                 <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate"
                      title={fila.nombre}>
@@ -253,8 +268,16 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                   );
                 })}
                 <div className="flex items-center gap-2 pr-2">
-                  <span className="font-mono font-semibold text-[13px] tabular-nums w-10 text-right" style={{ color: modificadaFila ? "#fff" : "#dcdcdc" }}>
-                    {decimal(score)}
+                  <span className="flex flex-col items-end w-12 shrink-0">
+                    <span className="font-mono font-semibold text-[13px] tabular-nums text-right" style={{ color: modificadaFila ? "#fff" : "#dcdcdc" }}>
+                      {decimal(score)}
+                    </span>
+                    <span className="font-mono text-[8.5px] text-[#7a7a7a] tabular-nums" data-total-registrado
+                          title={fila.registrado != null
+                            ? "Puntaje total registrado en el ranking"
+                            : "El ranking no publica el puntaje total de esta institución"}>
+                      {fila.registrado != null ? `reg. ${decimal(fila.registrado)}` : "reg. —"}
+                    </span>
                   </span>
                   <div className="flex-1 h-1.5 bg-white/[.07]">
                     <div className="h-1.5" style={{ width: `${(score / maxScore) * 100}%`, background: modificadaFila ? "oklch(0.72 0.13 250)" : "rgba(255,255,255,.35)" }} />

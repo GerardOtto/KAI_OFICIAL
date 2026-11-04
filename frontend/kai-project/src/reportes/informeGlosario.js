@@ -23,12 +23,16 @@ function textoPeso(c) {
 }
 
 async function construir(datos) {
-  const { rankings, dimensiones, institucion, anio, ediciones, numerico, totalMetricas, usuario } = datos;
+  const { rankings, dimensiones, institucion, anio, ediciones, numerico, totalMetricas, usuario, total } = datos;
   const visibles = dimensiones.filter((d) => rankings.some((r) => d.celdas[r.id]));
+  // El puntaje total de la institución en cada ranking: primera fila de la tabla
+  // de valores. No va en la matriz de pesos, porque no reparte peso.
+  const hayTotal = Boolean(total)
+    && rankings.some((r) => !r.restringido && total.celdas[r.id]?.valor != null);
   // Sin ningún valor para esa institución, la segunda matriz saldría en blanco:
   // se omite. Sin año, cada ranking aporta su edición más reciente.
-  const conValores = Boolean(institucion)
-    && visibles.some((d) => rankings.some((r) => !r.restringido && d.celdas[r.id]?.valor != null));
+  const conValores = Boolean(institucion) && (hayTotal
+    || visibles.some((d) => rankings.some((r) => !r.restringido && d.celdas[r.id]?.valor != null)));
   const deCuando = anio ? `en ${anio}` : "en la edición más reciente de cada ranking";
 
   const { doc, l, fecha } = await crearDocumento({ titulo: "Qué mide cada ranking, y cuánto pesa", asunto: "Glosario de métricas" });
@@ -86,7 +90,7 @@ async function construir(datos) {
   // 03 · Valores de la institución -----------------------------------------
   if (conValores) {
     seccion(l, 3, `Valores de ${institucion} ${deCuando}`,
-      `El ${numerico ? "valor medido" : "puntaje"} de la métrica de mayor peso de cada dimensión. Los rankings de pago no incluidos en el plan quedan en blanco.`);
+      `El puntaje total de cada ranking y, por dimensión, el ${numerico ? "valor medido" : "puntaje"} de su métrica de mayor peso. Los rankings de pago no incluidos en el plan quedan en blanco.`);
     tabla(l, {
       puntos,
       // Cada columna dice de qué edición son sus cifras: no coinciden entre rankings.
@@ -95,7 +99,20 @@ async function construir(datos) {
         return r && ediciones?.[r.id] ? { ...c, titulo: `${c.titulo} · ${ediciones[r.id]}` } : c;
       }),
       // Solo las dimensiones con algún valor: las demás serían filas en blanco.
-      filas: visibles
+      filas: [
+        ...(hayTotal ? [[
+          { texto: "Puntaje total", negrita: true },
+          ...rankings.map((r) => {
+            const c = total.celdas[r.id];
+            if (r.restringido) return c ? "plan de pago" : "";
+            // «no publicado» solo si la institución figura en ese ranking: si no
+            // tiene ningún otro valor ahí, simplemente no está clasificada.
+            const figura = visibles.some((d) => d.celdas[r.id]?.valor != null);
+            if (!c || c.valor == null) return c && figura ? "no publicado" : "";
+            return { texto: `${cifra(c.valor, 1)}${c.multi ? "*" : ""}`, negrita: true };
+          }),
+        ]] : []),
+        ...visibles
         .filter((d) => rankings.some((r) => !r.restringido && d.celdas[r.id]?.valor != null))
         .map((d) => [
         { texto: d.nombre, negrita: true },
@@ -105,6 +122,7 @@ async function construir(datos) {
           return { texto: `${cifra(c.valor)}${c.unidad === "%" ? " %" : ""}` };
         }),
       ]),
+      ],
     });
   }
 
@@ -114,6 +132,9 @@ async function construir(datos) {
   }
   if (visibles.some((d) => rankings.some((r) => d.celdas[r.id]?.soloReferencia))) {
     notas.push("«ref»: el ranking mide la dimensión dentro de otro pilar, sin peso propio en el total.");
+  }
+  if (hayTotal) {
+    notas.push("Puntaje total: el que publica cada ranking o, donde solo publica una banda o un rango de posiciones, el calculado con su propio método; «no publicado»: QS no lo informa para esa institución. En los multidisciplinarios es el promedio entre disciplinas.");
   }
   notas.push("El listado completo de métricas, con su peso y ranking, está en la exportación CSV del módulo.");
   nota(l, notas.join(" "));

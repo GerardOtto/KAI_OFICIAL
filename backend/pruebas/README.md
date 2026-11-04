@@ -34,11 +34,13 @@ académicos cargados. Para una base vacía:
 ```bash
 psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
 psql "$DATABASE_URL" -f migraciones/019_rol_del_asistente.sql   # los roles no viajan en el volcado
+psql "$DATABASE_URL" -f migraciones/020_puntaje_total.sql        # tampoco está en el volcado
 ```
 
 | Batería | Qué verifica |
 |---|---|
 | `herramientas` | Las once herramientas de consulta y la contención de `consulta_sql` |
+| `puntaje-total` | El puntaje total de la 020: existe en todos los rankings y nunca pondera; cubre a toda universidad clasificada en THE, Scimago, GRAS, ARWU y el Ranking KAI, y en QS solo donde QS lo publica (sin ceros); los calculados siguen su método y los publicados coinciden con las fuentes de `KAI/` y la API de ShanghaiRanking; QS Global 2026 sin columnas corridas; los pesos de THE reproducen su total; y lo leen Tendencias, Simulación, el Glosario y el asistente. Sin la 020, se omite |
 | `entrada` | Presupuesto del bloque fijo, tope de filas, recorte del historial y las salidas que evitan vueltas |
 | `acceso` | Institución obligatoria, módulos cerrados con sesión, rankings reservados (y sus cifras fuera del glosario del plan gratuito), descargas contadas y asistente por dominio |
 | `limites` | Topes de inicio de sesión (por cuenta y por conexión) y de registro, que el tope no revele qué cuentas existen, que `X-Forwarded-For` no se pueda falsificar, contraseñas de más de 72 bytes y el largo máximo de un mensaje al asistente |

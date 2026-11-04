@@ -36,7 +36,9 @@ function porcentaje(v) {
 function Globo({ rect, dimension, ranking, datos }) {
   // Encima de la celda si hay sitio; si no, debajo. El alto estimado basta para
   // decidir, y evita tener que medir y repintar.
-  const altoEstimado = 90 + Math.min(datos.metricas.length, MAX_LINEAS) * 17;
+  const altoEstimado = datos.total
+    ? 70 + Math.ceil((datos.descripcion?.length || 0) / 52) * 15
+    : 90 + Math.min(datos.metricas.length, MAX_LINEAS) * 17;
   const arriba = rect.top > altoEstimado + MARGEN;
 
   const izquierda = Math.min(
@@ -64,6 +66,26 @@ function Globo({ rect, dimension, ranking, datos }) {
         </p>
       </div>
 
+      {datos.total ? (
+        // El puntaje total no reparte peso: el globo dice el número y de dónde
+        // sale —publicado o calculado con el método del ranking—, o por qué falta.
+        <div className="px-3 py-2">
+          <p className="text-[11px] text-[#c4c4c4] leading-relaxed">
+            {datos.valor != null ? (
+              <>
+                {datos.multi ? "Promedio entre disciplinas: " : "Puntaje total: "}
+                <span className="font-semibold text-white">{numero(datos.valor, 1)}</span>
+                {datos.multi && (
+                  <span className="text-outlineSoft"> · {datos.disciplinasConDato} de {datos.nDisciplinas} disciplinas con dato</span>
+                )}
+              </>
+            ) : "Sin puntaje total para esta institución en esta edición."}
+          </p>
+          {datos.descripcion && (
+            <p className="text-[10.5px] text-[#9a9a9a] leading-relaxed mt-1.5">{datos.descripcion}</p>
+          )}
+        </div>
+      ) : (<>
       <div className="px-3 py-2 border-b border-outline/30">
         {datos.soloReferencia ? (
           <p className="text-[11px] text-[#c4c4c4] leading-relaxed">
@@ -118,6 +140,7 @@ function Globo({ rect, dimension, ranking, datos }) {
           </p>
         )}
       </div>
+      </>)}
     </div>,
     document.body
   );
@@ -142,6 +165,8 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
     ? { backgroundColor: "rgba(255,255,255,.03)", borderColor: "rgba(255,255,255,.07)" }
     : !tieneMetrica
     ? { backgroundColor: "rgba(255,255,255,.02)", borderColor: "rgba(255,255,255,.05)" }
+    : datos.total
+      ? { backgroundColor: "rgba(255,255,255,.07)", borderColor: "rgba(255,255,255,.16)" }
     : datos.soloReferencia
       ? { backgroundColor: "rgba(255,255,255,.045)", borderColor: "rgba(255,255,255,.09)" }
       : { backgroundColor: `oklch(0.72 0.13 250 / ${alphaForPeso(datos.peso)})`, borderColor: "rgba(255,255,255,.08)" };
@@ -169,7 +194,12 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
                   title={`${ranking} está incluido en los planes de pago.`}>
               plan de pago
             </span>
-          ) : !tieneMetrica ? "no mide" : datos.soloReferencia ? (
+          ) : !tieneMetrica ? "no mide" : datos.total ? (
+            <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"
+                  title="Puntaje total del ranking: no reparte peso">
+              total
+            </span>
+          ) : datos.soloReferencia ? (
             // 0 % se leería como «el ranking no la valora», cuando lo que ocurre
             // es que su peso está contado dentro de otro pilar.
             <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"

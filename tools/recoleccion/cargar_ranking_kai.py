@@ -277,10 +277,13 @@ def _url(args) -> str:
 
 def resolver_ids(conexion, filas: list[dict]) -> tuple[dict, dict]:
     from sqlalchemy import text
+    # El puntaje total (migración 020) no es una de las diez métricas: se recalcula
+    # aparte, después de cargarlas.
     metricas = {r[1]: r[0] for r in conexion.execute(text("""
         SELECT m.id_metrica, m.nombre_metrica FROM metrica m
         JOIN ranking r ON r.id_ranking = m.id_ranking
-        WHERE r.nombre_ranking = :n"""), {"n": NOMBRE_RANKING})}
+        WHERE r.nombre_ranking = :n AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'"""),
+        {"n": NOMBRE_RANKING})}
     if not metricas:
         raise SystemExit("La base no tiene el Ranking KAI. Aplica antes la migración 009.")
     faltan = sorted({m.nombre for m in METRICAS} - set(metricas))
@@ -294,6 +297,25 @@ def resolver_ids(conexion, filas: list[dict]) -> tuple[dict, dict]:
     if sin_id:
         raise SystemExit(f"Universidades que la base no tiene: {sin_id}")
     return metricas, universidades
+
+
+# El puntaje total del Ranking KAI es la suma de sus métricas por su peso, y vive
+# como una métrica más (tipo «Puntaje», migración 020) para que Tendencias y el
+# Glosario lo muestren. Se rehace entero en cada carga; sin la 020 no hace nada.
+SQL_PUNTAJE_TOTAL = f"""
+DELETE FROM metrica_universidad WHERE id_metrica IN (
+  SELECT m.id_metrica FROM metrica m JOIN ranking r USING (id_ranking)
+  WHERE r.nombre_ranking = '{NOMBRE_RANKING}' AND m.tipo_metrica = 'Puntaje');
+INSERT INTO metrica_universidad (id_metrica, id_universidad, valor_metrica, anio_metrica)
+SELECT t.id_metrica, mu.id_universidad, round(sum(mu.valor_metrica * m.peso_metrica / 100.0), 2),
+       mu.anio_metrica
+FROM metrica_universidad mu
+JOIN metrica m ON m.id_metrica = mu.id_metrica AND m.pondera
+JOIN ranking r ON r.id_ranking = m.id_ranking AND r.nombre_ranking = '{NOMBRE_RANKING}'
+JOIN metrica t ON t.id_ranking = r.id_ranking AND t.tipo_metrica = 'Puntaje'
+WHERE mu.valor_metrica IS NOT NULL
+GROUP BY t.id_metrica, mu.id_universidad, mu.anio_metrica;
+"""
 
 
 def escribir_en_base(url: str, filas: list[dict]) -> None:
@@ -317,6 +339,7 @@ def escribir_en_base(url: str, filas: list[dict]) -> None:
                           (id_metrica, id_universidad, anio_edicion, valor, unidad, calidad,
                            formula, anios_origen, fuentes)
                           VALUES (:m, :u, :a, :v, :un, 'directa', :fo, :ao, :fu)"""), reales)
+        c.execute(text(SQL_PUNTAJE_TOTAL))
     print(f"  cargadas {len(filas):,} filas en cada tabla".replace(",", "."))
 
 
@@ -357,10 +380,12 @@ def escribir_sql(ruta: Path, filas: list[dict]) -> None:
         "DO $$ BEGIN",
         "  IF (SELECT count(*) FROM kai_carga) <> (SELECT count(*) FROM metrica_universidad mu",
         "      JOIN metrica m USING (id_metrica) JOIN ranking r USING (id_ranking)",
-        f"      WHERE r.nombre_ranking = {q(NOMBRE_RANKING)}) THEN",
+        f"      WHERE r.nombre_ranking = {q(NOMBRE_RANKING)}",
+        "        AND m.tipo_metrica IS DISTINCT FROM 'Puntaje') THEN",
         "    RAISE EXCEPTION 'No todas las filas del Ranking KAI encontraron su universidad o métrica';",
         "  END IF;",
         "END $$;",
+        SQL_PUNTAJE_TOTAL.strip(),
         "COMMIT;",
     ]
     ruta.write_text("\n".join(lineas) + "\n", encoding="utf-8")

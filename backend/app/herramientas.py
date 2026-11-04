@@ -700,7 +700,7 @@ def consultar_tendencia(ranking_id: int, metrica_id: int, universidad_ids: str =
 
 
 def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") -> str:
-    """Score total (suma ponderada de las métricas) por universidad para un ranking y año, de mayor a menor. En los multidisciplinarios (Shanghai GRAS, QS por Disciplina) fija `disciplina`: sin ella se suman todas y el resultado no significa nada.
+    """Score total (suma ponderada) y puntaje_total oficial por universidad para un ranking y año, de mayor a menor. En los multidisciplinarios (Shanghai GRAS, QS por Disciplina) fija `disciplina`: sin ella se suman todas y no significa nada.
 
     Args:
         ranking_id: ID del ranking.
@@ -712,18 +712,26 @@ def consultar_ranking_resumen(ranking_id: int, anio: int, disciplina: str = "") 
     return _consulta(
         f"""
         SELECT u.nombre_universidad,
-               round(COALESCE(SUM(mu.valor_metrica * (m.peso_metrica / 100.0)), 0), 2) AS score_total,
-               count(*) AS metricas_usadas
+               -- Solo lo que compone el total: los indicadores de referencia y el
+               -- propio puntaje total no suman. En Shanghai GRAS cada puntaje ya
+               -- trae su peso y el total es la suma.
+               round(COALESCE(SUM(mu.valor_metrica * CASE
+                   WHEN COALESCE((to_jsonb(r) ->> 'puntajes_ponderados')::boolean, false) THEN 1.0
+                   ELSE m.peso_metrica / 100.0 END) FILTER (WHERE m.pondera), 0), 2) AS score_total,
+               round(max(mu.valor_metrica) FILTER (WHERE m.tipo_metrica = 'Puntaje'), 2) AS puntaje_total,
+               count(*) FILTER (WHERE m.pondera) AS metricas_usadas
         FROM metrica m
+        JOIN ranking r ON r.id_ranking = m.id_ranking
         JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
         JOIN universidad u ON u.id_universidad = mu.id_universidad
         WHERE m.id_ranking = :rid AND mu.anio_metrica = :anio
           AND {_contiene('m.disciplina', 'dis')}
         GROUP BY u.nombre_universidad
+        HAVING count(*) FILTER (WHERE m.pondera) > 0
         ORDER BY score_total DESC
         """,
         {"rid": ranking_id, "anio": anio, "dis": disciplina or ""},
-        ["universidad", "score_total", "metricas_usadas"],
+        ["universidad", "score_total", "puntaje_total", "metricas_usadas"],
         "No hay datos para ese ranking en ese año.",
     )
 

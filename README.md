@@ -94,10 +94,14 @@ El esquema y los datos académicos se cargan desde [`backend/pruebas/datos_de_pr
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 ```
 
-El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema. Los roles, en cambio, son del servidor y no viajan en él: después de cargarlo, aplica la migración del rol del asistente, sin la cual su consulta SQL libre se niega.
+El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica dos más:
+
+- la del rol del asistente: los roles son del servidor y no viajan en el volcado, y sin ella la consulta SQL libre del asistente se niega;
+- la del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran.
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
 ``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
 
 ## Docker

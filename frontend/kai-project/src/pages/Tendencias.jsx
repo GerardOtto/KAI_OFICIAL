@@ -22,6 +22,7 @@ import VistaEvolucion from "../components/tendencias/VistaEvolucion";
 import { colorDeIndice, fmt } from "../components/tendencias/paleta";
 import { generarInformeTendencias } from "../reportes/informeTendencias";
 import { institucionPropia } from "../reportes/documento";
+import { esPuntajeTotal, pesoVisible, totalPrimeroPorPeso } from "../utils/puntajeTotal";
 
 // Dos vistas hermanas sobre los mismos selectores: cambia el eje X.
 // `max: null` = sin tope de series.
@@ -33,8 +34,9 @@ const VISTAS = [
 const MAX_CHIPS_METRICA = 6;
 const SERIES_INICIALES = 6;
 
-const porPeso = (lista) =>
-  [...lista].sort((a, b) => Number(b.peso_metrica || 0) - Number(a.peso_metrica || 0));
+// El puntaje total va primero —es lo que se mira antes que cualquier componente—
+// y, sin elección, es la métrica que se abre; después, de mayor a menor peso.
+const porPeso = totalPrimeroPorPeso;
 
 /** La métrica que ocupa, entre las disponibles ahora, el lugar de la elegida.
  *
@@ -55,7 +57,8 @@ function equivalente(elegida, disponibles) {
     || null;
 }
 
-/** La métrica que se muestra: la equivalente a la elegida o, sin elección, la de más peso. */
+/** La métrica que se muestra: la equivalente a la elegida o, sin elección, el
+ *  puntaje total (o la de más peso, si el ranking no lo tiene en este modo). */
 const resolverMetrica = (elegida, disponibles) =>
   equivalente(elegida, disponibles) || porPeso(disponibles)[0] || null;
 
@@ -233,7 +236,7 @@ export default function Tendencias() {
         Ranking: rankingNombre,
         Año: anioActivo,
         Métrica: f.nombre_metrica,
-        Peso: f.peso_metrica,
+        Peso: esPuntajeTotal(metricasDisponibles.find(m => m.id_metrica === f.id_metrica)) ? "total" : f.peso_metrica,
         Universidad: f.nombre_universidad,
         Valor: Number(f.valor),
         ...(numerico ? { Unidad: f.unidad || "", "Tipo de valor": "medido" } : { "Tipo de valor": "puntaje" }),
@@ -249,7 +252,8 @@ export default function Tendencias() {
       Valor: Number(f.valor),
       ...(numerico ? { Unidad: f.unidad || "", "Tipo de valor": "medido" } : { "Tipo de valor": "puntaje" }),
     }));
-  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, nombreUni, numerico]);
+  }, [esAnual, filasAnual, filasEvol, rankingNombre, anioActivo, metricaActual, nombreUni, numerico,
+      metricasDisponibles]);
 
   const handleXLSX = async () => {
     if (!filasExport.length) return;
@@ -279,13 +283,13 @@ export default function Tendencias() {
         metricas: metricasSel
           .map(id => metricasDisponibles.find(m => m.id_metrica === id))
           .filter(Boolean)
-          .map(m => ({ id: m.id_metrica, nombre: m.nombre_metrica, peso: m.peso_metrica })),
+          .map(m => ({ id: m.id_metrica, nombre: m.nombre_metrica, peso: pesoVisible(m) })),
         instituciones: graficadas.map(id => ({ id, nombre: nombreUni(id) })),
       };
     }
     return {
       ...comun, vista: "evolucion", unidad: unidadActual,
-      metrica: { nombre: metricaActual?.nombre_metrica || "", peso: metricaActual?.peso_metrica },
+      metrica: { nombre: metricaActual?.nombre_metrica || "", peso: pesoVisible(metricaActual) },
       anosProyeccion: proyectando ? anosProyeccion : null,
       series: graficadas.map(id => {
         // Un punto por año: si la fuente repite un año, vale el último.
@@ -361,10 +365,13 @@ export default function Tendencias() {
               <>
                 <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-1.5">
                   {metricaActual?.nombre_metrica || "—"}
-                  {metricaActual?.peso_metrica != null ? ` · Peso ${metricaActual.peso_metrica}` : ""}
+                  {pesoVisible(metricaActual) != null ? ` · Peso ${metricaActual.peso_metrica}` : ""}
                 </h2>
-                <p className="font-body text-[11.5px] text-[#7f7f7f]">
-                  {numerico ? `Cifra medida${unidadActual ? ` · ${unidadActual}` : ""}` : "Serie histórica"}
+                <p className="font-body text-[11.5px] text-[#7f7f7f]"
+                   title={esPuntajeTotal(metricaActual) ? metricaActual.descripcion_metrica || undefined : undefined}>
+                  {numerico ? `Cifra medida${unidadActual ? ` · ${unidadActual}` : ""}`
+                    : esPuntajeTotal(metricaActual) ? "Serie histórica del puntaje total del ranking"
+                    : "Serie histórica"}
                   {proyectando ? ` · proyección lineal a ${anosProyeccion} años` : ""}
                 </p>
               </>
@@ -493,9 +500,9 @@ export default function Tendencias() {
                     metricasDisponibles.find(m => m.id_metrica === Number(e.target.value)) || null)}
                   className={selectClase}
                 >
-                  {metricasDisponibles.map(m => (
+                  {porPeso(metricasDisponibles).map(m => (
                     <option key={m.id_metrica} value={m.id_metrica}>
-                      {m.nombre_metrica}{m.peso_metrica != null ? ` · ${m.peso_metrica}` : ""}
+                      {m.nombre_metrica}{pesoVisible(m) != null ? ` · ${m.peso_metrica}` : ""}
                     </option>
                   ))}
                 </select>
@@ -545,7 +552,7 @@ export default function Tendencias() {
           <div className="mt-2 px-3.5 py-2.5 bg-panel border border-hairline flex items-center gap-2.5 flex-wrap">
             <span className={`${etiqueta} flex-none`}>Métricas en el eje</span>
             <div className="flex gap-[5px] flex-wrap">
-              {metricasDisponibles.map(m => {
+              {porPeso(metricasDisponibles).map(m => {
                 const on = metricasSel.includes(m.id_metrica);
                 const lleno = !on && metricasSel.length >= MAX_CHIPS_METRICA;
                 return (
@@ -560,7 +567,9 @@ export default function Tendencias() {
                     <span className={`font-body font-semibold text-[11px] ${on ? "text-white" : "text-[#7f7f7f]"}`}>
                       {m.nombre_metrica}
                     </span>
-                    <span className="font-mono text-[9px] text-[#6f6f6f]">{m.peso_metrica ?? "—"}</span>
+                    <span className="font-mono text-[9px] text-[#6f6f6f]">
+                      {esPuntajeTotal(m) ? "total" : m.peso_metrica ?? "—"}
+                    </span>
                   </button>
                 );
               })}

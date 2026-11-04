@@ -845,7 +845,7 @@ def get_metricas(ranking_id: int,
     db = SessionLocal()
     try:
         query = text("""
-            SELECT id_metrica, nombre_metrica, disciplina
+            SELECT id_metrica, nombre_metrica, disciplina, tipo_metrica
             FROM metrica
             WHERE id_ranking = :ranking_id
         """)
@@ -916,6 +916,11 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
             uni_filter = "AND u.id_universidad = ANY(:ids)"
             params["ids"] = ids
 
+        # `factor` es lo que cada punto de la métrica aporta al total: su peso / 100,
+        # o 1 en los rankings cuyos puntajes ya vienen ponderados (Shanghai GRAS).
+        # `puntaje_total` es el total que la plataforma registra para la
+        # universidad en esa edición —el publicado por el ranking o calculado con su
+        # método, ver la migración 020—, para mostrarlo junto al que se simula.
         query = text(f"""
             SELECT
                 u.id_universidad,
@@ -927,13 +932,25 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
                 m.peso_metrica,
                 m.pondera,
                 to_jsonb(m) ->> 'sentido' AS sentido,
+                {_FACTOR_TOTAL} AS factor,
                 mu.valor_metrica,
                 mu.anio_metrica,
                 mu.unidad,
-                mu.calidad
+                mu.calidad,
+                pt.valor_metrica AS puntaje_total
             FROM metrica m
+            JOIN ranking r ON r.id_ranking = m.id_ranking
             JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             JOIN universidad u ON u.id_universidad = mu.id_universidad
+            LEFT JOIN LATERAL (
+                SELECT t.valor_metrica
+                FROM metrica mt
+                JOIN metrica_universidad t ON t.id_metrica = mt.id_metrica
+                WHERE mt.id_ranking = m.id_ranking AND mt.tipo_metrica = 'Puntaje'
+                  AND mt.disciplina IS NOT DISTINCT FROM m.disciplina
+                  AND t.id_universidad = mu.id_universidad AND t.anio_metrica = mu.anio_metrica
+                LIMIT 1
+            ) pt ON true
             WHERE m.id_ranking = :ranking_id
               AND mu.anio_metrica = :anio
               -- En puntajes, solo lo que compone el total. En valores medidos
@@ -982,7 +999,7 @@ def get_ranking_resumen(ranking_id: int, anio: int, disciplina: str | None = Non
                 u.id_universidad,
                 u.nombre_universidad,
                 u.pais_universidad,
-                COALESCE(SUM(mu.valor_metrica * (m.peso_metrica / 100.0)), 0) AS score_total
+                COALESCE(SUM(mu.valor_metrica * {_FACTOR_TOTAL}), 0) AS score_total
             FROM ranking r
             JOIN metrica m ON m.id_ranking = r.id_ranking
             JOIN metrica_universidad mu ON mu.id_metrica = m.id_metrica
@@ -1313,6 +1330,15 @@ def _modo(modo: str) -> str:
     return modo
 
 
+# Lo que un punto de la métrica `m` del ranking `r` aporta al puntaje total. En
+# Shanghai GRAS el puntaje de cada indicador ya incluye su peso —el de Q1 va de 0 a
+# 100, el de CNCI de 0 a 50— y el total es la suma; multiplicarlo otra vez por el
+# peso, como se hacía, daba un total que no era el de GRAS. Se lee con to_jsonb
+# para no depender de que la migración 020 ya esté aplicada.
+_FACTOR_TOTAL = ("CASE WHEN COALESCE((to_jsonb(r) ->> 'puntajes_ponderados')::boolean, false) "
+                 "THEN 1.0 ELSE m.peso_metrica / 100.0 END")
+
+
 def _fuente_valores(db, modo: str) -> str:
     """Tabla derivada con la forma de metrica_universidad para el modo pedido.
 
@@ -1377,6 +1403,9 @@ def get_valores_reales(ranking_id: int, anio: int | None = None,
                    NOT EXISTS (SELECT 1 FROM metrica h WHERE h.id_metrica_padre = m.id_metrica)
                        AS es_componente
             FROM metrica m WHERE m.id_ranking = :r
+              -- El puntaje total no es una componente ni tiene cifra medida: contarlo
+              -- sumaría una componente fantasma a la cobertura.
+              AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'
             ORDER BY m.peso_metrica DESC NULLS LAST, m.nombre_metrica"""), {"r": ranking_id})]
 
         if rk.crudos:
@@ -1392,7 +1421,8 @@ def get_valores_reales(ranking_id: int, anio: int | None = None,
                 JOIN metrica m ON m.id_metrica = mu.id_metrica
                 JOIN ranking r ON r.id_ranking = m.id_ranking
                 JOIN universidad u ON u.id_universidad = mu.id_universidad
-                WHERE m.id_ranking = :r AND mu.anio_metrica = :a AND mu.valor_metrica IS NOT NULL"""
+                WHERE m.id_ranking = :r AND mu.anio_metrica = :a AND mu.valor_metrica IS NOT NULL
+                  AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'"""
         elif _hay_tabla(db, "valor_real_universidad"):
             fuente_anios = """SELECT DISTINCT v.anio_edicion AS anio FROM valor_real_universidad v
                               JOIN metrica m ON m.id_metrica = v.id_metrica WHERE m.id_ranking = :r"""
@@ -1465,7 +1495,7 @@ def get_metricas_con_datos(ranking_id: int, modo: str = "puntajes",
         # modo la métrica elegida debe seguir siendo la misma, no otra cualquiera.
         result = db.execute(text(f"""
             SELECT m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
-                   m.id_metrica_padre, m.pondera,
+                   m.id_metrica_padre, m.pondera, m.tipo_metrica, m.descripcion_metrica,
                    to_jsonb(m) ->> 'sentido' AS sentido,
                    MIN(mu.anio_metrica) AS anio_min, MAX(mu.anio_metrica) AS anio_max,
                    MAX(mu.unidad) AS unidad
@@ -1473,7 +1503,7 @@ def get_metricas_con_datos(ranking_id: int, modo: str = "puntajes",
             JOIN {_fuente_valores(db, modo)} mu ON mu.id_metrica = m.id_metrica
             WHERE m.id_ranking = :ranking_id
             GROUP BY m.id_metrica, m.nombre_metrica, m.disciplina, m.peso_metrica,
-                     m.id_metrica_padre, m.pondera
+                     m.id_metrica_padre, m.pondera, m.tipo_metrica, m.descripcion_metrica
             ORDER BY m.nombre_metrica, m.disciplina
         """), {"ranking_id": ranking_id})
         return [dict(row._mapping) for row in result]

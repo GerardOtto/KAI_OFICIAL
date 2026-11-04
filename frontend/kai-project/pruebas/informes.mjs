@@ -206,13 +206,25 @@ const glosario = await ev(`
   const sin = window.__kai.leer((await construirInformeGlosario({ ...base, dimensiones })).doc);
   const con = window.__kai.leer((await construirInformeGlosario({ ...base, dimensiones: conValores,
     institucion: 'Universidad Propia', anio: 2024 })).doc);
-  return { sin, con };
+  // El puntaje total va en su propia fila de la tabla de valores, nunca en la
+  // matriz de pesos: no reparte peso.
+  const total = { celdas: { 1: { total: true, valor: 61.4 }, 2: { total: true, multi: true, valor: 210.3 },
+                            3: { total: true, valor: 40 } } };
+  const conTotal = window.__kai.leer((await construirInformeGlosario({ ...base, dimensiones: conValores,
+    institucion: 'Universidad Propia', anio: 2024, total })).doc);
+  return { sin, con, conTotal };
 `);
 comprobar("se compone con la matriz de pesos", glosario.sin.cabecera === "%PDF-" && /Matriz de pesos/.test(glosario.sin.texto));
 comprobar("abarca varios rankings: no dice «Ranking usado»", !/RANKING USADO/.test(glosario.sin.texto));
 comprobar("no vuelca las métricas una por una: cabe en dos páginas", glosario.sin.paginas <= 2, glosario.sin.paginas);
 comprobar("sin valores de la institución, no agrega una matriz en blanco", !/Valores de/.test(glosario.sin.texto));
 comprobar("con institución y año, agrega sus valores", /Valores de Universidad Propia en 2024/.test(glosario.con.texto));
+comprobar("sin total, la tabla de valores no lo inventa", !/Puntaje total/.test(glosario.con.texto));
+const fila = glosario.conTotal.texto.match(/Puntaje total[^\n]*/)?.[0] || "";
+comprobar("con total, la tabla de valores abre con su fila", /Puntaje total/.test(glosario.conTotal.texto)
+  && /61,4/.test(glosario.conTotal.texto) && /210,3/.test(glosario.conTotal.texto), fila);
+comprobar("y el ranking reservado no revela su total", !/40,0|\b40\b/.test(fila), fila);
+comprobar("la nota explica de dónde sale el total", /publica cada ranking/.test(glosario.conTotal.texto));
 // Sin año, cada ranking aporta su edición más reciente: el informe lo dice.
 const glosarioReciente = await ev(`
   const { construirInformeGlosario } = window.__kai.glosario;

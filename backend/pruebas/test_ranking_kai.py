@@ -51,7 +51,8 @@ try:
     metricas = db.execute(text("""
         SELECT id_metrica, nombre_metrica, peso_metrica, pondera, sentido, disciplina,
                id_metrica_padre
-        FROM metrica WHERE id_ranking = :r ORDER BY id_metrica"""), {"r": kai}).fetchall()
+        FROM metrica WHERE id_ranking = :r AND tipo_metrica IS DISTINCT FROM 'Puntaje'
+        ORDER BY id_metrica"""), {"r": kai}).fetchall()
     comprobar("tiene diez métricas", len(metricas) == 10, len(metricas))
     comprobar("los pesos suman exactamente 100",
               sum(float(m.peso_metrica) for m in metricas) == 100,
@@ -167,6 +168,27 @@ try:
           GROUP BY mu.id_universidad) t"""), {"r": kai, "a": ultimo}).scalar()
     comprobar("el total que calcula /ranking-resumen queda en la escala 0-100",
               total is not None and 0 <= float(total) <= 100, total)
+    # El puntaje total guardado (migración 020) es esa misma suma, por universidad
+    # y año: si el cargador olvidara rehacerlo, Tendencias y el Glosario mostrarían
+    # un total que ya no corresponde a las métricas.
+    hay_total = db.execute(text("""
+        SELECT count(*) FROM metrica WHERE id_ranking = :r AND tipo_metrica = 'Puntaje'"""),
+        {"r": kai}).scalar()
+    if hay_total:
+        distintos = db.execute(text("""
+            SELECT count(*) FROM (
+              SELECT round(sum(mu.valor_metrica * m.peso_metrica / 100.0), 2) AS suma,
+                     max(t.valor_metrica) AS guardado
+              FROM metrica_universidad mu
+              JOIN metrica m ON m.id_metrica = mu.id_metrica AND m.pondera
+              LEFT JOIN metrica tm ON tm.id_ranking = m.id_ranking AND tm.tipo_metrica = 'Puntaje'
+              LEFT JOIN metrica_universidad t ON t.id_metrica = tm.id_metrica
+                    AND t.id_universidad = mu.id_universidad AND t.anio_metrica = mu.anio_metrica
+              WHERE m.id_ranking = :r
+              GROUP BY mu.id_universidad, mu.anio_metrica) x
+            WHERE x.guardado IS DISTINCT FROM x.suma"""), {"r": kai}).scalar()
+        comprobar("el puntaje total guardado es la suma ponderada de cada universidad y año",
+                  distintos == 0, distintos)
 
     print("\n=== 6. Acceso por plan ===")
     restringidos = acceso.ids_restringidos(db)

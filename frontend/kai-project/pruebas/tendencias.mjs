@@ -99,6 +99,19 @@ comprobar("la pestaña activa es la primera",
 await cdp("Page.captureScreenshot", { format: "png" }).then(r =>
   fs.writeFileSync(`${SALIDA}/tendencias-evolucion.png`, Buffer.from(r.result.data, "base64")));
 
+console.log("\n=== 2b. El puntaje total abre la vista y encabeza el selector ===");
+// Sin elección, la evolución muestra el puntaje total del ranking: es lo primero
+// que se mira. Va primero en el selector, sin el «· 0» de un peso que no tiene.
+const total = await ev(`
+  const sel = [...document.querySelectorAll('main select')]
+    .find(s => [...s.options].some(o => /Puntaje total/.test(o.text)));
+  return { titulo: document.querySelector('main h2')?.innerText.trim(),
+           primera: sel?.options[0]?.text, elegida: sel?.selectedOptions[0]?.text };
+`);
+comprobar("el título es el puntaje total", /^Puntaje total$/.test(total.titulo || ""), total.titulo);
+comprobar("es la primera opción del selector de métricas", total.primera === "Puntaje total", total.primera);
+comprobar("y la elegida, sin peso al lado", total.elegida === "Puntaje total", total.elegida);
+
 console.log("\n=== 3. Cambiar a Comparación anual sigue funcionando ===");
 await ev(`
   const b = [...document.querySelectorAll('button')].find(x => /Comparación anual/.test(x.innerText));
@@ -109,6 +122,12 @@ const tras = await medir();
 comprobar("cambia a barras", tras.barras > 0, JSON.stringify(tras));
 comprobar("dejan de dibujarse las líneas", tras.lineas === 0, JSON.stringify(tras));
 comprobar("muestra el encabezado de comparación", tras.diceComparacion, JSON.stringify(tras));
+const chip = await ev(`
+  const chips = [...document.querySelectorAll('main button')].filter(b => /Puntaje total/.test(b.innerText));
+  return chips.map(b => b.innerText.replace(/\\n/g, ' ').trim());
+`);
+comprobar("el puntaje total es una de las métricas del eje, marcado «total»",
+  chip.length === 1 && /total$/.test(chip[0]), JSON.stringify(chip));
 
 console.log("\n=== 4. Y volver a Evolución también ===");
 await ev(`

@@ -16,10 +16,12 @@ services:
       - postgres_data:/var/lib/postgresql
       # Esquema completo, con todas las migraciones aplicadas, y los datos
       # académicos, sin ninguna cuenta. Solo se carga con el volumen vacío, en
-      # orden alfabético: primero los datos y después el rol del asistente, que
-      # por ser del servidor no viaja en el volcado.
+      # orden alfabético: primero los datos, después el rol del asistente, que
+      # por ser del servidor no viaja en el volcado, y al final el puntaje total
+      # de cada ranking (migración 020), que tampoco está en él.
       - ./backend/pruebas/datos_de_prueba.sql:/docker-entrypoint-initdb.d/01-datos.sql
       - ./backend/migraciones/019_rol_del_asistente.sql:/docker-entrypoint-initdb.d/02-rol-del-asistente.sql
+      - ./backend/migraciones/020_puntaje_total.sql:/docker-entrypoint-initdb.d/03-puntaje-total.sql
     ports:
       - "5432:5432"
     healthcheck:

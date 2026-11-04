@@ -25,6 +25,7 @@ usa SQLAlchemy Core, no el ORM, así que no hay Alembic.
 | `017_scimago_por_edicion.sql` | Scimago pasa a guardarse con el año de su **edición** y no con el que cierra su ventana de publicaciones: 2018…2023 se corre a 2020…2025 (la edición 2025 usa 2019-2023), en puntajes y cifras. Solo datos, sin cambios de esquema. Requiere la 011 | aplicada (14-10-2026) | aplicada (14-10-2026) |
 | `018_catalogo_de_universidades.sql` | Corrige el catálogo (ver `docs/hallazgos-recoleccion.md` §5): fusiona el duplicado de UNIACC —«Universidad de Artes, Ciencias y Comunicacion» se funde en «Universidad UNIACC», traspasando sus valores, dominios y cuentas— y agrega las dos estatales que faltaban, O'Higgins y Aysén (sin datos; se cargan con la recolección). Solo datos, sin cambios de esquema. El backend no depende de ella | **pendiente** | **pendiente** |
 | `019_rol_del_asistente.sql` | Rol de base `kai_asistente`, que solo lee las tablas académicas; la consulta SQL libre del asistente corre con él y, sin él, se niega. Cierra la lectura de cuentas y mensajes por SQL dinámico. Los roles no viajan en el volcado: aplicarla también tras cargar uno. **Aplicarla antes de desplegar el backend** | **pendiente** | **pendiente** |
+| `020_puntaje_total.sql` | El puntaje total de cada universidad en todos los rankings, como métrica «Puntaje total» (tipo `Puntaje`, no pondera): publicado por el ranking o calculado con su método. Corrige QS Global 2026 (cuatro columnas corridas), quita los totales en 0 de QS Global, pasa THE Latam a sus pesos latinoamericanos (35/33,5/20/4/7,5) y agrega `ranking.puntajes_ponderados` (Shanghai GRAS: el total es la suma). No está en el volcado: aplicarla también tras cargarlo. El backend funciona sin ella | **pendiente** | **pendiente** |
 
 Al aplicar la 018, el volcado de integración continua (`backend/pruebas/datos_de_prueba.sql`)
 y la prueba `dominios` (que espera un catálogo de 58) quedan una edición por detrás:
@@ -357,4 +358,62 @@ asistente debe conectarse con un usuario que *sea* `kai_asistente`:
 Con eso, `set_config('role', 'postgres')` responde «permiso denegado» aunque el
 filtro fallara. Sin la variable, la consulta usa la conexión común y asume el rol
 con `SET LOCAL ROLE`.
+
+## 020: el puntaje total
+
+Hasta ahora solo QS Global y QS por Disciplina guardaban su puntaje total
+(«Overall»), y en las demás pantallas la plataforma mostraba una suma ponderada
+propia que en varios rankings no coincidía con la de la fuente. La 020 guarda el
+total de cada ranking como una métrica más, «Puntaje total», que Tendencias,
+Simulación y el Glosario muestran, y que **no pondera** (peso 0): nunca entra en
+la suma que ordena el Resumen.
+
+| Ranking | De dónde sale el total | Cobertura |
+|---|---|---|
+| THE Latam | El Overall publicado (CSV de `KAI/THE`). Donde THE solo publica una banda, calculado con los pesos de su metodología latinoamericana, que reproducen los publicados con ±0,08; cada calculado cae en su banda | todas las universidades clasificadas |
+| QS Latam, QS Global | El Overall publicado (planillas de `KAI/QS/DatosQS`) | solo las mejor clasificadas: QS no publica el resto, y su reescalado no se reconstruye sin errores de hasta 1,2 puntos |
+| QS por Disciplina | El Overall publicado, ya cargado | solo las mejor clasificadas de cada disciplina |
+| Shanghai GRAS | La suma de los indicadores, que GRAS publica ya ponderados (coincide con el publicado para el top 50, ±0,2) | todas, por disciplina |
+| Shanghai ARWU | 100 × suma ponderada / la de la primera del mundo, tomada de la API de ShanghaiRanking (reproduce el top 100 publicado, ±0,1) | todas desde 2004; 2003 usó otra metodología |
+| Scimago Latam | La suma ponderada: SCImago no publica total | todas |
+| Ranking KAI | La suma ponderada, por definición | todas |
+
+Además corrige tres errores que encontró la verificación:
+
+- **QS Global 2026 tenía cuatro columnas corridas.** Esa edición agregó «International
+  Students Diversity», y lo guardado como International Research Network,
+  Employment Outcomes, Sustainability y Overall era, en cada caso, la columna
+  anterior. Se reescriben desde la planilla oficial; las otras ediciones ya
+  coincidían celda por celda.
+- **QS Global guardaba 0 como total** donde QS no lo publica. Esas filas se borran.
+- **THE Latam ponderaba 30/30/30/0/10**, los pesos del ranking mundial. Los del
+  latinoamericano, deducidos de los totales publicados, son 35/33,5/20/4/7,5 desde
+  2024 (36/34/20/2,5/7,5 hasta 2023). Con los anteriores, el Resumen se alejaba
+  hasta 8 puntos del total oficial; ahora, menos de 0,1 desde 2024 y menos de
+  0,8 en las ediciones anteriores, porque la base guarda un solo peso por métrica.
+  El total guardado no tiene ese error: el de cada banda se calculó con los pesos
+  de su edición.
+
+Y agrega `ranking.puntajes_ponderados`, verdadero solo en Shanghai GRAS: el puntaje
+de cada indicador ya incluye su peso, y el total es la suma. El Resumen, la
+Simulación y el asistente lo multiplicaban otra vez por el peso.
+
+```bash
+psql "postgresql://..." -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
+```
+
+Debe terminar con `NOTICE: puntajes totales cargados: THE Latam: 268, QS Latam: 65,
+Scimago Latam: 342, Shanghai GRAS: 600, QS Global: 18, Shanghai ARWU: 53, QS por
+Disciplina: 217, Ranking KAI: 450`. El backend se puede desplegar antes o después:
+lee la columna nueva con `to_jsonb` y, sin la 020, todo sigue como antes. Quien
+recargue los puntajes del Ranking KAI o de Scimago debe recalcular su total:
+`cargar_ranking_kai.py` ya lo hace, y la batería `puntaje-total` lo comprueba.
+
+Los totales publicados de THE y QS van escritos en la migración. Cada fila de la
+fuente se emparejó con la de la base por los valores de sus componentes —los cinco
+pilares en THE, los indicadores en QS—, no por el nombre de la universidad, que
+cambia entre fuentes; las 268 filas de THE y todas las de QS con total encontraron
+pareja única. Una edición nueva de THE o QS necesita agregar sus totales de la
+misma forma; las de GRAS, ARWU (con la suma de la primera del mundo, que da su
+API), Scimago y el Ranking KAI se calculan en la base.
 

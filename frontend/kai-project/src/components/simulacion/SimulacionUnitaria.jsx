@@ -30,6 +30,9 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
           nombre_metrica: r.nombre_metrica,
           disciplina: r.disciplina,
           peso_metrica: Number(r.peso_metrica) || 0,
+          // Lo que un punto aporta al total: peso / 100, o 1 donde el puntaje ya
+          // viene ponderado (Shanghai GRAS). Lo dice el backend.
+          factor: r.factor != null ? Number(r.factor) : (Number(r.peso_metrica) || 0) / 100,
           valor_original: Number(r.valor_metrica) || 0,
         };
       }
@@ -39,16 +42,21 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
 
   const maxPeso = useMemo(() => Math.max(1, ...metricas.map(m => m.peso_metrica)), [metricas]);
   const nombreInstitucion = filtrado[0]?.nombre_universidad || "";
+  // El puntaje total que la plataforma registra para la institución en esta
+  // edición: el publicado por el ranking o calculado con su método. Puede faltar
+  // —QS solo lo publica para las mejor clasificadas— o diferir del que se simula,
+  // que es la suma de cada métrica por su aporte.
+  const totalRegistrado = filtrado[0]?.puntaje_total != null ? Number(filtrado[0].puntaje_total) : null;
 
   const getValor = (idMetrica, original) => overrides[idMetrica] ?? original;
   const setValor = (idMetrica, val) => setOverrides(prev => ({ ...prev, [idMetrica]: val }));
 
   const scoreSimulado = useMemo(
-    () => metricas.reduce((acc, m) => acc + (getValor(m.id_metrica, m.valor_original) * m.peso_metrica) / 100, 0),
+    () => metricas.reduce((acc, m) => acc + getValor(m.id_metrica, m.valor_original) * m.factor, 0),
     [metricas, overrides]
   );
   const scoreBase = useMemo(
-    () => metricas.reduce((acc, m) => acc + (m.valor_original * m.peso_metrica) / 100, 0),
+    () => metricas.reduce((acc, m) => acc + m.valor_original * m.factor, 0),
     [metricas]
   );
 
@@ -104,8 +112,9 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
       ["Métrica", "Peso (%)", "Valor base", "Valor simulado"],
       ...metricas.map(m => [m.nombre_metrica, m.peso_metrica, m.valor_original, getValor(m.id_metrica, m.valor_original)]),
       [],
-      ["Score base", scoreBase.toFixed(2)],
-      ["Score simulado", scoreSimulado.toFixed(2)],
+      ["Puntaje total base", scoreBase.toFixed(2)],
+      ["Puntaje total simulado", scoreSimulado.toFixed(2)],
+      ["Puntaje total registrado en el ranking", totalRegistrado ?? "no publicado"],
     ];
     const csv = filas.map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -133,7 +142,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
         const simulado = getValor(m.id_metrica, m.valor_original);
         return {
           nombre: m.nombre_metrica, peso: m.peso_metrica, base: m.valor_original, simulado,
-          efecto: ((simulado - m.valor_original) * m.peso_metrica) / 100,
+          efecto: (simulado - m.valor_original) * m.factor,
           modificada: overrides[m.id_metrica] !== undefined,
         };
       }),
@@ -181,7 +190,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
           const actual = getValor(m.id_metrica, m.valor_original);
           const modificado = overrides[m.id_metrica] !== undefined;
           const max = Math.max(100, m.valor_original * 2, actual * 1.2);
-          const deltaPts = ((actual - m.valor_original) * m.peso_metrica) / 100;
+          const deltaPts = (actual - m.valor_original) * m.factor;
 
           return (
             <div
@@ -251,7 +260,7 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
         </div>
 
         <div className="pb-2">
-          <p className="text-[10.5px] text-[#8a8a8a] mb-1">Score</p>
+          <p className="text-[10.5px] text-[#8a8a8a] mb-1">Puntaje total</p>
           <div className="flex items-baseline gap-2">
             <span className="font-mono font-semibold text-[26px] text-white">{decimal(scoreSimulado)}</span>
             <span className={`font-mono font-semibold text-[12px] ${
@@ -275,7 +284,20 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
             style={{ left: `${Math.min(100, (scoreBase / maxScorePosible) * 100)}%` }}
           />
         </div>
-        <p className="text-[10.5px] text-[#6f6f6f] mb-[22px]">La línea blanca es el valor real de {anio}.</p>
+        <p className="text-[10.5px] text-[#6f6f6f] mb-2">La línea blanca es el valor real de {anio}.</p>
+        <p className="text-[10.5px] text-[#8a8a8a] leading-relaxed mb-[22px]" data-total-registrado
+           title="El puntaje total que la plataforma registra para esta edición: el publicado por el ranking o calculado con su método (ver Glosario). La simulación mueve la suma de cada métrica por su aporte.">
+          {totalRegistrado != null ? (
+            <>
+              Puntaje total registrado en {rankingNombre}:{" "}
+              <span className="font-mono font-semibold text-white">{decimal(totalRegistrado)}</span>
+              {Math.abs(totalRegistrado - scoreBase) >= 0.5 &&
+                " · difiere de la suma de las métricas porque el ranking reescala su total"}
+            </>
+          ) : (
+            `${rankingNombre} no publica el puntaje total de esta institución en ${anio}; se muestra la suma de sus métricas.`
+          )}
+        </p>
 
         {superadas.length > 0 && (
           <div className="p-3.5 bg-background border border-white/[.08] mb-2.5">

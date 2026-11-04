@@ -51,9 +51,12 @@ try:
     # componentes, y en Scimago Latam el agregador, porque allí las partes son las
     # que tienen observaciones. En ambos casos la fila debe estar enlazada, para
     # que el desglose pueda decir a qué pertenece o qué agrupa.
+    # El puntaje total (tipo «Puntaje», migración 020) tampoco pondera, pero no es
+    # un nivel de la jerarquía: es el resultado de sumarla.
     sueltos = db.execute(text("""
         SELECT m.nombre_metrica FROM metrica m
         WHERE NOT m.pondera
+          AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'
           AND m.id_metrica_padre IS NULL
           AND NOT EXISTS (SELECT 1 FROM metrica h WHERE h.id_metrica_padre = m.id_metrica)""")).fetchall()
     comprobar("toda métrica de referencia está enlazada a su jerarquía", not sueltos, sueltos[:5])
@@ -92,7 +95,8 @@ try:
     print("\n=== 4. Los indicadores de referencia se conservan ===")
     n = db.execute(text("""
         SELECT count(*) FROM metrica m JOIN ranking r ON r.id_ranking = m.id_ranking
-        WHERE r.nombre_ranking = 'THE Latam' AND NOT m.pondera""")).scalar()
+        WHERE r.nombre_ranking = 'THE Latam' AND NOT m.pondera
+          AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'""")).scalar()
     comprobar("THE Latam mantiene sus diecisiete indicadores", n == 17, n)
 
     huerfanos = db.execute(text("""
@@ -104,10 +108,11 @@ try:
     print("\n=== 5. Los cálculos de puntaje no cambian ===")
     # Las métricas que no ponderan no tienen observaciones, así que nunca entraron
     # en una suma ponderada: los puntajes publicados antes de la distinción siguen
-    # siendo los mismos.
+    # siendo los mismos. El puntaje total sí las tiene, y por eso no pondera.
     con_datos = db.execute(text("""
         SELECT count(*) FROM metrica m
         WHERE NOT m.pondera
+          AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'
           AND EXISTS (SELECT 1 FROM metrica_universidad mu WHERE mu.id_metrica = m.id_metrica)""")).scalar()
     comprobar("ninguna métrica de referencia tiene observaciones cargadas", con_datos == 0, con_datos)
 finally:

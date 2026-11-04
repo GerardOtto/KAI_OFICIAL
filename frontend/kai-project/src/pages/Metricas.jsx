@@ -13,6 +13,7 @@ import { formatearValor } from "../utils/valoresReales";
 import { idDeInstitucion } from "../utils/universidades";
 import { useAuth } from "../auth/AuthContext";
 import { generarInformeGlosario } from "../reportes/informeGlosario";
+import { TIPO_PUNTAJE_TOTAL } from "../utils/puntajeTotal";
 
 const DownloadIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,9 +50,12 @@ const NOMBRE_DIMENSION = {
   Reputacion: "Reputación",
 };
 
-/** «Puntaje» no es una dimensión: es el puntaje global de QS Global (Overall,
- *  peso 0), que en la matriz se leía como una dimensión que nadie valora. */
-const TIPOS_OCULTOS = new Set(["Puntaje"]);
+/** «Puntaje» no es una dimensión: es el puntaje total de cada ranking (peso 0,
+ *  no pondera), que entre las dimensiones se leía como una que nadie valora. Va
+ *  en su propia fila, la primera, con el número y sin intensidad de peso. */
+const TIPOS_OCULTOS = new Set([TIPO_PUNTAJE_TOTAL]);
+const TIPOS_TOTAL = [TIPO_PUNTAJE_TOTAL];
+const FILA_TOTAL = { nombre: "Puntaje total", tipos: TIPOS_TOTAL };
 
 function alphaForPeso(peso) {
   const clamped = Math.min(peso, 25);
@@ -100,6 +104,11 @@ export default function Metricas() {
   const modoDatos = numerico ? "numerico" : "puntajes";
   const { valoresMap, unidadesMap, edicionesMap } = useValoresMatriz(
     tiposVisibles, universidadId, anio, modoDatos);
+  // El puntaje total se pide siempre como puntaje: es lo que el ranking publica,
+  // y en «Valores» la fila seguiría ahí, vacía, si se pidiera como cifra medida.
+  const { matriz: matrizTotal } = useMetricasMatriz(TIPOS_TOTAL);
+  const { valoresMap: totalesMap, edicionesMap: edicionesTotal } = useValoresMatriz(
+    TIPOS_TOTAL, universidadId, anio, "puntajes");
 
   // Los años que ofrece el selector: la unión de las ediciones de los rankings
   // que el plan abre.
@@ -132,7 +141,8 @@ export default function Metricas() {
       .sort((a, b) => cuantas(b) - cuantas(a));
   }, [tiposVisibles, matriz, idsVisibles]);
 
-  const metricasDe = (dimension) => dimension.tipos.flatMap(t => matriz[t] || []);
+  const metricasDe = (dimension) =>
+    dimension.tipos.flatMap(t => (t === TIPO_PUNTAJE_TOTAL ? matrizTotal[t] : matriz[t]) || []);
 
   /** Métricas de una dimensión, sin los rankings ocultos del glosario: lo que se
    *  exporta debe coincidir con lo que se ve. */
@@ -276,6 +286,34 @@ export default function Metricas() {
     };
   };
 
+  /** El puntaje total de la institución en un ranking.
+   *
+   *  En un ranking multidisciplinario (Shanghai GRAS) hay un total por disciplina:
+   *  la celda muestra su promedio, con la misma marca «prom» que el resto de la
+   *  matriz. Sin total —QS solo lo publica para las mejor clasificadas—, la celda
+   *  dice por qué en el globo, con la descripción de la métrica.
+   */
+  const celdaTotal = (idRanking) => {
+    const items = metricasDe(FILA_TOTAL).filter(m => m.id_ranking === idRanking);
+    if (items.length === 0) return null;
+    const valores = items
+      .filter(m => totalesMap[m.id_metrica] != null)
+      .map(m => Number(totalesMap[m.id_metrica]));
+    const multi = items.length > 1;
+    return {
+      total: true,
+      peso: 0,
+      edicion: edicionesTotal[idRanking] ?? null,
+      multi,
+      nDisciplinas: items.length,
+      disciplinasConDato: valores.length,
+      valor: valores.length ? valores.reduce((s, v) => s + v, 0) / valores.length : null,
+      principal: "Puntaje total",
+      descripcion: items[0].descripcion_metrica || null,
+      metricas: [],
+    };
+  };
+
   const contextoCargado = Boolean(universidadId);
 
   // Si ninguna columna visible es multidisciplinaria, la nota sobre el promedio
@@ -288,7 +326,8 @@ export default function Metricas() {
   // Igual que la anterior: la nota sobre los dos niveles solo tiene sentido si
   // alguna columna visible los trae.
   const hayJerarquia = useMemo(
-    () => Object.values(matriz).flat().some(m => m.pondera === false && idsVisibles.has(m.id_ranking)),
+    () => Object.values(matriz).flat().some(m =>
+      m.pondera === false && m.tipo_metrica !== TIPO_PUNTAJE_TOTAL && idsVisibles.has(m.id_ranking)),
     [matriz, idsVisibles]
   );
 
@@ -298,6 +337,17 @@ export default function Metricas() {
       ["Dimensión", "Ranking", "Disciplina", "Métrica", "Peso (%)", "Compone el total", "Parte de",
        ...(contextoCargado ? ["Institución", "Edición", numerico ? "Valor medido" : "Puntaje", "Unidad"] : [])],
     ];
+    // El total va primero y siempre como puntaje, igual que en pantalla.
+    metricasVisibles(FILA_TOTAL).forEach(m => {
+      const fila = [FILA_TOTAL.nombre, m.nombre_ranking, m.disciplina, m.nombre_metrica, "",
+                    "Es el total", ""];
+      if (contextoCargado) {
+        const hay = totalesMap[m.id_metrica] != null;
+        fila.push(universidadNombre, hay ? edicionesTotal[m.id_ranking] ?? "" : "",
+                  totalesMap[m.id_metrica] ?? "", numerico ? "puntaje" : "");
+      }
+      filas.push(fila);
+    });
     dimensiones.forEach(d => {
       metricasVisibles(d).forEach(m => {
         const fila = [d.nombre, m.nombre_ranking, m.disciplina, m.nombre_metrica, m.peso_metrica,
@@ -327,6 +377,13 @@ export default function Metricas() {
         celdas: Object.fromEntries(
           rankings.map(r => [r.id_ranking, celda(d, r.id_ranking)]).filter(([, c]) => c)),
       })),
+      // El total no es una dimensión ni reparte peso: va aparte, para la tabla de
+      // valores y no para la matriz de pesos.
+      total: contextoCargado ? {
+        celdas: Object.fromEntries(
+          rankings.map(r => [r.id_ranking, celdaTotal(r.id_ranking)]).filter(([, c]) => c)),
+        ediciones: edicionesTotal,
+      } : null,
       institucion: contextoCargado ? universidadNombre : null,
       anio: contextoCargado ? anio : null,
       ediciones: contextoCargado ? edicionesMap : null,
@@ -478,8 +535,35 @@ export default function Metricas() {
                 ))}
               </div>
 
-              {/* Filas */}
+              {/* Filas: primero el puntaje total, separado de las dimensiones
+                  porque no reparte peso; después, cada dimensión. */}
               <div className="space-y-1.5">
+                <div className="grid gap-1.5 pb-2 mb-2 border-b border-white/[.08]"
+                     data-fila="puntaje-total"
+                     style={{ gridTemplateColumns: `250px repeat(${rankings.length}, minmax(0, 1fr))` }}>
+                  <div className="flex flex-col justify-center pr-3">
+                    <span className="font-body font-semibold text-[12.5px] text-white">{FILA_TOTAL.nombre}</span>
+                    <span className="text-[10px] text-outlineSoft leading-snug">
+                      publicado por el ranking o calculado con su método
+                    </span>
+                  </div>
+                  {rankings.map(r => {
+                    const c = celdaTotal(r.id_ranking);
+                    return (
+                      <HeatCell
+                        key={r.id_ranking}
+                        datos={c}
+                        dimension={FILA_TOTAL.nombre}
+                        ranking={r.nombre_ranking}
+                        restringido={r.restringido}
+                        // Un decimal, como lo publican los rankings.
+                        valorFormateado={c?.valor != null
+                          ? Number(c.valor).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+                          : null}
+                      />
+                    );
+                  })}
+                </div>
                 {dimensiones.map(d => (
                   <div key={d.nombre} className="grid gap-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, minmax(0, 1fr))` }}>
                     <div className="flex flex-col justify-center pr-3">

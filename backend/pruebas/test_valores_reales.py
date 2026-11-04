@@ -140,7 +140,10 @@ try:
     puntajes = {(r[0], r[1], r[2]): float(r[3]) for r in db.execute(text("""
         SELECT mu.id_metrica, mu.id_universidad, mu.anio_metrica, mu.valor_metrica
         FROM metrica_universidad mu JOIN metrica m ON m.id_metrica = mu.id_metrica
-        WHERE m.id_ranking = :r"""), {"r": ids["Scimago Latam"]})}
+        WHERE m.id_ranking = :r
+          -- El puntaje total (migración 020) se calcula de los percentiles: no
+          -- tiene una cifra medida propia.
+          AND m.tipo_metrica IS DISTINCT FROM 'Puntaje'"""), {"r": ids["Scimago Latam"]})}
     medidos = {(r[0], r[1], r[2]): float(r[3]) for r in db.execute(text("""
         SELECT v.id_metrica, v.id_universidad, v.anio_edicion, v.valor
         FROM valor_real_universidad v JOIN metrica m ON m.id_metrica = v.id_metrica
@@ -275,9 +278,22 @@ try:
     una = cliente.get("/ranking-resumen", params={"ranking_id": gras_id, "anio": anio_gras,
                                                   "disciplina": disciplinas[0]}, headers=gratis).json()
     todas = cliente.get("/ranking-resumen", params={"ranking_id": gras_id, "anio": anio_gras}, headers=gratis).json()
-    comprobar("el resumen de una disciplina de GRAS queda en la escala de 0 a 100",
-              una and max(float(f["score_total"]) for f in una) <= 100.5,
-              max((float(f["score_total"]) for f in una), default=None))
+    # El total de GRAS no está en una escala de 0 a 100: es la suma de sus
+    # indicadores, que ya vienen ponderados (Princeton suma 404,8 en Matemáticas
+    # 2025). El de una disciplina debe ser el que GRAS calcula, no la suma de
+    # todas ni la suma volviendo a multiplicar por el peso.
+    guardado = {r[0]: float(r[1]) for r in main.SessionLocal().execute(text("""
+        SELECT mu.id_universidad, mu.valor_metrica FROM metrica_universidad mu
+        JOIN metrica m ON m.id_metrica = mu.id_metrica
+        WHERE m.id_ranking = :r AND m.tipo_metrica = 'Puntaje' AND m.disciplina = :d
+          AND mu.anio_metrica = :a"""), {"r": gras_id, "d": disciplinas[0], "a": anio_gras})}
+    if guardado:
+        comprobar("el resumen de una disciplina de GRAS es su total: la suma de los indicadores",
+                  una and all(abs(float(f["score_total"]) - guardado[f["id_universidad"]]) < 0.06
+                              for f in una if f["id_universidad"] in guardado),
+                  [(f["id_universidad"], f["score_total"], guardado.get(f["id_universidad"])) for f in una][:3])
+    else:
+        comprobar("el resumen de una disciplina de GRAS tiene valores", bool(una))
     comprobar("y no es la suma de todas las disciplinas",
               max(float(f["score_total"]) for f in todas) > max(float(f["score_total"]) for f in una))
 finally:

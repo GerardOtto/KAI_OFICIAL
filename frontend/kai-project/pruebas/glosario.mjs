@@ -76,7 +76,7 @@ console.log("\n=== 1b. Institución, ediciones y dimensiones ===");
 // columna dice de qué edición son sus cifras, porque no coinciden entre rankings.
 const contexto = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].slice(1).map(e => e.innerText.trim());
-  const dims = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')].map(f => f.children[0].innerText.trim());
+  const dims = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')].map(f => f.children[0].innerText.trim());
   return { boton: document.querySelector('main button[aria-expanded]')?.innerText.trim(),
            edicion: document.querySelector('main select')?.selectedOptions[0]?.text, cab, dims };
 `);
@@ -90,11 +90,58 @@ comprobar("la internacionalización es una sola fila",
   contexto.dims.filter(d => /^Internacional/.test(d)).length === 1, JSON.stringify(contexto.dims));
 comprobar("«Puntaje» no aparece como dimensión", !contexto.dims.includes("Puntaje"));
 
+console.log("\n=== 1c. El puntaje total, en su propia fila ===");
+// Va antes de las dimensiones y separado de ellas: no reparte peso, así que no
+// lleva porcentaje ni intensidad, sino la marca «total» y el número.
+const total = await ev(`
+  const fila = document.querySelector('[data-fila="puntaje-total"]');
+  if (!fila) return null;
+  const primera = document.querySelector('.space-y-1\\\\.5 > .grid') === fila;
+  const celdas = [...fila.children].slice(1).map(c => c.innerText.trim().replace(/\\n/g, ' | '));
+  return { titulo: fila.children[0].innerText.trim(), primera, celdas };
+`);
+comprobar("hay una fila de puntaje total", total !== null);
+if (total) {
+  console.log("  " + JSON.stringify(total));
+  comprobar("es la primera fila de la matriz", total.primera);
+  comprobar("se llama «Puntaje total»", /^Puntaje total/.test(total.titulo), total.titulo);
+  comprobar("tiene una celda por ranking", total.celdas.length === 7, total.celdas.length);
+  comprobar("con un decimal, como lo publican los rankings",
+    total.celdas.filter(c => /\d/.test(c)).every(c => /\d,\d$/.test(c)), JSON.stringify(total.celdas));
+  comprobar("ninguna celda del total muestra un porcentaje de peso",
+    total.celdas.every(c => !/%/.test(c)), JSON.stringify(total.celdas));
+  // innerText devuelve el texto en mayúsculas cuando el CSS lo pone así.
+  const conNumero = total.celdas.filter(c => /^total( \| prom)? \| [\d.,]+$/i.test(c));
+  comprobar("la institución de la cuenta tiene puntaje total en varios rankings",
+    conNumero.length >= 3, JSON.stringify(total.celdas));
+}
+
+// El globo del total dice de dónde sale el número. Se mira en Scimago, que el
+// plan gratuito de la cuenta de la sonda sí abre (THE y QS van tapados).
+const rectTotal = await ev(`
+  const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
+  const col = cab.findIndex(t => /SCIMAGO LATAM/i.test(t));
+  const c = document.querySelector('[data-fila="puntaje-total"]')?.children[col];
+  if (!c) return null;
+  const r = c.getBoundingClientRect();
+  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+`);
+if (rectTotal) {
+  await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: rectTotal.x, y: rectTotal.y });
+  await esperar(500);
+  const globoTotal = await ev(`return document.querySelector('[role=tooltip]')?.innerText || null;`);
+  comprobar("el globo del total de Scimago explica de dónde sale",
+    /Puntaje total/.test(globoTotal || "") && /SCImago no publica/.test(globoTotal || ""),
+    (globoTotal || "").slice(0, 200));
+  await cdp("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
+  await esperar(300);
+}
+
 console.log("\n=== 2. Shanghai GRAS: cifras proporcionadas ===");
 const gras = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /SHANGHAI GRAS/i.test(t));   // 0 es la celda vacía
-  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
+  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')];
   return filas.map(f => {
     const hijos = [...f.children];
     const dim = hijos[0].innerText.trim();
@@ -131,7 +178,7 @@ console.log("\n=== 3. Un ranking de una sola disciplina no lleva la marca ===");
 const scimago = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^SCIMAGO LATAM$/i.test(t));
-  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
+  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')];
   return filas.map(f => ({ dim: f.children[0].innerText.trim(),
                            texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | '),
                            prom: Boolean(f.children[col]?.querySelector('[title="Promedio entre disciplinas"]')) }))
@@ -155,7 +202,7 @@ comprobar("sin cursor encima no hay globo", antes === 0, antes);
 const rect = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /SHANGHAI GRAS/i.test(t));
-  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
+  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')]
     .find(f => f.children[0].innerText.trim() === 'Artículos');
   const c = fila.children[col];
   const r = c.getBoundingClientRect();
@@ -207,7 +254,7 @@ await esperar(600);
 const ultimaCol = await ev(`
   const cont = document.querySelector('.overflow-x-auto');
   cont.scrollLeft = cont.scrollWidth;
-  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')];
+  const filas = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')];
   for (const f of filas) {
     const c = f.children[f.children.length - 1];
     if (!c || /no mide/.test(c.innerText)) continue;
@@ -250,7 +297,7 @@ await esperar(700);
 const the = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
-  return [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')]
+  return [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')]
     .map(f => ({ dim: f.children[0].innerText.trim(),
                  texto: f.children[col]?.innerText.trim().replace(/\\n/g, ' | ') }))
     .filter(x => x.texto);
@@ -266,7 +313,7 @@ comprobar("y todas dicen a qué plan pertenecen",
 const celdaThe = await ev(`
   const cab = [...document.querySelectorAll('.grid.gap-1\\\\.5.mb-1\\\\.5 > div')].map(e => e.innerText.trim().split('\\n')[0]);
   const col = cab.findIndex(t => /^THE LATAM$/i.test(t));
-  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid')][0];
+  const fila = [...document.querySelectorAll('.space-y-1\\\\.5 > .grid:not([data-fila])')][0];
   const r = fila.children[col].getBoundingClientRect();
   return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
 `);
