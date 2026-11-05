@@ -85,7 +85,10 @@ db.close()
 con_dominio = {f.nombre_universidad for f in dominios.values()}
 comprobar("hay al menos 60 dominios", len(dominios) >= 60, len(dominios))
 comprobar("cubren 50 universidades", len(con_dominio) == 50, len(con_dominio))
-comprobar("de un catálogo de 58", total_universidades == 58, total_universidades)
+# El catálogo tiene 58 universidades sin la migración 018 y 59 con ella (fusiona
+# el duplicado de UNIACC y agrega O'Higgins y Aysén): no se fija el número.
+comprobar(f"dentro del catálogo ({total_universidades} universidades)",
+          total_universidades >= len(con_dominio) and total_universidades in (58, 59), total_universidades)
 comprobar("pucv.cl es de la PUCV", dominios.get("pucv.cl") and dominios["pucv.cl"].nombre_universidad == PUCV)
 comprobar("los usos son institucional o estudiantes",
           {f.uso for f in dominios.values()} <= {"institucional", "estudiantes"})

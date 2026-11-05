@@ -20,7 +20,7 @@ import logoQs from "../assets/rankings/qs.png";
 import logoScimago from "../assets/rankings/scimago.png";
 import logoShanghai from "../assets/rankings/shanghairanking.png";
 import logoThe from "../assets/rankings/the.png";
-import { idDeInstitucion, nombreUniversidad } from "../utils/universidades";
+import { nombreUniversidad } from "../utils/universidades";
 
 // A4 vertical, en milímetros.
 export const ANCHO = 210;
@@ -873,11 +873,9 @@ export function vacio(l, texto) {
   l.separacion(4);
 }
 
-/** Id de la institución de quien pide el informe, por su nombre. Los informes la
- *  destacan como la del asistente destaca la que el usuario nombra. */
-export function institucionPropia(usuario, universidades) {
-  return idDeInstitucion(usuario?.institucion, universidades);
-}
+// Id de la institución de quien pide el informe: vive en utils/universidades.js
+// (las vistas la usan sin cargar jsPDF) y se reexporta para los informes.
+export { institucionPropia } from "../utils/universidades";
 
 /** Ficha común: quién pide el informe y cuándo. */
 export const fichaDeEmision = (usuario, fecha) => [

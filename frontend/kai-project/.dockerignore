@@ -5,3 +5,4 @@ dist
 dist-prueba
 .env
 .env.*
+pruebas/capturas

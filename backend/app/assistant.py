@@ -16,6 +16,7 @@ import anthropic
 from anthropic import Anthropic
 
 from .herramientas import TOOLS, resultado, system_prompt
+from .entorno import entero
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ MODEL = "claude-opus-5"
 # el contexto, lo que en Opus 5 sale más barato y más preciso que la versión
 # anterior. `max_uses` es el freno de gasto: cada búsqueda se factura aparte de
 # los tokens, así que un turno no puede encadenar búsquedas sin límite.
-MAX_BUSQUEDAS = int(os.getenv("CLAUDE_MAX_BUSQUEDAS", "5"))
+MAX_BUSQUEDAS = entero("CLAUDE_MAX_BUSQUEDAS", 5)
 
 HERRAMIENTAS_WEB = [
     {"type": "web_search_20260209", "name": "web_search", "max_uses": MAX_BUSQUEDAS},
@@ -44,7 +45,7 @@ HERRAMIENTAS_WEB = [
 # llamadas sin límite, y cada una reenvía el contexto entero: es el motor caro,
 # y era el único sin freno (Gemini tiene GEMINI_MAX_CICLOS). Un turno corriente
 # usa dos o tres; una comparación entre instituciones y años, cuatro o cinco.
-MAX_CICLOS = int(os.getenv("CLAUDE_MAX_CICLOS", "8"))
+MAX_CICLOS = entero("CLAUDE_MAX_CICLOS", 8)
 
 # El cliente se crea a demanda: instanciarlo al importar reventaría el arranque
 # del backend si falta la clave, dejando caída también la parte pública de la API.

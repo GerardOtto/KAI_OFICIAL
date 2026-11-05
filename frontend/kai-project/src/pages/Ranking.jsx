@@ -18,8 +18,7 @@ import useEsMovil from "../hooks/useEsMovil";
 import AvisoEdicion from "../components/data/AvisoEdicion";
 import { useAuth } from "../auth/AuthContext";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
-import { generarInformeResumen } from "../reportes/informeResumen";
-import { institucionPropia } from "../reportes/documento";
+import { institucionPropia } from "../utils/universidades";
 import {
   clasificar, historico, pesosIniciales, pesosModificados, participacion, variacion,
 } from "../utils/rankingPonderado";
@@ -206,6 +205,8 @@ export default function Ranking() {
     setPdfEstado("generando");
     try {
       const partes = editable ? participacion(pesos) : {};
+      // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+      const { generarInformeResumen } = await import("../reportes/informeResumen");
       await generarInformeResumen({
         ranking: nombreConDisciplina, anio, anioAnterior, numerico, usuario,
         descripcion: rankingActual?.descripcion_ranking || data[0]?.descripcion_ranking || "",

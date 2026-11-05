@@ -96,7 +96,7 @@ archivo no lleva fechas, así que solo cambia cuando cambia algo.
 ## Uso
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r tools/rankings/requirements.txt   # el backend más openpyxl (planillas de QS)
 
 python tools/rankings/actualizar.py                 # la revisión mensual
 python tools/rankings/actualizar.py shanghai-gras 2026

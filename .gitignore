@@ -3,6 +3,9 @@ venv/
 .env
 **/.env
 backup.sql
+# Respaldos de la base (pg_dump): llevan los datos de las cuentas y nunca se versionan.
+*.dump
+*.backup
 node_modules/
 **/node_modules/
 __pycache__/

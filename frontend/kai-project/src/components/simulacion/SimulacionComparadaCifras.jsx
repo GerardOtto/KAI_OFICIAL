@@ -4,10 +4,8 @@ import { evaluar, pasoPara, posiciones, prepararCifras, topePara } from "../../u
 import { formatearValor } from "../../utils/valoresReales";
 import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { useAuth } from "../../auth/AuthContext";
-import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
-import { institucionPropia } from "../../reportes/documento";
 import { decimal, porcentaje } from "../../utils/formato";
-import { nombreCorto } from "../../utils/universidades";
+import { institucionPropia, nombreCorto } from "../../utils/universidades";
 
 /** Simulación comparada sobre cifras medidas.
  *
@@ -77,6 +75,8 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
   const exportarPDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
     const porId = new Map(metricas.map((m) => [String(m.id_metrica), m]));
+    // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+    const { generarInformeSimulacion } = await import("../../reportes/informeSimulacion");
     await generarInformeSimulacion({
       tipo: "comparada", cifras: true, usuario,
       ranking: rankingNombre, anio, universo: universidades.length,

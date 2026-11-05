@@ -14,10 +14,10 @@ Los topes se ajustan por variables de entorno. Conviene subirlos, por ejemplo,
 para una jornada de inscripción en un campus donde muchas personas salen a
 internet por la misma IP.
 """
-import os
 import threading
 import time
 from collections import deque
+from .entorno import entero
 
 
 class Limitador:
@@ -74,7 +74,7 @@ class Limitador:
 
 
 def _entero(variable: str, defecto: int) -> int:
-    return int(os.getenv(variable, str(defecto)))
+    return entero(variable, defecto)
 
 
 # Inicios de sesión fallidos contra una misma cuenta. Es el tope que impide

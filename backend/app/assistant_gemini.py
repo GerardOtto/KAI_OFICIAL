@@ -25,6 +25,7 @@ from google.genai import errors as genai_errors
 from google.genai import types
 
 from .herramientas import POR_NOMBRE, TOOLS, resultado, system_prompt
+from .entorno import entero, texto
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ CADENA_POR_DEFECTO = "gemini-3.5-flash-lite,gemini-3.1-flash-lite"
 
 
 def _modelos() -> list[str]:
-    cadena = [m.strip() for m in os.getenv("GEMINI_MODELOS", CADENA_POR_DEFECTO).split(",") if m.strip()]
+    cadena = [m.strip() for m in texto("GEMINI_MODELOS", CADENA_POR_DEFECTO).split(",") if m.strip()]
     preferido = (os.getenv("GEMINI_MODEL") or "").strip()
     if preferido:
         cadena = [preferido] + [m for m in cadena if m != preferido]
@@ -71,7 +72,7 @@ MODEL = MODELOS[0]
 # necesita más vueltas para corregir sus propios argumentos— y porque cada vuelta
 # es una petición más a la API, que en el nivel gratuito también se cuenta por
 # minuto.
-MAX_CICLOS = int(os.getenv("GEMINI_MAX_CICLOS", "15"))
+MAX_CICLOS = entero("GEMINI_MAX_CICLOS", 15)
 
 CONSOLA_GOOGLE = "aistudio.google.com/apikey"
 
@@ -181,7 +182,7 @@ INSTRUCCION_DE_BUSQUEDA = (
 # proyecto puede tener tokens de sobra y aun así recibir 429 al buscar. Como esa
 # cuota se repone sola, la desactivación es temporal y el motor vuelve a
 # intentarlo pasado este plazo.
-ESPERA_TRAS_CUOTA_WEB = int(os.getenv("GEMINI_ESPERA_CUOTA_WEB", "1800"))
+ESPERA_TRAS_CUOTA_WEB = entero("GEMINI_ESPERA_CUOTA_WEB", 1800)
 _web_suspendida_hasta = 0.0
 
 SIN_INTERNET = (

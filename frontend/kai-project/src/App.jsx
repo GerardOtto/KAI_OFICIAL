@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import Lenis from "@studio-freight/lenis";
 
 import Header from "./components/Header";
@@ -7,12 +7,23 @@ import { AuthProvider } from "./auth/AuthContext";
 import { ModoValoresProvider } from "./estado/ModoValores";
 import RutaProtegida from "./auth/RutaProtegida";
 import Landing from "./pages/Landing";
-import Ranking from "./pages/Ranking";
-import Tendencias from "./pages/Tendencias";
-import Simulacion from "./pages/Simulacion";
-import Metricas from "./pages/Metricas";
-import Asistente from "./pages/Asistente";
 import NoEncontrada from "./pages/NoEncontrada";
+
+// La portada es pública y la primera que se ve: va en el paquete inicial. Los
+// módulos, que exigen sesión, se descargan al entrar a cada uno; antes todo
+// viajaba en un único archivo de 1,5 MB que también pagaba quien solo miraba la
+// portada.
+const Ranking = lazy(() => import("./pages/Ranking"));
+const Tendencias = lazy(() => import("./pages/Tendencias"));
+const Simulacion = lazy(() => import("./pages/Simulacion"));
+const Metricas = lazy(() => import("./pages/Metricas"));
+const Asistente = lazy(() => import("./pages/Asistente"));
+
+const CargandoModulo = () => (
+  <div className="min-h-[60vh] flex items-center justify-center text-outlineSoft text-sm" role="status">
+    Cargando…
+  </div>
+);
 import InstitucionPendiente from "./components/InstitucionPendiente";
 import { useAuth } from "./auth/AuthContext";
 
@@ -83,18 +94,20 @@ function AppContent() {
           sesión un módulo se pide con un aviso sobre ella. Las
           rutas antiguas del módulo de investigadores se redirigen en vez de
           devolver un 404, porque hay enlaces repartidos que aún apuntan a ellas. */}
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/ranking" element={<RutaProtegida><Ranking /></RutaProtegida>} />
-        <Route path="/tendencias" element={<RutaProtegida><Tendencias /></RutaProtegida>} />
-        <Route path="/simulacion" element={<Navigate to="/simulacion/comparada" replace />} />
-        <Route path="/simulacion/:modo" element={<RutaProtegida><Simulacion /></RutaProtegida>} />
-        <Route path="/metricas" element={<RutaProtegida><Metricas /></RutaProtegida>} />
-        <Route path="/cientificos" element={<Navigate to="/" replace />} />
-        <Route path="/investigadores-pucv" element={<Navigate to="/" replace />} />
-        <Route path="/asistente" element={<RutaProtegida><Asistente /></RutaProtegida>} />
-        <Route path="*" element={<NoEncontrada />} />
-      </Routes>
+      <Suspense fallback={<CargandoModulo />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/ranking" element={<RutaProtegida><Ranking /></RutaProtegida>} />
+          <Route path="/tendencias" element={<RutaProtegida><Tendencias /></RutaProtegida>} />
+          <Route path="/simulacion" element={<Navigate to="/simulacion/comparada" replace />} />
+          <Route path="/simulacion/:modo" element={<RutaProtegida><Simulacion /></RutaProtegida>} />
+          <Route path="/metricas" element={<RutaProtegida><Metricas /></RutaProtegida>} />
+          <Route path="/cientificos" element={<Navigate to="/" replace />} />
+          <Route path="/investigadores-pucv" element={<Navigate to="/" replace />} />
+          <Route path="/asistente" element={<RutaProtegida><Asistente /></RutaProtegida>} />
+          <Route path="*" element={<NoEncontrada />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }

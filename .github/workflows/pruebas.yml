@@ -62,7 +62,7 @@ jobs:
           node-version: "20"
 
       - name: Instalar dependencias
-        run: pip install -r backend/requirements.txt
+        run: pip install -r tools/rankings/requirements.txt
 
       - name: Cargar los datos de prueba
         # El volcado trae el esquema completo y los datos académicos, sin ninguna
@@ -70,20 +70,17 @@ jobs:
         # notificaciones. Ver backend/pruebas/README.md.
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 
-      - name: Cargar el puntaje total
-        # La 020 no está en el volcado: la batería puntaje-total la necesita, y
-        # sin ella las demás siguen funcionando (el backend no depende de la 020).
+      - name: Aplicar las migraciones que el volcado no trae
+        # El volcado llega hasta la 017, como la base de producción antes de esta
+        # versión. Se aplican de la 018 a la 024 en orden numérico, igual que en
+        # Railway: la 018 tiene que ir antes que la 020 (fusiona UNIACC, y con los
+        # totales ya calculados encontraría duplicados). La 019 crea el rol del
+        # asistente, que es del servidor y no viaja en el volcado.
         run: |
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_comparacion.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/023_posicion_y_actualizacion.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/024_the_world.sql
-
-      - name: Crear el rol del asistente
-        # Los roles son del servidor y no viajan en el volcado. Sin este, la
-        # consulta SQL libre del asistente se niega y fallan sus baterías.
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
+          for m in 018_catalogo_de_universidades 019_rol_del_asistente 020_puntaje_total \
+                   021_gras_por_edicion 022_grupos_de_comparacion 023_posicion_y_actualizacion 024_the_world; do
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "backend/migraciones/$m.sql"
+          done
 
       - name: Ejecutar las baterías
         working-directory: backend

@@ -20,6 +20,7 @@ la interfaz de programación, la base de datos y la autenticación son las reale
 ## Backend
 
 ```bash
+pip install -r tools/rankings/requirements.txt   # el backend más openpyxl, que usa la batería `rankings`
 cd backend
 python pruebas/ejecutar.py                     # las que no gastan dinero
 python pruebas/ejecutar.py --detalle           # con la salida completa
@@ -33,6 +34,7 @@ académicos cargados. Para una base vacía:
 
 ```bash
 psql "$DATABASE_URL" -f pruebas/datos_de_prueba.sql
+psql "$DATABASE_URL" -f migraciones/018_catalogo_de_universidades.sql
 psql "$DATABASE_URL" -f migraciones/019_rol_del_asistente.sql   # los roles no viajan en el volcado
 psql "$DATABASE_URL" -f migraciones/020_puntaje_total.sql        # tampoco está en el volcado
 psql "$DATABASE_URL" -f migraciones/021_gras_por_edicion.sql

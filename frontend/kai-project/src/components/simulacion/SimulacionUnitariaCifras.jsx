@@ -4,7 +4,6 @@ import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { evaluar, pasoPara, posiciones, prepararCifras, topePara } from "../../utils/simulacionCifras";
 import { formatearValor } from "../../utils/valoresReales";
 import { useAuth } from "../../auth/AuthContext";
-import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { conSigno, decimal, porcentaje } from "../../utils/formato";
 
 /** Simulación de una institución sobre sus cifras medidas.
@@ -95,6 +94,8 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
       .map((u) => ({ nombre: u.nombre, total: simulado.get(u.id_universidad)?.total ?? 0 }))
       .filter((u) => u.total > totalSim)
       .sort((a, b) => a.total - b.total)[0];
+    // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+    const { generarInformeSimulacion } = await import("../../reportes/informeSimulacion");
     await generarInformeSimulacion({
       tipo: "unitaria", cifras: true, usuario,
       ranking: rankingNombre, anio, institucion: propia.nombre,

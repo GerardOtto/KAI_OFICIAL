@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import * as XLSX from "xlsx";
 
 import { useRankingsPermitidos, ETIQUETA_RESERVADO } from "../hooks/useRankingsPermitidos";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
@@ -22,8 +21,7 @@ import VistaAnual from "../components/tendencias/VistaAnual";
 import VistaEvolucion from "../components/tendencias/VistaEvolucion";
 import DesgloseCambio from "../components/tendencias/DesgloseCambio";
 import { colorDeIndice, fmt } from "../components/tendencias/paleta";
-import { generarInformeTendencias } from "../reportes/informeTendencias";
-import { institucionPropia } from "../reportes/documento";
+import { institucionPropia } from "../utils/universidades";
 import { esPuntajeTotal, pesoVisible, totalPrimeroPorPeso } from "../utils/puntajeTotal";
 
 // Dos vistas hermanas sobre los mismos selectores: cambia el eje X.
@@ -262,6 +260,8 @@ export default function Tendencias() {
     // El permiso se pide antes de componer nada: si el plan ya gastó su informe,
     // no tiene sentido generar un archivo que no debería entregarse.
     if (!(await descarga.permitir("xlsx"))) return;
+    // SheetJS se carga recién aquí: pesa más de 400 kB y solo lo usa esta exportación.
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.json_to_sheet(filasExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, esAnual ? "Comparación anual" : "Evolución");
@@ -312,6 +312,8 @@ export default function Tendencias() {
     if (!(await descarga.permitir("pdf"))) return;
     setPdfEstado("generando");
     try {
+      // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+      const { generarInformeTendencias } = await import("../reportes/informeTendencias");
       await generarInformeTendencias(datosInforme());
       setPdfEstado("listo");
       setTimeout(() => setPdfEstado("idle"), 2500);

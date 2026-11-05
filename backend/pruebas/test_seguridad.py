@@ -10,12 +10,15 @@
   * Toda respuesta lleva las cabeceras de seguridad, y CORS no responde a un
     origen ajeno.
   * Una cuenta no ve ni toca los grupos ni las conversaciones de otra.
+  * El backend arranca aunque las variables opcionales estén definidas pero
+    vacías (un .env copiado de la plantilla), y usa sus valores por defecto.
 
 La consulta SQL libre del asistente se prueba en `test_herramientas.py`.
 """
 import base64
 import json
 import os
+import subprocess
 import sys
 import time
 import uuid
@@ -167,6 +170,29 @@ try:
         comprobar("ni la renombra",
                   cliente.patch(f"/conversaciones/{ajena}", headers=otra, json={"titulo": "x"}).status_code == 404)
         comprobar("ni la borra", cliente.delete(f"/conversaciones/{ajena}", headers=otra).status_code == 404)
+
+    print("\n=== 6. Variables opcionales vacías no impiden arrancar ===")
+    # Antes, `JWT_HORAS_VALIDEZ=` hacía int("") y el backend no arrancaba;
+    # `GEMINI_MODELOS=` dejaba al motor sin modelos y `KAI_DOMINIOS_ASISTENTE=`,
+    # a todo el mundo sin asistente.
+    vacias = ("JWT_HORAS_VALIDEZ", "KAI_PROXIES_CONFIABLES", "GEMINI_MODELOS", "KAI_DOMINIOS_ASISTENTE",
+              "KAI_TOPE_FILAS", "KAI_VENTANA_MENSAJES", "SMTP_PORT", "CLAUDE_MAX_CICLOS", "KAI_LOGIN_FALLOS_POR_IP")
+    entorno = {**os.environ, **{v: "" for v in vacias}}
+    sonda = subprocess.run(
+        [sys.executable, "-c",
+         "from app import main, auth, acceso, assistant_gemini as g, herramientas as h; "
+         "print(auth.JWT_HORAS_VALIDEZ, main.PROXIES_CONFIABLES, len(g.MODELOS), "
+         "','.join(acceso.DOMINIOS_DEL_ASISTENTE), h.TOPE_FILAS)"],
+        cwd=RAIZ, env=entorno, capture_output=True, text=True, timeout=120)
+    salida = sonda.stdout.strip().splitlines()[-1] if sonda.stdout.strip() else ""
+    comprobar("arranca con las variables vacías", sonda.returncode == 0, sonda.stderr[-300:])
+    comprobar("y toma los valores por defecto (12 h, 1 proxy, modelos, dominios PUCV, 80 filas)",
+              salida.startswith("12 1 ") and "pucv.cl" in salida and salida.endswith(" 80")
+              and int(salida.split()[2]) >= 1, salida)
+    mal = subprocess.run([sys.executable, "-c", "from app import auth"], cwd=RAIZ,
+                         env={**os.environ, "JWT_HORAS_VALIDEZ": "doce"}, capture_output=True, text=True, timeout=60)
+    comprobar("un valor no numérico se explica nombrando la variable",
+              mal.returncode != 0 and "JWT_HORAS_VALIDEZ" in mal.stderr, mal.stderr[-200:])
 finally:
     db = main.SessionLocal()
     db.execute(text("DELETE FROM usuario WHERE id_usuario = ANY(:ids)"), {"ids": usuarios})

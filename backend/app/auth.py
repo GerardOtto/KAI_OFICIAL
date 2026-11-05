@@ -17,6 +17,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 
 from .db import SessionLocal
+from .entorno import entero
 
 # --- Configuración ---------------------------------------------------------
 
@@ -30,7 +31,7 @@ JWT_ALGORITMO = "HS256"
 if JWT_SECRETO and len(JWT_SECRETO.encode("utf-8")) < 32:
     logger.warning("JWT_SECRET tiene menos de 32 bytes: genera uno con "
                    "`python -c \"import secrets; print(secrets.token_urlsafe(48))\"`.")
-JWT_HORAS_VALIDEZ = int(os.getenv("JWT_HORAS_VALIDEZ", "12"))
+JWT_HORAS_VALIDEZ = entero("JWT_HORAS_VALIDEZ", 12)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 

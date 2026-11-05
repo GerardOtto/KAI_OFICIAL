@@ -11,9 +11,6 @@ import sys
 import types as pytypes
 import uuid
 
-import os
-import sys
-
 # La raíz del backend se resuelve desde la ubicación de este archivo, no desde una
 # ruta de una máquina concreta: es lo que permite ejecutar la batería en otro
 # equipo y en integración continua.

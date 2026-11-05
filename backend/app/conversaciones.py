@@ -6,10 +6,10 @@ salió cada cifra. Por lo mismo, borrar una conversación no borra sus mensajes:
 la archiva y vacía su texto, y las cifras con que se cobra siguen contando (ver
 `eliminar_conversacion`).
 """
-import os
 from datetime import datetime, timedelta
 
 from sqlalchemy import text
+from .entorno import entero
 
 LIMITE_TITULO = 60
 
@@ -26,8 +26,8 @@ MARCA_INSTRUCCIONES = "<!-- kai:instrucciones"
 # multiplicada por el número de vueltas. Los turnos recientes van completos
 # —dan el hilo de la conversación— y los anteriores, recortados: de una respuesta
 # vieja basta el planteamiento para saber de qué se habló, no su tabla entera.
-VENTANA_MENSAJES = int(os.getenv("KAI_VENTANA_MENSAJES", "10"))
-MENSAJES_INTACTOS = int(os.getenv("KAI_MENSAJES_INTACTOS", "4"))
+VENTANA_MENSAJES = entero("KAI_VENTANA_MENSAJES", 10)
+MENSAJES_INTACTOS = entero("KAI_MENSAJES_INTACTOS", 4)
 TOPE_MENSAJE_ANTIGUO = 900
 
 

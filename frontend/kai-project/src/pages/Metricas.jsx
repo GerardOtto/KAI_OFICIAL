@@ -12,7 +12,6 @@ import { useModoValores } from "../estado/ModoValores";
 import { formatearValor } from "../utils/valoresReales";
 import { idDeInstitucion } from "../utils/universidades";
 import { useAuth } from "../auth/AuthContext";
-import { generarInformeGlosario } from "../reportes/informeGlosario";
 import { TIPO_PUNTAJE_TOTAL } from "../utils/puntajeTotal";
 import PosicionEntreRankings from "../components/data/PosicionEntreRankings";
 
@@ -371,6 +370,8 @@ export default function Metricas() {
 
   const handlePDF = async () => {
     if (!(await descarga.permitir("pdf"))) return;
+    // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+    const { generarInformeGlosario } = await import("../reportes/informeGlosario");
     await generarInformeGlosario({
       rankings: rankings.map(r => ({ id: r.id_ranking, nombre: r.nombre_ranking, restringido: r.restringido })),
       dimensiones: dimensiones.map(d => ({

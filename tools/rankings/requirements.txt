@@ -1,0 +1,6 @@
+# El cargador de rankings usa lo mismo que el backend (SQLAlchemy, psycopg2,
+# requests) y además lee las planillas oficiales de QS (.xlsx). También lo
+# instalan las pruebas del backend (batería `rankings`) y los flujos de GitHub.
+-r ../../backend/requirements.txt
+et_xmlfile==2.0.0
+openpyxl==3.1.5

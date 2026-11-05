@@ -14,9 +14,9 @@ El servidor no confía en que la interfaz respete lo que se le dice: cada límit
 se comprueba también donde se sirve el dato. Lo que el cliente recibe es para
 poder mostrarlo, no para decidirlo.
 """
-import os
 
 from sqlalchemy import text
+from .entorno import texto
 
 # --- Planes -----------------------------------------------------------------
 
@@ -33,7 +33,7 @@ FAMILIAS_RESERVADAS = ("THE", "QS")
 # dominio del correo, verificado por Google (ver `puede_usar_asistente`): la
 # institución del perfil puede venir del selector, y esa no acredita nada.
 DOMINIOS_DEL_ASISTENTE = tuple(
-    d.strip().lower() for d in os.getenv("KAI_DOMINIOS_ASISTENTE", "pucv.cl,mail.pucv.cl").split(",")
+    d.strip().lower() for d in texto("KAI_DOMINIOS_ASISTENTE", "pucv.cl,mail.pucv.cl").split(",")
     if d.strip()
 )
 

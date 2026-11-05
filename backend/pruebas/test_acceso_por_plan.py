@@ -158,12 +158,12 @@ comprobar("para un plan de pago no hay ninguno marcado",
           not any(r["restringido"] for r in catalogo_pago.values()))
 
 RUTAS_CON_RANKING = [
-    f"/trends?ranking_id={{r}}&metrica_id=1",
-    f"/metricas?ranking_id={{r}}",
-    f"/anios?ranking_id={{r}}",
-    f"/simulacion?ranking_id={{r}}&anio=2024",
-    f"/ranking-resumen?ranking_id={{r}}&anio=2024",
-    f"/metricas-con-datos?ranking_id={{r}}",
+    "/trends?ranking_id={r}&metrica_id=1",
+    "/metricas?ranking_id={r}",
+    "/anios?ranking_id={r}",
+    "/simulacion?ranking_id={r}&anio=2024",
+    "/ranking-resumen?ranking_id={r}&anio=2024",
+    "/metricas-con-datos?ranking_id={r}",
 ]
 bloqueadas = {p: cliente.get(p.format(r=RESERVADO), headers=gratis).status_code
               for p in RUTAS_CON_RANKING}

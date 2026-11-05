@@ -1,12 +1,32 @@
+"""API de KAI (FastAPI). Todo lo que pide la interfaz pasa por aquí.
+
+Orden del archivo:
+  * Configuración: producción o desarrollo, CORS, cabeceras de seguridad,
+    compresión y el manejo de errores no controlados.
+  * Autenticación: registro, inicio de sesión (correo o Google), perfil e
+    institución.
+  * Descargas de informes, grupos de comparación y conversaciones del asistente.
+  * Asistente: catálogo de motores, planes, contacto y el turno de /chat.
+  * Datos académicos: rankings, métricas, simulación, resumen, tendencias y
+    glosario. Cada endpoint que nombra un ranking pasa por `ranking_permitido`,
+    que aplica el plan.
+  * Investigadores: el módulo se retiró de la interfaz, pero sus endpoints
+    siguen protegidos y probados (test_acceso_por_plan) y el asistente consulta
+    las mismas tablas.
+  * Valores medidos: las cifras reales detrás de cada puntaje (modo «Valores»).
+
+Las reglas de cada plan viven en acceso.py; las sesiones, en auth.py; los
+topes, en limites.py.
+"""
 import logging
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware # 1. Importa el middleware
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 import os
 from dotenv import load_dotenv
 
@@ -15,10 +35,10 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 from . import acceso, auth, contacto, conversaciones as conv, herramientas, limites, motores
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+# La fábrica de sesiones es la de db.py, compartida con el resto del backend (un
+# solo pool de conexiones). Las pruebas la usan como main.SessionLocal.
+from .db import SessionLocal
+from .entorno import entero
 
 # En producción —Railway define RAILWAY_ENVIRONMENT_NAME en cada servicio; fuera
 # de Railway, KAI_ENTORNO=produccion— se cierran la documentación interactiva y
@@ -103,6 +123,9 @@ class CabecerasSeguras(BaseHTTPMiddleware):
 # dos, para que también las lleve esa respuesta de error.
 app.add_middleware(ErroresConCORS)
 app.add_middleware(CabecerasSeguras)
+# Compresión de las respuestas de más de 1 kB: las de datos son JSON de hasta
+# 350 kB (la simulación de QS por Disciplina) y se reducen a una décima parte.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGENES_PRODUCCION,
@@ -691,7 +714,7 @@ def _linea(valor: str | None, maximo: int) -> str:
 # Proxies de confianza delante del backend: cada uno agrega a X-Forwarded-For,
 # por la derecha, la IP de quien le habló. En Railway hay uno. Si se pone otro
 # delante (una CDN, por ejemplo), hay que subir este número.
-PROXIES_CONFIABLES = int(os.getenv("KAI_PROXIES_CONFIABLES", "1"))
+PROXIES_CONFIABLES = entero("KAI_PROXIES_CONFIABLES", 1)
 
 
 def _ip(request: Request) -> str:
@@ -926,6 +949,12 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     finally:
         db.close()
 
+# ---------------------------------------------------------------------------
+# Datos académicos
+# ---------------------------------------------------------------------------
+
+# /universidad y /metricas no los usa la interfaz actual (lee /universidades y
+# /metricas-con-datos), pero siguen protegidos y cubiertos por las pruebas de acceso.
 @app.get("/universidad")
 def get_subrankings(usuario: dict = Depends(auth.usuario_actual)):
     db = SessionLocal()
@@ -1381,6 +1410,10 @@ def get_valores_metrica_universidad(tipo: str, universidad_id: int, anio: int | 
     finally:
         db.close()
 
+# ---------------------------------------------------------------------------
+# Investigadores (módulo retirado de la interfaz; ver el encabezado del archivo)
+# ---------------------------------------------------------------------------
+
 FUENTE_TOP2 = "Stanford/Elsevier - World's Top 2% Scientists"
 FUENTE_SCOPUS_PUCV = "Scopus - Censo institucional PUCV"
 
@@ -1569,6 +1602,10 @@ def get_cientificos_campos(usuario: dict = Depends(auth.usuario_actual)):
         return [row._mapping["campo_principal"] for row in result]
     finally:
         db.close()
+
+# ---------------------------------------------------------------------------
+# Valores medidos y modo numérico (switch «Puntajes / Valores» de la interfaz)
+# ---------------------------------------------------------------------------
 
 MODOS = ("puntajes", "numerico")
 

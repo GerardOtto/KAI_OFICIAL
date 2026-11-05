@@ -76,3 +76,10 @@ export function idDeInstitucion(institucion, universidades) {
   return universidades.find((u) => normalizar(u.nombre_universidad ?? u.nombre) === clave)
     ?.id_universidad ?? null;
 }
+
+/** Id de la institución de la cuenta, por su nombre. Las vistas y los informes
+ *  la destacan. Vive aquí y no en reportes/documento.js para que las vistas no
+ *  carguen jsPDF solo por usarla. */
+export function institucionPropia(usuario, universidades) {
+  return idDeInstitucion(usuario?.institucion, universidades);
+}

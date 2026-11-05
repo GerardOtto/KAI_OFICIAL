@@ -3,10 +3,8 @@ import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useAuth } from "../../auth/AuthContext";
 import { useUniversidades } from "../../hooks/useUniversidades";
-import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
-import { institucionPropia } from "../../reportes/documento";
 import { decimal, porcentaje } from "../../utils/formato";
-import { nombreCorto } from "../../utils/universidades";
+import { institucionPropia, nombreCorto } from "../../utils/universidades";
 import useEsMovil from "../../hooks/useEsMovil";
 
 const PASO_STEPPER = 1;
@@ -117,6 +115,8 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     const posBase = posiciones(scoreBase);
     const posSim = posiciones(calcScore);
     const nombreMetrica = Object.fromEntries(metricas.map(m => [m.id_metrica, m.nombre_metrica]));
+    // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+    const { generarInformeSimulacion } = await import("../../reportes/informeSimulacion");
     await generarInformeSimulacion({
       tipo: "comparada", cifras: false, usuario,
       ranking: rankingNombre, anio, disciplina: disciplinaFiltro,

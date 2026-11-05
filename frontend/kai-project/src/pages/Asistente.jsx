@@ -10,7 +10,6 @@ import { ESTILO_RANKING } from "../components/asistente/estiloRankings";
 import { SparkleIcon } from "../components/asistente/iconos";
 import { useAuth } from "../auth/AuthContext";
 import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
-import { generarReporteEjecutivo } from "../reportes/reporteEjecutivo";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 
 const hora = (fecha) =>
@@ -204,6 +203,8 @@ export default function Asistente() {
     }
     setGenerando(idMensaje);
     try {
+      // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+      const { generarReporteEjecutivo } = await import("../reportes/reporteEjecutivo");
       await generarReporteEjecutivo({
         mensajes: mensajes.slice(0, hasta + 1),
         conversacion: tituloConversacion,
@@ -333,7 +334,10 @@ export default function Asistente() {
             </span>
           )}
         </div>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-8">
+        {/* Enfocable y con nombre: se desplaza con el teclado aunque no tenga botones
+            activos dentro (los informes guiados se deshabilitan sin acceso). */}
+        <div ref={scrollRef} tabIndex={0} role="region" aria-label="Conversación con el asistente"
+             className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-8 focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/30">
           {mensajes.length === 0 && !cargando && (
             // my-auto y no justify-center: con poca altura (teléfono), centrar con
             // flex recortaba el saludo por arriba, fuera del alcance del scroll.

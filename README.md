@@ -26,15 +26,31 @@ Plataforma de análisis de rankings universitarios (THE, QS Latam, Scimago, Shan
 KAI_OFICIAL/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py        # API FastAPI (endpoints)
-│   │   ├── assistant.py   # Asistente IA (tools + Claude)
-│   │   └── db.py          # Conexión a PostgreSQL
+│   │   ├── main.py            # API FastAPI: endpoints, CORS y cabeceras de seguridad
+│   │   ├── auth.py            # contraseñas, JWT propio (con huella de sesión) y Google
+│   │   ├── acceso.py          # qué puede hacer cada plan (única fuente de esas reglas)
+│   │   ├── conversaciones.py  # historial, cuotas y consumo del asistente
+│   │   ├── herramientas.py    # herramientas del asistente y filtro de la consulta SQL libre
+│   │   ├── motores.py         # catálogo de motores; assistant.py (Claude) y assistant_gemini.py
+│   │   ├── limites.py, contacto.py, db.py
+│   ├── migraciones/           # SQL manual, numerado e idempotente (ver su README)
+│   ├── pruebas/               # baterías del backend y servidor_doble.py
 │   └── requirements.txt
-└── frontend/kai-project/
-    └── src/
-        ├── pages/          # Vistas (Resumen, Tendencias, Simulación, Glosario, Asistente)
-        ├── components/     # Componentes por vista
-        └── hooks/          # Hooks de acceso a la API
+├── frontend/kai-project/
+│   ├── src/
+│   │   ├── pages/             # Resumen, Tendencias, Simulación, Glosario, Asistente, portada, 404
+│   │   ├── components/        # componentes por vista
+│   │   ├── hooks/             # acceso a la API (con caché)
+│   │   ├── reportes/          # informes PDF que se componen en el navegador
+│   │   └── auth/, estado/, utils/
+│   ├── pruebas/               # sondas de navegador (ejecutar.mjs)
+│   └── serve.json             # cabeceras de seguridad del servidor de producción
+├── tools/
+│   ├── rankings/              # cargador de rankings oficiales y revisión mensual
+│   └── recoleccion/, scopus_scraper/, desnormalizacion/   # recolección de datos
+├── datos/rankings/            # instantáneas versionadas de cada edición oficial
+├── docs/                      # documentación (produccion.md: guía de salida a producción)
+└── KAI/                       # fuentes originales de los rankings (planillas, salidas)
 ```
 
 ## Requisitos previos
@@ -97,13 +113,15 @@ El esquema y los datos académicos se cargan desde [`backend/pruebas/datos_de_pr
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/pruebas/datos_de_prueba.sql
 ```
 
-El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica las siguientes:
+El volcado trae aplicadas las [migraciones](backend/migraciones/README.md) de datos y esquema hasta la 017. Después de cargarlo, aplica las siguientes, **en orden numérico** (la 018 debe ir antes que la 020):
 
+- la del catálogo de universidades (018): fusiona el duplicado de UNIACC y agrega O'Higgins y Aysén;
 - la del rol del asistente: los roles son del servidor y no viajan en el volcado, y sin ella la consulta SQL libre del asistente se niega;
 - las del puntaje total de cada ranking, que Tendencias, Simulación y el Glosario muestran (la 020 y la 021, que corrige el de GRAS anterior a 2024);
 - la de grupos de comparación (022), la del puesto oficial y el estado de cada ranking (023) y la de THE World (024); después, el cargador de rankings agrega las ediciones que faltan, el puesto oficial de cada universidad y la última edición publicada de cada ranking.
 
 ```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/018_catalogo_de_universidades.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/019_rol_del_asistente.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/020_puntaje_total.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/021_gras_por_edicion.sql
@@ -111,7 +129,11 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/022_grupos_de_com
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/023_posicion_y_actualizacion.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migraciones/024_the_world.sql
 python tools/rankings/cargar.py --escribir   # ediciones que faltan, THE World, puesto oficial y estado de cada ranking
-``` (El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno.)
+```
+
+El antiguo `backend/backup.sql` quedó versionado con un esquema anterior y no debe usarse para levantar el entorno; solo lo leen como fuente de datos algunas herramientas de `tools/`.
+
+Para la salida a producción (Railway, variables, Google y verificación), sigue [`docs/produccion.md`](docs/produccion.md).
 
 ## Rankings oficiales
 
@@ -124,11 +146,11 @@ python tools/rankings/cargar.py --escribir   # carga las ediciones que faltan
 
 ## Docker
 
-También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-composer.yml`. Antes, copia `.env.example` como `.env` en la raíz y completa al menos `POSTGRES_PASSWORD` y `JWT_SECRET`; sin ellas el arranque se detiene con un aviso.
+También se puede levantar todo el stack (base de datos + backend + frontend) con `docker-compose.yml`. Antes, copia `.env.example` como `.env` en la raíz y completa al menos `POSTGRES_PASSWORD` y `JWT_SECRET`; sin ellas el arranque se detiene con un aviso.
 
 ```bash
 cp .env.example .env    # y completar POSTGRES_PASSWORD y JWT_SECRET
-docker compose -f docker-composer.yml up
+docker compose up
 ```
 
-El frontend del contenedor es la compilación de producción servida como archivos estáticos, no el servidor de desarrollo; `VITE_API_URL` se fija al construir la imagen. La base se crea con `backend/pruebas/datos_de_prueba.sql` la primera vez, con el volumen vacío. Usa PostgreSQL 18, igual que integración continua. Si levantaste antes la versión anterior, con PostgreSQL 15, borra su volumen para que se cree de nuevo: `docker compose -f docker-composer.yml down -v`.
+El frontend del contenedor es la compilación de producción servida como archivos estáticos, no el servidor de desarrollo; `VITE_API_URL` se fija al construir la imagen. La base se crea con `backend/pruebas/datos_de_prueba.sql` la primera vez, con el volumen vacío. Usa PostgreSQL 18, igual que integración continua. Si levantaste antes la versión anterior, con PostgreSQL 15, borra su volumen para que se cree de nuevo: `docker compose -f docker-compose.yml down -v`.

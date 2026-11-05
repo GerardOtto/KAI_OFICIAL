@@ -3,7 +3,6 @@ import { useDescarga, motivoAgotado } from "../../hooks/useDescarga";
 import { useSimulacion } from "../../hooks/useSimulacion";
 import { useRankingResumen } from "../../hooks/useRankingResumen";
 import { useAuth } from "../../auth/AuthContext";
-import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { conSigno, decimal, porcentaje } from "../../utils/formato";
 
 // Métrica | valor | ajuste | efecto. En el teléfono, dos filas: métrica y valor
@@ -152,6 +151,8 @@ export default function SimulacionUnitaria({ rankingId, anio, rankingNombre, uni
     if (!(await descarga.permitir("pdf"))) return;
     const siguiente = [...pares].sort((a, b) => Number(a.score_total) - Number(b.score_total))
       .find(u => Number(u.score_total) > scoreSimulado);
+    // Se carga al pedir el informe: jsPDF no entra en la carga inicial de la vista.
+    const { generarInformeSimulacion } = await import("../../reportes/informeSimulacion");
     await generarInformeSimulacion({
       tipo: "unitaria", cifras: false, usuario,
       ranking: rankingNombre, anio, disciplina: disciplinaFiltro, institucion: nombreInstitucion,

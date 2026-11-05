@@ -29,6 +29,7 @@ from email.message import EmailMessage
 from sqlalchemy import text
 
 from .db import SessionLocal
+from .entorno import entero, texto
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ _recientes: dict[str, deque] = defaultdict(deque)
 
 
 def config() -> dict:
-    host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    host = texto("SMTP_HOST", "smtp.gmail.com")
     clave = os.getenv("SMTP_CLAVE", "")
     # Google muestra la contraseña de aplicación en cuatro grupos separados por
     # espacios, y así se suele copiar; los espacios no forman parte de ella.
@@ -48,7 +49,7 @@ def config() -> dict:
         clave = clave.replace(" ", "")
     return {
         "host": host,
-        "puerto": int(os.getenv("SMTP_PORT", "587")),
+        "puerto": entero("SMTP_PORT", 587),
         "usuario": os.getenv("SMTP_USUARIO", "").strip(),
         "clave": clave,
         "destino": os.getenv("CONTACTO_DESTINO", "").strip(),

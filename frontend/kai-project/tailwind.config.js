@@ -20,7 +20,6 @@ export default {
       fontFamily: {
         headline: ["Noto Serif", "serif"],
         body: ["Manrope", "sans-serif"],
-        label: ["Inter", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
         // Botones de la portada: una sans sobria, de la misma familia que la
         // monoespaciada de las cifras, que en mayúsculas se lee institucional.

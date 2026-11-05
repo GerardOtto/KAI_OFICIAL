@@ -1,0 +1,12 @@
+# El contenedor solo copia requirements.txt y app/ (ver Dockerfile), pero Docker
+# envía todo el directorio como contexto de construcción: sin esto viajarían el
+# entorno virtual, los .env con claves y el volcado de prueba.
+venv
+.venv
+.env
+.env.*
+__pycache__
+*.pyc
+pruebas
+migraciones
+backup.sql

@@ -26,6 +26,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal
+from .entorno import entero
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,6 @@ def system_prompt() -> str:
     return BASE_SYSTEM_PROMPT + contexto_de_datos()
 
 
-# Se conserva el nombre antiguo por compatibilidad con lo que ya lo importaba.
-SYSTEM_PROMPT = BASE_SYSTEM_PROMPT
-
-
 # --- Rankings que la cuenta del turno no puede consultar -------------------
 
 # El plan gratuito no incluye THE ni QS, y la interfaz lo respeta; el asistente,
@@ -233,7 +230,7 @@ def capturar_informes():
 # segunda vuelta de seis se paga cinco veces. Con 80 filas el resultado más
 # grande medido baja de ~3.300 a ~1.600 tokens, y el aviso de recorte empuja al
 # modelo a filtrar, que es lo que de verdad ahorra.
-TOPE_FILAS = int(os.getenv("KAI_TOPE_FILAS", "80"))
+TOPE_FILAS = entero("KAI_TOPE_FILAS", 80)
 
 # Los nombres llegaron a la base sin tildes ("Pontificia Universidad Catolica de
 # Valparaiso"), pero tanto el usuario como el modelo las escriben. Comparar los
@@ -1016,7 +1013,7 @@ def _sesion_de_consulta() -> Session:
         return SessionLocal()
     global _motor_asistente
     if _motor_asistente is None:
-        _motor_asistente = create_engine(URL_ASISTENTE, pool_pre_ping=True)
+        _motor_asistente = create_engine(URL_ASISTENTE, pool_pre_ping=True, pool_recycle=1800)
     return Session(bind=_motor_asistente)
 
 
