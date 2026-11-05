@@ -63,7 +63,7 @@ export default function GraficoBarras({ fuente }) {
       </div>
 
       {g.fuente && (
-        <p className="font-mono text-[9px] uppercase tracking-widest text-[#6f6f6f] mt-3">Fuente: {g.fuente}</p>
+        <p className="font-mono text-[9px] uppercase tracking-widest text-[#858585] mt-3">Fuente: {g.fuente}</p>
       )}
     </figure>
   );

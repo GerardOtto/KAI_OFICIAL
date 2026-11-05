@@ -150,16 +150,16 @@ export default function Simulacion() {
 
   return (
     <div className="min-h-screen bg-background text-white">
-      <main className="max-w-[1600px] mx-auto px-8 pt-[22px] pb-10">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-[22px] pb-10">
 
         {/* Título */}
         <section className="mb-1">
           <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft mb-2">
             Simulación · {rankingNombre}{disciplinaActiva ? ` · ${disciplinaActiva}` : ""} · {anioActivo ?? "—"} · modo {modo}{enCifras ? " · cifras medidas" : ""}
           </p>
-          <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
+          <h1 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em]">
             Simulación de escenarios
-          </h2>
+          </h1>
         </section>
 
         {/* Pestañas de modo */}
@@ -177,7 +177,7 @@ export default function Simulacion() {
                 <div className={`font-body font-semibold text-[12px] ${activa ? "text-[#111]" : "text-[#9a9a9a]"}`}>
                   {m.label}
                 </div>
-                <div className={`font-body text-[10px] mt-0.5 ${activa ? "text-black/50" : "text-[#6f6f6f]"}`}>
+                <div className={`font-body text-[10px] mt-0.5 ${activa ? "text-black/60" : "text-[#858585]"}`}>
                   {m.sub}
                 </div>
               </button>
@@ -188,8 +188,8 @@ export default function Simulacion() {
         {/* Controles: ranking / año / disciplina / instituciones */}
         <div className="flex items-end gap-3 flex-wrap py-4 mb-2 border-b border-white/[.08]">
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Ranking</p>
-            <select
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8a8a8a] mb-1.5">Ranking</p>
+            <select aria-label="Ranking"
               value={rankingId ?? ""}
               onChange={e => handleRankingChange(Number(e.target.value))}
               className={claseControl}
@@ -203,8 +203,8 @@ export default function Simulacion() {
           </div>
 
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Año</p>
-            <select
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8a8a8a] mb-1.5">Año</p>
+            <select aria-label="Año"
               value={anioActivo || ""}
               onChange={e => { setAnio(Number(e.target.value)); setPlanPendiente(null); }}
               className={claseControl}
@@ -217,8 +217,8 @@ export default function Simulacion() {
 
           {disciplinas.length > 0 && (
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">Disciplina</p>
-              <select
+              <p className="font-mono text-[9px] uppercase tracking-widest text-[#8a8a8a] mb-1.5">Disciplina</p>
+              <select aria-label="Disciplina"
                 value={disciplinaActiva || ""}
                 onChange={e => { setDisciplina(e.target.value); setPlanPendiente(null); }}
                 className={`${claseControl} max-w-[260px]`}
@@ -231,7 +231,7 @@ export default function Simulacion() {
           )}
 
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-widest text-[#7a7a7a] mb-1.5">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[#8a8a8a] mb-1.5">
               {individual ? "Institución" : `Instituciones (${institucionesComparada.length})`}
             </p>
             <SelectorUniversidad

@@ -129,7 +129,7 @@ function MenuUsuario() {
             <div className="px-4 py-3 border-b border-white/[.08]">
               <p className="font-body font-semibold text-[12.5px] text-white truncate">{usuario.nombre}</p>
               <p className="font-body text-[11px] text-[#8a8a8a] truncate">{usuario.correo}</p>
-              <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#6f6f6f] mt-1.5">
+              <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#858585] mt-1.5">
                 Plan {usuario.nombre_plan || usuario.plan}
                 {usuario.con_google && " · Google"}
               </p>
@@ -137,7 +137,7 @@ function MenuUsuario() {
 
             {cuota && (
               <div className="px-4 py-3 border-b border-white/[.08]">
-                <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f] mb-2">Tokens del mes</p>
+                <p className="font-mono text-[9px] uppercase tracking-[.14em] text-[#8a8a8a] mb-2">Tokens del mes</p>
                 {/* La cuota es de cada motor por separado (ver conversaciones.py): un
                     total común no diría cuál se agotó ni cuál queda libre. */}
                 {Object.entries(cuota.motores || {}).map(([id, m]) => (
@@ -165,12 +165,12 @@ function MenuUsuario() {
                   </div>
                 ))}
                 {cuota.mensajes_por_dia != null && (
-                  <p className="font-mono text-[9px] text-[#6f6f6f] mt-1.5">
+                  <p className="font-mono text-[9px] text-[#858585] mt-1.5">
                     {cuota.mensajes_hoy} de {cuota.mensajes_por_dia} consultas hoy
                   </p>
                 )}
                 {cuota.consultas?.total != null && (
-                  <p className="font-mono text-[9px] text-[#6f6f6f] mt-1.5">
+                  <p className="font-mono text-[9px] text-[#858585] mt-1.5">
                     {cuota.consultas.hechas} de {cuota.consultas.total} consultas de prueba usadas
                   </p>
                 )}

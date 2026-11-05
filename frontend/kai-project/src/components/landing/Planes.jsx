@@ -60,7 +60,7 @@ const TEMAS = {
     sello: "",
     bajada: "text-white/70",
     nota: "text-outlineSoft",
-    tachado: "text-white/45",
+    tachado: "text-white/60",
     descuento: "text-positive border-positive/50",
     divisoria: "border-white/10",
     item: "text-white/90",
@@ -74,13 +74,13 @@ const TEMAS = {
     sello: "bg-black text-white",
     bajada: "text-black/70",
     nota: "text-black/55",
-    tachado: "text-black/45",
+    tachado: "text-black/60",
     descuento: "text-[#1f7a3d] border-[#1f7a3d]/50",
     divisoria: "border-black/10",
     item: "text-black/85",
     detalle: "text-black/55",
     check: "text-[#1f7a3d]",
-    candado: "text-black/40",
+    candado: "text-black/55",
     foco: "focus-visible:ring-black focus-visible:ring-offset-white",
   },
 };
@@ -189,7 +189,7 @@ export default function Planes({ planes, onElegir }) {
 
             <ul className={`mt-6 flex flex-col gap-3 border-t pt-5 ${t.divisoria}`}>
               {incluye(p).map(({ si, texto, detalle }) => (
-                <li key={texto} className={`flex items-start gap-2.5 ${si ? "" : "opacity-50"}`}>
+                <li key={texto} className={`flex items-start gap-2.5 ${si ? "" : "opacity-[.65]"}`}>
                   <span className={`mt-0.5 shrink-0 ${si ? t.check : t.candado}`}>
                     {si ? <Check /> : <Candado />}
                   </span>

@@ -40,13 +40,13 @@ export default function GruposGuardados({ seleccionadas, onAplicar, max = null, 
         title="Grupos de instituciones guardados en tu cuenta"
       >
         Grupos
-        <span className="font-mono text-[9.5px] text-[#7f7f7f]">{grupos.length}</span>
+        <span className="font-mono text-[9.5px] text-[#8a8a8a]">{grupos.length}</span>
       </button>
 
       {abierto && (
         <div className="absolute top-[calc(100%+7px)] left-0 w-[min(340px,calc(100vw-4rem))] bg-[#1a1a1a] border border-white/[.16] shadow-[0_18px_44px_rgba(0,0,0,.6)] p-[11px] z-40">
           {grupos.length === 0 ? (
-            <p className="font-body text-[11px] text-[#7f7f7f] mb-2">
+            <p className="font-body text-[11px] text-[#8a8a8a] mb-2">
               Aún no guardas grupos. Elige instituciones y guárdalas con un nombre para volver a usarlas.
             </p>
           ) : (
@@ -59,11 +59,11 @@ export default function GruposGuardados({ seleccionadas, onAplicar, max = null, 
                     title={max && g.universidades.length > max ? `Esta vista muestra hasta ${max}` : undefined}
                   >
                     {g.nombre}
-                    <span className="ml-2 font-mono text-[9.5px] text-[#6f6f6f]">{g.universidades.length}</span>
+                    <span className="ml-2 font-mono text-[9.5px] text-[#858585]">{g.universidades.length}</span>
                   </button>
                   <button
                     onClick={() => eliminar(g.id_grupo)}
-                    className="px-2 font-body text-[12px] text-[#7f7f7f] hover:text-white"
+                    className="px-2 min-w-[28px] min-h-[28px] font-body text-[12px] text-[#8a8a8a] hover:text-white"
                     title={`Borrar «${g.nombre}»`}
                     aria-label={`Borrar el grupo ${g.nombre}`}
                   >
@@ -79,7 +79,7 @@ export default function GruposGuardados({ seleccionadas, onAplicar, max = null, 
               onChange={e => setNombre(e.target.value)}
               maxLength={60}
               placeholder={`Guardar estas ${seleccionadas.length} como…`}
-              className="flex-1 min-w-0 bg-[#242424] border border-white/[.14] text-white font-body text-xs px-2.5 py-[7px] outline-none placeholder:text-[#6f6f6f]"
+              className="flex-1 min-w-0 bg-[#242424] border border-white/[.14] text-white font-body text-xs px-2.5 py-[7px] outline-none placeholder:text-[#858585]"
             />
             <button type="submit" disabled={!nombre.trim() || !seleccionadas.length} className={btnMini}>
               Guardar

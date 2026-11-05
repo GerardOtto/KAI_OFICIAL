@@ -67,7 +67,7 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
 
   if (!grupos.length) {
     return (
-      <p className="font-body text-[11.5px] text-[#6f6f6f] py-16 text-center">
+      <p className="font-body text-[11.5px] text-[#858585] py-16 text-center">
         No hay valores para esta combinación de métricas, instituciones y año.
       </p>
     );
@@ -78,7 +78,8 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
       ? "flex flex-row gap-[26px] items-start"
       : "flex flex-col lg:flex-row gap-6 lg:gap-[26px] items-stretch lg:items-start"}>
       {/* El gráfico scrollea dentro de su columna: nunca empuja el ancho de la página. */}
-      <div className={estatico ? "flex-1 min-w-0" : "flex-1 min-w-0 overflow-x-auto pb-1"}>
+      <div className={estatico ? "flex-1 min-w-0" : "flex-1 min-w-0 overflow-x-auto pb-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"}
+           tabIndex={estatico ? undefined : 0} role={estatico ? undefined : "region"} aria-label={estatico ? undefined : "Comparación anual"}>
        <div className="pl-[46px]" style={{ minWidth: `${Math.max(360, grupos.length * 90)}px` }}>
         <div
           className="relative flex items-end gap-2 sm:gap-3.5 border-b border-white/20"
@@ -90,7 +91,7 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
           {ticks.map(t => (
             <div
               key={`v${t.label}`}
-              className="absolute -left-[46px] w-[38px] text-right translate-y-1/2 font-mono text-[9.5px] text-[#6f6f6f]"
+              className="absolute -left-[46px] w-[38px] text-right translate-y-1/2 font-mono text-[9.5px] text-[#858585]"
               style={{ bottom: t.bottom }}
             >
               {t.label}
@@ -140,12 +141,12 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
               >
                 {g.label}
               </div>
-              <div className="font-mono text-[9px] text-[#5f5f5f] mt-[3px]">peso {g.peso ?? "—"}</div>
+              <div className="font-mono text-[9px] text-[#858585] mt-[3px]">peso {g.peso ?? "—"}</div>
             </div>
           ))}
         </div>
 
-        <p className="mt-3.5 font-body text-[10.5px] text-[#6f6f6f]">
+        <p className="mt-3.5 font-body text-[10.5px] text-[#858585]">
           Cada barra es una institución en {anio}. La altura es el valor como porcentaje del techo
           observado de su métrica —el máximo histórico registrado en este ranking—, para poder poner
           en un mismo eje escalas distintas. Los valores absolutos están a la derecha.
@@ -158,7 +159,7 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
           <p className="mb-[3px] font-body font-semibold text-[12.5px] leading-[1.3] text-white">
             {grupoRail.label}
           </p>
-          <p className="mb-3.5 font-body font-medium text-[9px] uppercase tracking-[.12em] text-[#7f7f7f]">
+          <p className="mb-3.5 font-body font-medium text-[9px] uppercase tracking-[.12em] text-[#8a8a8a]">
             peso {grupoRail.peso ?? "—"} · {anio} · valores absolutos
           </p>
           <div className="flex flex-col gap-2.5">
@@ -172,7 +173,7 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
                   transition={{ duration: 0.3, delay: Math.min(i * 0.025, 0.4) }}
                 >
                   <div className="flex items-baseline gap-2 mb-[5px]">
-                    <span className="font-mono text-[9.5px] text-[#6f6f6f] flex-none">{r.pos}</span>
+                    <span className="font-mono text-[9.5px] text-[#858585] flex-none">{r.pos}</span>
                     <span className="w-2 h-2 flex-none" style={{ background: color }} />
                     <span className={`font-body text-[11px] text-[#dcdcdc] ${claseNombre}`}
                           title={estatico ? undefined : r.nombre}>
@@ -195,7 +196,7 @@ export default function VistaAnual({ filas, metricasSel, universidadesSel, unive
               );
             })}
             {rail.length === 0 && (
-              <p className="font-body text-[11px] text-[#6f6f6f]">Sin datos en esta métrica para {anio}.</p>
+              <p className="font-body text-[11px] text-[#858585]">Sin datos en esta métrica para {anio}.</p>
             )}
           </div>
         </div>

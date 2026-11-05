@@ -193,7 +193,7 @@ export default function VistaEvolucion({
 
   if (!series.length) {
     return (
-      <p className="font-body text-[11.5px] text-[#6f6f6f] py-16 text-center">
+      <p className="font-body text-[11.5px] text-[#858585] py-16 text-center">
         No hay serie histórica para esta métrica y estas instituciones.
       </p>
     );
@@ -206,13 +206,14 @@ export default function VistaEvolucion({
       ? "flex flex-row gap-[26px] items-start"
       : "flex flex-col lg:flex-row gap-6 lg:gap-[26px] items-stretch lg:items-start"}>
       {/* El gráfico scrollea dentro de su columna: nunca empuja el ancho de la página. */}
-      <div className={estatico ? "flex-1 min-w-0" : "flex-1 min-w-0 overflow-x-auto pb-1"}>
+      <div className={estatico ? "flex-1 min-w-0" : "flex-1 min-w-0 overflow-x-auto pb-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"}
+           tabIndex={estatico ? undefined : 0} role={estatico ? undefined : "region"} aria-label={estatico ? undefined : "Gráfico de evolución"}>
        <div className="pl-[52px] min-w-[420px]">
         <div ref={wrapRef} className="relative" style={{ height: `${H}px` }}>
           {ticks.map(t => (
             <div
               key={t.label + t.y}
-              className="absolute -left-[52px] w-[44px] text-right translate-y-1/2 font-mono text-[9.5px] text-[#6f6f6f] z-[2]"
+              className="absolute -left-[52px] w-[44px] text-right translate-y-1/2 font-mono text-[9.5px] text-[#858585] z-[2]"
               style={{ bottom: t.bottom }}
             >
               {t.label}
@@ -366,11 +367,11 @@ export default function VistaEvolucion({
               >
                 <div
                   className="font-mono text-[10.5px] transition-colors"
-                  style={{ color: a === anioActivo ? "#fff" : esProy ? "#6f6f6f" : "#9a9a9a" }}
+                  style={{ color: a === anioActivo ? "#fff" : esProy ? "#858585" : "#9a9a9a" }}
                 >
                   {a}
                 </div>
-                <div className="font-body text-[8px] uppercase tracking-[.12em] text-[#5f5f5f] h-[11px]">
+                <div className="font-body text-[8px] uppercase tracking-[.12em] text-[#858585] h-[11px]">
                   {esProy ? "proy." : ""}
                 </div>
               </div>
@@ -378,7 +379,7 @@ export default function VistaEvolucion({
           })}
         </div>
 
-        <p className="mt-2.5 font-body text-[10.5px] text-[#6f6f6f]">
+        <p className="mt-2.5 font-body text-[10.5px] text-[#858585]">
           Línea continua = dato reportado
           {proyeccion && rangoObs
             ? ` · tramo punteado = proyección por regresión lineal sobre ${rangoObs}; la banda es su intervalo de predicción del 80 %`
@@ -392,7 +393,7 @@ export default function VistaEvolucion({
         <div className="bg-panel border border-white/[.09] px-4 pt-[15px] pb-[17px]">
           <div className="flex items-baseline justify-between mb-3.5">
             <span className="font-headline text-[19px] text-white">{anioActivo}</span>
-            <span className="font-body font-medium text-[9px] uppercase tracking-[.12em] text-[#7f7f7f]">
+            <span className="font-body font-medium text-[9px] uppercase tracking-[.12em] text-[#8a8a8a]">
               {!aniosReales.includes(anioActivo)
                 ? "proyectado"
                 : anioActivo === aniosReales[aniosReales.length - 1]
@@ -418,7 +419,7 @@ export default function VistaEvolucion({
                     {fmt(r.valor, decimales)}
                   </span>
                   {r.intervalo && (
-                    <span className="font-mono text-[9.5px] text-[#7f7f7f] whitespace-nowrap" data-intervalo
+                    <span className="font-mono text-[9.5px] text-[#8a8a8a] whitespace-nowrap" data-intervalo
                           title="Intervalo de predicción del 80 %">
                       {fmt(r.intervalo.bajo, decimales)}–{fmt(r.intervalo.alto, decimales)}
                     </span>
@@ -426,7 +427,7 @@ export default function VistaEvolucion({
                   <span
                     className="font-mono text-[10px] min-w-[38px] text-right"
                     style={{
-                      color: r.delta === null ? "#5f5f5f" : r.delta > 0 ? POSITIVO : r.delta < 0 ? NEGATIVO : "#6f6f6f",
+                      color: r.delta === null ? "#858585" : r.delta > 0 ? POSITIVO : r.delta < 0 ? NEGATIVO : "#858585",
                     }}
                   >
                     {r.delta === null ? "—" : `${r.delta >= 0 ? "+" : "−"}${fmt(Math.abs(r.delta), decimales)}`}
@@ -448,7 +449,7 @@ export default function VistaEvolucion({
 
         {cambios.length > 0 && (
           <div className="bg-panel border border-white/[.09] px-4 pt-[15px] pb-[17px]">
-            <p className="mb-3 font-body font-medium text-[9px] uppercase tracking-[.14em] text-[#7f7f7f]">
+            <p className="mb-3 font-body font-medium text-[9px] uppercase tracking-[.14em] text-[#8a8a8a]">
               Cambio {rangoObs}
             </p>
             <div className={estatico ? "flex flex-col gap-[9px]" : "flex flex-col gap-[9px] max-h-[320px] overflow-y-auto pr-1"}>
@@ -477,7 +478,7 @@ export default function VistaEvolucion({
                 );
               })}
             </div>
-            <p className="mt-3 font-body text-[9.5px] leading-relaxed text-[#5f5f5f]">
+            <p className="mt-3 font-body text-[9.5px] leading-relaxed text-[#858585]">
               R² indica qué tanto explica la recta la serie observada. Bajo 0,90 la proyección
               es solo indicativa.
             </p>

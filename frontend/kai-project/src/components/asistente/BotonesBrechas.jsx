@@ -31,7 +31,7 @@ export default function BotonesBrechas({ onElegir, deshabilitado = false, restri
         <p className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft">
           Informes de brechas · PUCV y UV
         </p>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f]">Un clic</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[#858585]">Un clic</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -72,7 +72,7 @@ export default function BotonesBrechas({ onElegir, deshabilitado = false, restri
         })}
       </div>
 
-      <p className="mt-3 text-[11px] text-[#7a7a7a] leading-relaxed">
+      <p className="mt-3 text-[11px] text-[#8a8a8a] leading-relaxed">
         Cada informe usa una consulta y se puede descargar en PDF. También puedes escribir tu propia pregunta abajo.
         {hayVedados && (
           <>

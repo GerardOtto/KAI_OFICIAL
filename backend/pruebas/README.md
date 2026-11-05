@@ -110,6 +110,8 @@ Direcciones configurables con `KAI_APP_URL` y `KAI_CDP_URL`.
 | `consultas_guiadas` | Botones de brechas: la pregunta visible sin instrucciones, las negritas del informe en el chat y su PDF (título, logotipo del ranking, sin SQL y tablas que no se parten) |
 | `informes` | Informes PDF de Tendencias, Simulación, Glosario y Resumen: cifras clave y lectura, tablas acotadas, proyecciones dentro de la escala y ningún carácter fuera de la fuente del PDF |
 | `revelado` | Aparición progresiva de la respuesta e indicador de espera |
+| `actualizacion` | Aviso de una edición publicada y no cargada, puesto oficial en el Resumen y THE World reservado en el catálogo |
+| `ux_movil` | En el teléfono (390 px): ninguna sección desborda, los nombres del Resumen se leen, el resultado de la simulación unitaria se ve (barra fija), la comparada no se pisa con el ranking simulado y el historial del asistente es un cajón que abre «Historial» y cierra Escape; un solo `h1` y título de pestaña por sección, `lang="es"`, la matriz comparada manejable con el teclado y la página 404 |
 
 Desde que ningún módulo es público, las sondas que abren uno crean una cuenta
 desechable contra el backend y dejan su testigo en el navegador; lo hace

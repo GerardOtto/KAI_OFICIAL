@@ -221,7 +221,7 @@ export default function Landing() {
         {/* Solo enlaces que llevan a algo. Privacidad, términos y propiedad
             intelectual apuntaban a «#»: vuelven al pie cuando existan sus textos. */}
         <button onClick={() => setContacto("")}
-                className="text-[12px] text-outlineSoft hover:text-white transition-colors">
+                className="px-2 py-2 -my-2 text-[12px] text-outlineSoft hover:text-white transition-colors">
           Contacto
         </button>
       </footer>

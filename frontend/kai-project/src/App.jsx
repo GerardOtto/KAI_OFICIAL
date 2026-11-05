@@ -12,14 +12,31 @@ import Tendencias from "./pages/Tendencias";
 import Simulacion from "./pages/Simulacion";
 import Metricas from "./pages/Metricas";
 import Asistente from "./pages/Asistente";
+import NoEncontrada from "./pages/NoEncontrada";
 import InstitucionPendiente from "./components/InstitucionPendiente";
 import { useAuth } from "./auth/AuthContext";
 
 
 
+// Título de la pestaña por sección: con uno solo para todas, el historial del
+// navegador y los lectores de pantalla no distinguían dónde se estaba.
+const TITULOS = [
+  ["/ranking", "Resumen"],
+  ["/tendencias", "Tendencias"],
+  ["/simulacion", "Simulación"],
+  ["/metricas", "Glosario"],
+  ["/asistente", "Asistente"],
+];
+
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === "/";
+
+  useEffect(() => {
+    const seccion = isLanding ? null
+      : TITULOS.find(([ruta]) => location.pathname.startsWith(ruta))?.[1] ?? "Página no encontrada";
+    document.title = seccion ? `${seccion} · KAI` : "KAI · Key Academic Indicator";
+  }, [location.pathname, isLanding]);
   // La institución es obligatoria y el acceso con Google no la pregunta: se
   // reclama sobre cualquier vista salvo la portada, que es pública.
   const { institucionPendiente } = useAuth();
@@ -76,7 +93,7 @@ function AppContent() {
         <Route path="/cientificos" element={<Navigate to="/" replace />} />
         <Route path="/investigadores-pucv" element={<Navigate to="/" replace />} />
         <Route path="/asistente" element={<RutaProtegida><Asistente /></RutaProtegida>} />
-        <Route path="*" element={<h1>404</h1>} />
+        <Route path="*" element={<NoEncontrada />} />
       </Routes>
     </>
   );

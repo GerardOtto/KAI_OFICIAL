@@ -57,7 +57,7 @@ export default function SelectorInstituciones({
 
   return (
     <div className="mt-2 px-3.5 py-2.5 bg-panel border border-hairline flex items-center gap-2.5 flex-wrap relative z-20">
-      <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#7f7f7f] flex-none">
+      <span className="font-mono text-[9px] uppercase tracking-[.14em] text-[#8a8a8a] flex-none">
         Instituciones
       </span>
 
@@ -69,7 +69,7 @@ export default function SelectorInstituciones({
           }`}
         >
           + Buscar institución
-          <span className="font-mono text-[9.5px] text-[#7f7f7f]">
+          <span className="font-mono text-[9.5px] text-[#8a8a8a]">
             {conTope ? `${graficadas.length}/${max}` : graficadas.length}
           </span>
         </button>
@@ -88,10 +88,10 @@ export default function SelectorInstituciones({
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder="Buscar por nombre o país…"
-                className="w-full bg-[#242424] border border-white/[.14] text-white font-body text-xs px-[11px] py-[9px] outline-none placeholder:text-[#6f6f6f]"
+                className="w-full bg-[#242424] border border-white/[.14] text-white font-body text-xs px-[11px] py-[9px] outline-none placeholder:text-[#858585]"
               />
               <div className="flex items-center justify-between gap-2 my-2 flex-wrap">
-                <span className="font-mono text-[9.5px] text-[#7f7f7f]">
+                <span className="font-mono text-[9.5px] text-[#8a8a8a]">
                   {seleccionadas.length} de {universidades?.length ?? 0}
                   {conTope ? ` · máx. ${max}` : " · sin tope"}
                 </span>
@@ -148,14 +148,14 @@ export default function SelectorInstituciones({
                       }`}>
                         {u.nombre_universidad}
                       </span>
-                      <span className="font-mono text-[9.5px] text-[#6f6f6f] flex-none">
+                      <span className="font-mono text-[9.5px] text-[#858585] flex-none">
                         {u.pais_universidad || ""}
                       </span>
                     </button>
                   );
                 })}
                 {filas.length === 0 && (
-                  <div className="p-4 text-center font-body text-[11px] text-[#6f6f6f]">Sin resultados</div>
+                  <div className="p-4 text-center font-body text-[11px] text-[#858585]">Sin resultados</div>
                 )}
               </div>
             </motion.div>
@@ -189,7 +189,8 @@ export default function SelectorInstituciones({
                 <button
                   onClick={() => setSeleccionadas(seleccionadas.filter(x => x !== id))}
                   title="Quitar"
-                  className="w-3.5 h-3.5 flex items-center justify-center font-body font-semibold text-[11px] text-[#8a8a8a] hover:text-white transition-colors"
+                  aria-label={`Quitar ${u ? u.nombre_universidad : id}`}
+                  className="w-6 h-6 -my-1.5 -mr-1 flex items-center justify-center font-body font-semibold text-[11px] text-[#8a8a8a] hover:text-white transition-colors"
                 >
                   ×
                 </button>
@@ -198,7 +199,7 @@ export default function SelectorInstituciones({
           })}
         </AnimatePresence>
         {graficadas.length === 0 && (
-          <span className="font-body text-[11px] text-[#6f6f6f]">Sin instituciones seleccionadas.</span>
+          <span className="font-body text-[11px] text-[#858585]">Sin instituciones seleccionadas.</span>
         )}
       </div>
 

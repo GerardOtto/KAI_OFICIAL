@@ -83,7 +83,7 @@ comprobar("tras recargar la página sigue en Valores", (await activo()) === "Val
 console.log("\n=== 3. Tendencias ===");
 await elegirRanking("Ranking KAI");
 await esperar(3500);
-const subtitulo = await ev(`return [...document.querySelectorAll('main h2 + p')].map(p => p.textContent).join(' | ');`);
+const subtitulo = await ev(`return [...document.querySelectorAll('main h1 + p')].map(p => p.textContent).join(' | ');`);
 comprobar("el subtítulo dice que es una cifra medida y su unidad", /Cifra medida · /.test(subtitulo), subtitulo);
 // Los rótulos del gráfico no son texto SVG: se comparan las cifras que el usuario
 // lee, todos los números con decimales de la vista.
@@ -92,7 +92,7 @@ const serieValores = await ev(`return ${grafico};`);
 await capturar("switch_tendencias_valores");
 await ev(`${switchHeader("Puntajes")}.click();`);
 await esperar(3000);
-const subtituloP = await ev(`return [...document.querySelectorAll('main h2 + p')].map(p => p.textContent).join(' | ');`);
+const subtituloP = await ev(`return [...document.querySelectorAll('main h1 + p')].map(p => p.textContent).join(' | ');`);
 comprobar("en Puntajes vuelve la serie histórica", /Serie histórica/.test(subtituloP), subtituloP);
 const seriePuntajes = await ev(`return ${grafico};`);
 comprobar("el gráfico cambia entre un modo y otro", serieValores && seriePuntajes && serieValores !== seriePuntajes);
@@ -182,7 +182,7 @@ if (process.env.KAI_TOKEN_PAGO) {
     const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
     set.call(s, o.value); s.dispatchEvent(new Event('change', { bubbles: true }));`);
   await esperar(2500);
-  const titulo = () => ev(`return document.querySelector('main h2')?.textContent.trim() || '';`);
+  const titulo = () => ev(`return document.querySelector('main h1')?.textContent.trim() || '';`);
   const instituciones = () => ev(`return [...document.querySelectorAll('main span[title]')].map(s => s.getAttribute('title')).join('|');`);
   const antesTitulo = await titulo();
   const antesInst = await instituciones();

@@ -334,11 +334,11 @@ export default function Tendencias() {
     "font-body font-semibold text-[10px] uppercase tracking-[.1em] px-3.5 py-[9px] border border-white/[.16] text-[#c4c4c4] hover:bg-white hover:text-[#111] hover:border-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#c4c4c4] disabled:hover:border-white/[.16]";
   const selectClase =
     "bg-[#242424] border border-white/[.14] text-white font-body font-medium text-[11.5px] px-2.5 py-[7px] cursor-pointer focus:outline-none focus:border-white/40 max-w-[260px]";
-  const etiqueta = "font-body font-medium text-[9px] uppercase tracking-[.14em] text-[#7f7f7f]";
+  const etiqueta = "font-body font-medium text-[9px] uppercase tracking-[.14em] text-[#8a8a8a]";
 
   return (
     <div className="min-h-screen bg-background text-white">
-      <main className="max-w-[1600px] mx-auto px-8 pt-[22px] pb-10">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-[22px] pb-10">
 
         {pidioNumerico && rankingSel && !rankingSel.tiene_valores_reales && (
           <AvisoModo tipo="sinValores" ranking={rankingSel.nombre_ranking} />
@@ -355,10 +355,10 @@ export default function Tendencias() {
             </p>
             {esAnual ? (
               <>
-                <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-1.5">
+                <h1 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-1.5">
                   Comparación {anioActivo ?? "—"}
-                </h2>
-                <p className="font-body text-[11.5px] text-[#7f7f7f]">
+                </h1>
+                <p className="font-body text-[11.5px] text-[#8a8a8a]">
                   {graficadas.length} instituciones × {metricasSel.length} métricas · {numerico
                     ? "cifras medidas, expresadas como porcentaje de la mayor observada en cada métrica"
                     : "valores normalizados al techo de cada métrica"}
@@ -366,11 +366,11 @@ export default function Tendencias() {
               </>
             ) : (
               <>
-                <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-1.5">
+                <h1 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-1.5">
                   {metricaActual?.nombre_metrica || "—"}
                   {pesoVisible(metricaActual) != null ? ` · Peso ${metricaActual.peso_metrica}` : ""}
-                </h2>
-                <p className="font-body text-[11.5px] text-[#7f7f7f]"
+                </h1>
+                <p className="font-body text-[11.5px] text-[#8a8a8a]"
                    title={esPuntajeTotal(metricaActual) ? metricaActual.descripcion_metrica || undefined : undefined}>
                   {numerico ? `Cifra medida${unidadActual ? ` · ${unidadActual}` : ""}`
                     : esPuntajeTotal(metricaActual) ? "Serie histórica del puntaje total del ranking"
@@ -428,7 +428,7 @@ export default function Tendencias() {
                 <div className={`font-body font-semibold text-[12px] ${activa ? "text-[#111]" : "text-[#9a9a9a]"}`}>
                   {v.label}
                 </div>
-                <div className={`font-body text-[10px] mt-0.5 ${activa ? "text-black/50" : "text-[#6f6f6f]"}`}>
+                <div className={`font-body text-[10px] mt-0.5 ${activa ? "text-black/60" : "text-[#858585]"}`}>
                   {v.sub}
                 </div>
               </button>
@@ -440,7 +440,7 @@ export default function Tendencias() {
         <div className="mt-4 px-3.5 py-[11px] bg-panel border border-hairline flex items-center gap-4 flex-wrap relative z-[25]">
           <div className="flex items-center gap-2">
             <span className={etiqueta}>Ranking</span>
-            <select
+            <select aria-label="Ranking"
               value={rankingId}
               onChange={e => {
                 setRankingId(Number(e.target.value));
@@ -462,7 +462,7 @@ export default function Tendencias() {
           {disciplinas.length > 0 && (
             <div className="flex items-center gap-2">
               <span className={etiqueta}>Disciplina</span>
-              <select
+              <select aria-label="Disciplina"
                 value={disciplinaActiva || ""}
                 // La métrica elegida se conserva: entre disciplinas se busca la del
                 // mismo nombre (ver `equivalente`).
@@ -497,7 +497,7 @@ export default function Tendencias() {
             <>
               <div className="flex items-center gap-2">
                 <span className={etiqueta}>Métrica</span>
-                <select
+                <select aria-label="Métrica"
                   value={metricaId || ""}
                   onChange={e => setMetricaElegida(
                     metricasDisponibles.find(m => m.id_metrica === Number(e.target.value)) || null)}
@@ -567,10 +567,10 @@ export default function Tendencias() {
                       on ? "bg-white/[.09] border-white/40" : "border-white/[.12] hover:border-white/30"
                     } ${lleno ? "cursor-not-allowed opacity-40" : ""}`}
                   >
-                    <span className={`font-body font-semibold text-[11px] ${on ? "text-white" : "text-[#7f7f7f]"}`}>
+                    <span className={`font-body font-semibold text-[11px] ${on ? "text-white" : "text-[#8a8a8a]"}`}>
                       {m.nombre_metrica}
                     </span>
-                    <span className="font-mono text-[9px] text-[#6f6f6f]">
+                    <span className="font-mono text-[9px] text-[#858585]">
                       {esPuntajeTotal(m) ? "total" : m.peso_metrica ?? "—"}
                     </span>
                   </button>
@@ -593,7 +593,7 @@ export default function Tendencias() {
         {/* Gráfico + panel lateral */}
         <div className="pt-[22px] pb-2">
           {graficadas.length === 0 ? (
-            <p className="font-body text-[11.5px] text-[#6f6f6f] py-16 text-center">
+            <p className="font-body text-[11.5px] text-[#858585] py-16 text-center">
               Selecciona al menos una institución para ver el gráfico.
             </p>
           ) : esAnual ? (

@@ -119,13 +119,13 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
   };
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "minmax(0,1fr) 380px" }}>
-      <div className="pt-[22px] px-7 pb-7">
-        <div className="grid gap-4 pb-2.5 border-b border-white/[.1]" style={{ gridTemplateColumns: "220px 128px 1fr 96px" }}>
-          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Métrica</div>
-          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Cifra</div>
-          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Ajuste</div>
-          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Efecto</div>
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="pt-[22px] lg:px-7 pb-7">
+        <div className="grid grid-cols-[minmax(0,1fr)_112px] md:grid-cols-[220px_128px_minmax(0,1fr)_96px] gap-x-4 gap-y-1.5 pb-2.5 border-b border-white/[.1]">
+          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">Métrica</div>
+          <div className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] text-right">Cifra</div>
+          <div className="hidden md:block font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">Ajuste</div>
+          <div className="hidden md:block font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] text-right">Efecto</div>
         </div>
 
         {metricas.map((m) => {
@@ -138,11 +138,10 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
           const modificado = cifras[m.id_metrica] !== undefined;
           const id = `cifra-${m.id_metrica}`;
           return (
-            <div key={m.id_metrica} className="grid gap-4 items-center py-[13px] border-b border-white/[.06]"
-              style={{ gridTemplateColumns: "220px 128px 1fr 96px" }}>
+            <div key={m.id_metrica} className="grid grid-cols-[minmax(0,1fr)_112px] md:grid-cols-[220px_128px_minmax(0,1fr)_96px] gap-x-4 gap-y-1.5 items-center py-[13px] border-b border-white/[.06]">
               <div>
                 <label htmlFor={id} className="font-body font-semibold text-[12.5px] text-[#e6e6e6]">{m.nombre_metrica}</label>
-                <div className="font-mono text-[10px] text-[#6f6f6f] mt-1">
+                <div className="font-mono text-[10px] text-[#858585] mt-1">
                   peso {porcentaje(m.peso_metrica)} · {m.unidad}{m.sentido === "menor" ? " · menos es mejor" : ""}
                 </div>
               </div>
@@ -150,7 +149,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
                 <div className={`font-mono font-semibold text-[17px] tabular-nums ${modificado ? "text-accent" : "text-white"}`}>
                   {actual == null ? "—" : formatearValor(actual)}
                 </div>
-                <div className="font-mono text-[9.5px] text-[#6f6f6f]">
+                <div className="font-mono text-[9.5px] text-[#858585]">
                   base {original == null ? "—" : formatearValor(original)} · supera al {decimal(pS, 0)} %
                 </div>
               </div>
@@ -163,25 +162,25 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
                 value={actual ?? 0}
                 onChange={(e) => fijar(m.id_metrica, Number(e.target.value))}
                 aria-valuetext={`${formatearValor(actual)} ${m.unidad}`}
-                className="w-full cursor-pointer accent-white"
+                className="w-full h-6 cursor-pointer accent-white"
               />
               <div className={`text-right font-mono font-semibold text-[12px] ${
-                efecto > 0.005 ? "text-positive" : efecto < -0.005 ? "text-negative" : "text-[#6f6f6f]"}`}>
+                efecto > 0.005 ? "text-positive" : efecto < -0.005 ? "text-negative" : "text-[#858585]"}`}>
                 {Math.abs(efecto) < 0.005 ? "—" : conSigno(efecto)}
               </div>
             </div>
           );
         })}
 
-        <p className="text-[11.5px] leading-relaxed text-[#7a7a7a] mt-4">
+        <p className="text-[11.5px] leading-relaxed text-[#8a8a8a] mt-4">
           Mueve la cifra real de un componente: el percentil se recalcula contra las {universidades.length} universidades
           de {anio}, y con él el puntaje y la posición. Al mejorar una institución, otras pueden perder puntos sin haber
           cambiado nada: su posición relativa empeora.
         </p>
       </div>
 
-      <div className="border-l border-white/[.08] bg-panel py-[26px] px-[26px]">
-        <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] mb-4">Resultado simulado</p>
+      <div className="border-t lg:border-t-0 lg:border-l border-white/[.08] bg-panel py-[26px] px-4 sm:px-[26px]">
+        <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] mb-4">Resultado simulado</p>
         <p className="text-[10.5px] text-[#8a8a8a] mb-1">Posición</p>
         <div className="flex items-baseline gap-2 mb-5">
           <span className="font-headline text-[52px] font-semibold text-white leading-none">{pSim ?? "—"}</span>
@@ -195,7 +194,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
         <div className="flex items-baseline gap-2">
           <span className="font-mono font-semibold text-[26px] text-white">{decimal(totalSim)}</span>
           <span className={`font-mono font-semibold text-[12px] ${
-            totalSim > totalBase + 0.005 ? "text-positive" : totalSim < totalBase - 0.005 ? "text-negative" : "text-[#6f6f6f]"}`}>
+            totalSim > totalBase + 0.005 ? "text-positive" : totalSim < totalBase - 0.005 ? "text-negative" : "text-[#858585]"}`}>
             {Math.abs(totalSim - totalBase) < 0.005 ? "—" : conSigno(totalSim - totalBase)}
           </span>
         </div>
@@ -203,7 +202,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
           <div className="absolute top-0 left-0 h-6" style={{ width: `${Math.min(100, (totalSim / maxTotal) * 100)}%`, background: "oklch(0.72 0.13 250 / .35)" }} />
           <div className="absolute top-0 h-6 w-[2px] bg-white" style={{ left: `${Math.min(100, (totalBase / maxTotal) * 100)}%` }} />
         </div>
-        <p className="text-[10.5px] text-[#6f6f6f] mb-[22px]">La línea blanca es el puntaje real de {anio}.</p>
+        <p className="text-[10.5px] text-[#858585] mb-[22px]">La línea blanca es el puntaje real de {anio}.</p>
 
         {superadas.length > 0 && (
           <div className="p-3.5 bg-background border border-white/[.08] mb-2.5">
@@ -218,7 +217,7 @@ export default function SimulacionUnitariaCifras({ rankingId, anio, rankingNombr
           </div>
         )}
         {!hayCambios && (
-          <p className="text-xs leading-relaxed text-[#7a7a7a]">
+          <p className="text-xs leading-relaxed text-[#8a8a8a]">
             Aún no has movido ninguna cifra. Empieza por la que más pesa: {metricas[0]?.nombre_metrica}.
           </p>
         )}

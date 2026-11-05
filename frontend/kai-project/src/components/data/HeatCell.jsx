@@ -119,7 +119,7 @@ function Globo({ rect, dimension, ranking, datos }) {
           <div key={m.nombre} className="flex items-baseline justify-between gap-3">
             {/* Un indicador de referencia se atenúa y lleva el pilar del que
                 forma parte: su peso está contado dentro de ese pilar, no aparte. */}
-            <span className={`text-[11px] truncate ${m.referencia ? "text-[#7a7a7a]" : "text-[#c4c4c4]"}`}
+            <span className={`text-[11px] truncate ${m.referencia ? "text-[#8a8a8a]" : "text-[#c4c4c4]"}`}
                   title={m.referencia && m.parteDe ? `Forma parte de ${m.parteDe}` : undefined}>
               {m.nombre}
             </span>
@@ -188,7 +188,7 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
         style={style}
       >
         <span className="font-mono text-[9.5px] flex items-center gap-1"
-              style={{ color: tieneMetrica ? "rgba(255,255,255,.6)" : "#5a5a5a" }}>
+              style={{ color: tieneMetrica ? "rgba(255,255,255,.88)" : "#858585" }}>
           {restringido ? (
             <span className="px-1 border border-white/20 text-[8px] uppercase tracking-wider"
                   title={`${ranking} está incluido en los planes de pago.`}>
@@ -220,7 +220,7 @@ export default function HeatCell({ datos, dimension, ranking, valorFormateado, r
         </span>
         <span className="flex items-baseline gap-1 min-w-0">
           <span className="font-mono font-semibold text-[15px] shrink-0"
-                style={{ color: !restringido && valor != null ? "#fff" : "#6f6f6f" }}>
+                style={{ color: !restringido && valor != null ? "#fff" : "#858585" }}>
             {restringido ? "—" : valor != null ? (valorFormateado ?? numero(valor)) : "—"}
           </span>
           {/* En «Valores» la cifra sin su unidad no se entiende: 67,8 puede ser un

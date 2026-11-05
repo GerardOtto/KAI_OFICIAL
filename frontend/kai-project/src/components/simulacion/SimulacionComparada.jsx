@@ -7,11 +7,13 @@ import { generarInformeSimulacion } from "../../reportes/informeSimulacion";
 import { institucionPropia } from "../../reportes/documento";
 import { decimal, porcentaje } from "../../utils/formato";
 import { nombreCorto } from "../../utils/universidades";
+import useEsMovil from "../../hooks/useEsMovil";
 
 const PASO_STEPPER = 1;
 
 export default function SimulacionComparada({ rankingId, anio, rankingNombre, selectedUniversidades, disciplinaFiltro }) {
   const rawData = useSimulacion(rankingId, anio, selectedUniversidades);
+  const esMovil = useEsMovil();
 
   // { id_universidad: { id_metrica: valor_editado } }
   const [overrides, setOverrides] = useState({});
@@ -147,6 +149,9 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
     );
   }
 
+  // La columna de nombres se angosta en el teléfono y queda fija al desplazar.
+  const columnas = `${esMovil ? "112px" : "200px"} repeat(${metricas.length}, minmax(${esMovil ? 72 : 80}px, 1fr)) 128px`;
+
   return (
     <div>
       {/* Toolbar */}
@@ -193,21 +198,24 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1fr 300px" }}>
+      {/* En pantallas angostas el ranking simulado va debajo de la matriz: al
+          lado, la dejaba en una franja de pocos píxeles. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]">
         {/* Matriz */}
-        <div className="pt-4 pr-6 pb-7 overflow-x-auto">
+        <div className="pt-4 lg:pr-6 pb-7 overflow-x-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+             tabIndex={0} role="region" aria-label="Matriz de la simulación: desplázala para ver todas las métricas">
           <div
             className="grid gap-[5px] pb-2"
-            style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(80px, 1fr)) 128px` }}
+            style={{ gridTemplateColumns: columnas }}
           >
-            <div />
+            <div className="sticky left-0 z-[1] bg-background" />
             {metricas.map(m => (
               <div key={m.id_metrica} className="text-center">
                 <div className="font-body font-medium text-[9.5px] text-[#b4b4b4] leading-tight">{m.nombre_metrica}</div>
-                <div className="font-mono text-[9px] text-[#6f6f6f] mt-0.5">{porcentaje(m.peso_metrica)}</div>
+                <div className="font-mono text-[9px] text-[#858585] mt-0.5">{porcentaje(m.peso_metrica)}</div>
               </div>
             ))}
-            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end"
+            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#8a8a8a] text-right self-end"
                  title="La suma de cada métrica por su aporte, que se mueve al editar. Debajo, el puntaje total que registra el ranking (publicado o calculado con su método).">
               Puntaje total
             </div>
@@ -220,11 +228,11 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
               <div
                 key={fila.id_universidad}
                 className="grid gap-[5px] items-stretch mb-[5px]"
-                style={{ gridTemplateColumns: `200px repeat(${metricas.length}, minmax(80px, 1fr)) 128px`, borderLeft: `2px solid ${modificadaFila ? "oklch(0.72 0.13 250)" : "transparent"}` }}
+                style={{ gridTemplateColumns: columnas, borderLeft: `2px solid ${modificadaFila ? "oklch(0.72 0.13 250)" : "transparent"}` }}
               >
-                <div className="flex items-center pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6] truncate"
+                <div className="sticky left-0 z-[1] bg-background flex items-center min-w-0 pl-2 font-body font-semibold text-[12.5px] text-[#e6e6e6]"
                      title={fila.nombre}>
-                  {nombreCorto(fila.nombre)}
+                  <span className="truncate">{nombreCorto(fila.nombre)}</span>
                 </div>
                 {metricas.map(m => {
                   const original = fila.valores[m.id_metrica];
@@ -235,8 +243,22 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                   return (
                     <div
                       key={m.id_metrica}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={seleccionada}
+                      aria-label={`${fila.nombre}, ${m.nombre_metrica}: ${decimal(actual)}${modificado ? `, base ${decimal(original)}` : ""}. Flechas arriba y abajo para ajustar.`}
                       onClick={() => setCeldaSeleccionada(seleccionada ? null : key)}
-                      className="relative h-[46px] flex flex-col items-center justify-center cursor-pointer border"
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setCeldaSeleccionada(seleccionada ? null : key);
+                        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                          e.preventDefault();
+                          const paso = e.key === "ArrowUp" ? PASO_STEPPER : -PASO_STEPPER;
+                          setValor(fila.id_universidad, m.id_metrica, Math.max(0, Number(actual) + paso));
+                        }
+                      }}
+                      className="relative h-[46px] flex flex-col items-center justify-center cursor-pointer border focus:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                       style={{
                         background: modificado ? "oklch(0.72 0.13 250 / .16)" : "rgba(255,255,255,.03)",
                         borderColor: modificado ? "oklch(0.72 0.13 250 / .4)" : "rgba(255,255,255,.08)",
@@ -253,12 +275,14 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                           <button
                             onClick={e => { e.stopPropagation(); setValor(fila.id_universidad, m.id_metrica, Number(actual) + PASO_STEPPER); }}
                             className="flex-1 w-5 bg-white text-[#111] text-[10px] font-semibold leading-none"
+                            aria-label={`Subir ${m.nombre_metrica}`}
                           >
                             +
                           </button>
                           <button
                             onClick={e => { e.stopPropagation(); setValor(fila.id_universidad, m.id_metrica, Math.max(0, Number(actual) - PASO_STEPPER)); }}
                             className="flex-1 w-5 bg-[#2a2a2a] text-white text-[10px] font-semibold leading-none"
+                            aria-label={`Bajar ${m.nombre_metrica}`}
                           >
                             −
                           </button>
@@ -272,7 +296,7 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
                     <span className="font-mono font-semibold text-[13px] tabular-nums text-right" style={{ color: modificadaFila ? "#fff" : "#dcdcdc" }}>
                       {decimal(score)}
                     </span>
-                    <span className="font-mono text-[8.5px] text-[#7a7a7a] tabular-nums" data-total-registrado
+                    <span className="font-mono text-[8.5px] text-[#8a8a8a] tabular-nums" data-total-registrado
                           title={fila.registrado != null
                             ? "Puntaje total registrado en el ranking"
                             : "El ranking no publica el puntaje total de esta institución"}>
@@ -287,15 +311,15 @@ export default function SimulacionComparada({ rankingId, anio, rankingNombre, se
             );
           })}
 
-          <p className="text-[11.5px] leading-relaxed text-[#7a7a7a] mt-3.5">
+          <p className="text-[11.5px] leading-relaxed text-[#8a8a8a] mt-3.5">
             ¿Quieres afinar solo tu institución? Cambia al modo Unitaria arriba.
           </p>
         </div>
 
         {/* Ranking dinámico */}
-        <div className="border-l border-white/[.08] bg-panel py-6 px-[22px]">
-          <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] mb-1">Ranking simulado</p>
-          <p className="text-[10.5px] text-[#6f6f6f] mb-3.5">Se reordena al editar</p>
+        <div className="border-t lg:border-t-0 lg:border-l border-white/[.08] bg-panel py-6 px-4 sm:px-[22px]">
+          <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] mb-1">Ranking simulado</p>
+          <p className="text-[10.5px] text-[#858585] mb-3.5">Se reordena al editar</p>
           {rankingCompleto.map((r, i) => {
             const modificada = filaTieneOverride(r.id_universidad);
             return (

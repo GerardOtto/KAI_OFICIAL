@@ -14,8 +14,8 @@ export default function AgenteIA({ rankingNombre, anio, institucion, disciplina 
     + "Considera el peso de cada una y la distancia con las instituciones que la superan.";
 
   return (
-    <div className="border-t border-outline/30 bg-[#0e0e0e]">
-      <div className="max-w-[1600px] mx-auto px-8 py-5 flex items-center justify-between gap-6 flex-wrap">
+    <aside aria-label="Asesoría estratégica" className="border-t border-outline/30 bg-[#0e0e0e]">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-5 flex items-center justify-between gap-6 flex-wrap">
         <div className="flex items-start gap-3 min-w-0">
           <div className="w-7 h-7 bg-white/10 flex items-center justify-center text-white font-mono text-[10px] flex-none">
             AI
@@ -36,6 +36,6 @@ export default function AgenteIA({ rankingNombre, anio, institucion, disciplina 
           Preguntar al asistente →
         </Link>
       </div>
-    </div>
+    </aside>
   );
 }

@@ -105,7 +105,7 @@ console.log("\n=== 2b. El puntaje total abre la vista y encabeza el selector ===
 const total = await ev(`
   const sel = [...document.querySelectorAll('main select')]
     .find(s => [...s.options].some(o => /Puntaje total/.test(o.text)));
-  return { titulo: document.querySelector('main h2')?.innerText.trim(),
+  return { titulo: document.querySelector('main h1')?.innerText.trim(),
            primera: sel?.options[0]?.text, elegida: sel?.selectedOptions[0]?.text };
 `);
 comprobar("el título es el puntaje total", /^Puntaje total$/.test(total.titulo || ""), total.titulo);

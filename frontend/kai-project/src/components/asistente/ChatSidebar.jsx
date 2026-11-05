@@ -161,7 +161,7 @@ function SelectorMotor({ motores, motor, onMotor, bloqueado }) {
 
 export default function ChatSidebar({
   conversaciones = [], activeId, onSelect, onNewChat, onDelete, cuota,
-  motores = [], motor, onMotor, motorBloqueado,
+  motores = [], motor, onMotor, motorBloqueado, abierto = false, onCerrar = () => {},
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [confirmar, setConfirmar] = useState(null);
@@ -175,7 +175,20 @@ export default function ChatSidebar({
   }, [conversaciones, busqueda]);
 
   return (
-    <aside className="w-80 shrink-0 bg-surface border-r border-outline/30 flex flex-col h-full">
+    <>
+    {/* En el teléfono el panel es un cajón que se abre con «Historial»: fijo al
+        lado, dejaba la conversación en una franja de 70 px. */}
+    {abierto && (
+      <div className="md:hidden fixed inset-0 z-40 bg-black/60" onClick={onCerrar} aria-hidden="true" />
+    )}
+    <aside id="panel-historial" aria-label="Historial y motor del asistente"
+           className={`fixed inset-y-0 left-0 z-50 w-[86vw] max-w-80 transition-transform duration-200 md:static md:z-auto md:w-80 md:translate-x-0 shrink-0 bg-surface border-r border-outline/30 flex flex-col h-full ${
+             abierto ? "translate-x-0" : "-translate-x-full"
+           }`}>
+      <button onClick={onCerrar} aria-label="Cerrar historial"
+              className="md:hidden absolute top-3 right-3 w-9 h-9 flex items-center justify-center text-outlineSoft hover:text-white text-lg">
+        ×
+      </button>
       <div className="p-6 flex flex-col gap-6 flex-1 min-h-0">
 
         <div className="flex items-center gap-3">
@@ -199,7 +212,7 @@ export default function ChatSidebar({
           <div className="flex items-baseline justify-between">
             <p className="text-[10px] uppercase tracking-widest text-outlineSoft">Historial de chats</p>
             {conversaciones.length > 0 && (
-              <span className="font-mono text-[9px] text-[#6f6f6f]">{conversaciones.length}</span>
+              <span className="font-mono text-[9px] text-[#858585]">{conversaciones.length}</span>
             )}
           </div>
 
@@ -235,7 +248,7 @@ export default function ChatSidebar({
                     active ? "bg-white/10 border-white" : "border-transparent hover:bg-white/5"
                   }`}
                 >
-                  <button onClick={() => onSelect(c.id_conversacion)} className="w-full text-left p-3 pr-9">
+                  <button onClick={() => { onSelect(c.id_conversacion); onCerrar(); }} className="w-full text-left p-3 pr-9">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2 min-w-0">
                         <ChatBubbleIcon active={active} />
@@ -278,7 +291,8 @@ export default function ChatSidebar({
                     <button
                       onClick={() => setConfirmar(c.id_conversacion)}
                       title="Eliminar conversación"
-                      className="absolute top-3 right-2 p-1 text-outlineSoft opacity-0 group-hover:opacity-100 hover:text-negative transition-all"
+                      aria-label={`Eliminar la conversación «${c.titulo}»`}
+                      className="absolute top-2 right-1 p-2 text-outlineSoft md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 hover:text-negative transition-all"
                     >
                       <TrashIcon />
                     </button>
@@ -290,7 +304,7 @@ export default function ChatSidebar({
         </div>
 
         <button
-          onClick={onNewChat}
+          onClick={() => { onNewChat(); onCerrar(); }}
           className="w-full py-3 bg-white text-black text-[11px] font-bold uppercase tracking-widest hover:bg-white/85 transition-colors"
         >
           Empezar nuevo chat
@@ -304,7 +318,7 @@ export default function ChatSidebar({
               Plan {cuota.nombre_plan || cuota.plan}
             </span>
             {cuota.precio_mensual_usd > 0 && (
-              <span className="font-mono text-[9px] text-[#6f6f6f] shrink-0">
+              <span className="font-mono text-[9px] text-[#858585] shrink-0">
                 US$ {cuota.precio_mensual_usd}/mes
               </span>
             )}
@@ -343,17 +357,18 @@ export default function ChatSidebar({
           })}
 
           {cuota.mensajes_restantes != null && (
-            <span className="font-mono text-[9px] text-[#6f6f6f]">
+            <span className="font-mono text-[9px] text-[#858585]">
               {cuota.mensajes_restantes} consultas restantes hoy
             </span>
           )}
           {cuota.consultas?.total != null && (
-            <span className="font-mono text-[9px] text-[#6f6f6f]">
+            <span className="font-mono text-[9px] text-[#858585]">
               {cuota.consultas.restantes} de {cuota.consultas.total} consultas de prueba restantes
             </span>
           )}
         </div>
       )}
     </aside>
+    </>
   );
 }

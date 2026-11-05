@@ -40,13 +40,13 @@ export default function PosicionEntreRankings({ universidadId, universidadNombre
 
   return (
     <section className="mt-10" data-seccion="entre-rankings">
-      <h3 className="font-headline text-[19px] font-semibold text-white mb-1">Su lugar en cada ranking</h3>
+      <h2 className="font-headline text-[19px] font-semibold text-white mb-1">Su lugar en cada ranking</h2>
       <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed mb-4">
         Posición de {universidadNombre} entre las universidades chilenas de cada ranking, por edición. Los puntajes de
         cada ranking no se comparan entre sí; el lugar que ocupa entre las chilenas, sí. Más intenso, mejor ubicada; la
         flecha compara con la edición anterior del mismo ranking. Quedan fuera los rankings por disciplina.
       </p>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40" tabIndex={0} role="region" aria-label="Su lugar en cada ranking, por edición">
         <div className="grid gap-1.5 min-w-[720px]"
              style={{ gridTemplateColumns: `180px repeat(${anios.length}, minmax(64px, 1fr))` }}>
           <div />
@@ -77,10 +77,13 @@ export default function PosicionEntreRankings({ universidadId, universidadNombre
                          + ` · total ${Number(e.total).toLocaleString("es-CL")}`}
                        data-celda-posicion>
                     <span className="font-mono font-semibold text-[14px] text-white leading-none">
-                      {e.posicion}<span className="text-[10px] text-white/55">/{e.de}</span>
+                      {e.posicion}<span className="text-[10px] text-white/85">/{e.de}</span>
                     </span>
                     {cambio != null && cambio !== 0 && (
-                      <span className={`font-mono text-[9.5px] ${cambio > 0 ? "text-positive" : "text-negative"}`}>
+                      // Tonos claros: sobre el azul de la celda, el verde y el rojo
+                      // de siempre no alcanzaban a leerse (contraste < 3).
+                      <span className="font-mono text-[9.5px]"
+                            style={{ color: cambio > 0 ? "oklch(0.9 0.11 155)" : "oklch(0.88 0.08 25)" }}>
                         {cambio > 0 ? `▲${cambio}` : `▼${-cambio}`}
                       </span>
                     )}

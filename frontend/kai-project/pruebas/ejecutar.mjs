@@ -43,6 +43,7 @@ const SONDAS = {
   inversa: "Lógica de la simulación inversa, el desglose del cambio y el intervalo",
   analisis: "Simulación inversa, desglose del cambio, grupos y lugar en cada ranking",
   actualizacion: "Aviso de edición nueva, puesto oficial y THE World en el catálogo",
+  ux_movil: "Disposición en el teléfono, h1 y títulos, historial, teclado y 404",
 };
 
 // Estas importan los módulos de origen por su ruta, así que necesitan el

@@ -9,7 +9,7 @@ import { formatearValor } from "../../utils/valoresReales";
 import { conSigno, decimal, porcentaje } from "../../utils/formato";
 import { nombreCorto } from "../../utils/universidades";
 
-const etiqueta = "font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]";
+const etiqueta = "font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]";
 const control = "bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11.5px] py-2 px-3 focus:outline-none focus:border-white/40";
 
 /** Simulación inversa: qué mover, y cuánto, para superar a una institución o
@@ -72,7 +72,7 @@ export default function SimulacionObjetivo({
       <div className="flex flex-wrap items-end gap-4 pb-5 border-b border-white/[.08]">
         <div>
           <p className={`${etiqueta} mb-1.5`}>Objetivo</p>
-          <select
+          <select aria-label="Objetivo"
             className={control}
             value={objetivo.tipo}
             onChange={e => setElegido(e.target.value === "puesto"
@@ -86,7 +86,7 @@ export default function SimulacionObjetivo({
         {objetivo.tipo === "superar" ? (
           <div>
             <p className={`${etiqueta} mb-1.5`}>Institución</p>
-            <select className={`${control} max-w-[360px]`} value={objetivo.id}
+            <select aria-label="Institución a superar" className={`${control} max-w-[360px]`} value={objetivo.id}
                     onChange={e => setElegido({ tipo: "superar", id: Number(e.target.value) })}>
               {[...delante].reverse().map(u => (
                 <option key={u.id_universidad} value={u.id_universidad}>
@@ -98,7 +98,7 @@ export default function SimulacionObjetivo({
         ) : (
           <div>
             <p className={`${etiqueta} mb-1.5`}>Puesto</p>
-            <select className={control} value={objetivo.puesto}
+            <select aria-label="Puesto objetivo" className={control} value={objetivo.puesto}
                     onChange={e => setElegido({ tipo: "puesto", puesto: Number(e.target.value) })}>
               {delante.map(u => <option key={u.puesto} value={u.puesto}>{u.puesto}.º</option>)}
             </select>
@@ -139,26 +139,26 @@ function ObjetivoPuntajes({ datos, propia, objetivo, referencia, onProbar }) {
     pasos.map(p => [p.id_metrica, Math.min(p.techo, Math.ceil(p.a * 10 - 1e-9) / 10)])));
 
   return (
-    <div className="grid gap-8 pt-6" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
       <div>
         <p className={`${etiqueta} mb-1`}>Faltan</p>
         <p className="font-headline text-[40px] font-semibold text-white leading-none mb-1" data-brecha>
           {decimal(m.brecha)} <span className="text-[16px] text-[#9a9a9a] font-body">puntos de total</span>
         </p>
-        <p className="text-[11px] text-[#7a7a7a] mb-6">
+        <p className="text-[11px] text-[#8a8a8a] mb-6">
           La diferencia de totales más una ventaja mínima de 0,05: superar es quedar por encima, no empatar.
         </p>
 
         {origen.length > 0 && (
           <section className="mb-8" data-seccion="origen">
-            <h3 className="font-body font-semibold text-[13px] text-white mb-1">De dónde viene la brecha</h3>
-            <p className="text-[11px] text-[#7a7a7a] mb-3">
+            <h2 className="font-body font-semibold text-[13px] text-white mb-1">De dónde viene la brecha</h2>
+            <p className="text-[11px] text-[#8a8a8a] mb-3">
               Cuánto aporta cada métrica a la diferencia con {nombreCorto(referencia.nombre)}: a la derecha, donde te
               saca ventaja; a la izquierda, donde la llevas tú.
             </p>
             {origen.map(o => (
               <div key={o.id_metrica} className="grid items-center gap-3 py-1.5 border-b border-white/[.05]"
-                   style={{ gridTemplateColumns: "180px 1fr 64px" }}>
+                   style={{ gridTemplateColumns: "minmax(96px, 180px) minmax(0, 1fr) 64px" }}>
                 <span className="text-[11.5px] text-[#dcdcdc] truncate" title={o.nombre_metrica}>{o.nombre_metrica}</span>
                 <div className="relative h-3">
                   <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/20" />
@@ -169,7 +169,7 @@ function ObjetivoPuntajes({ datos, propia, objetivo, referencia, onProbar }) {
                          background: o.aporte >= 0 ? "oklch(0.68 0.16 25 / .75)" : "oklch(0.72 0.13 150 / .75)",
                        }} />
                 </div>
-                <span className={`font-mono text-[11px] text-right ${o.aporte > 0 ? "text-negative" : o.aporte < 0 ? "text-positive" : "text-[#6f6f6f]"}`}>
+                <span className={`font-mono text-[11px] text-right ${o.aporte > 0 ? "text-negative" : o.aporte < 0 ? "text-positive" : "text-[#858585]"}`}>
                   {conSigno(o.aporte)}
                 </span>
               </div>
@@ -178,8 +178,8 @@ function ObjetivoPuntajes({ datos, propia, objetivo, referencia, onProbar }) {
         )}
 
         <section data-seccion="una-metrica">
-          <h3 className="font-body font-semibold text-[13px] text-white mb-1">Con una sola métrica</h3>
-          <p className="text-[11px] text-[#7a7a7a] mb-3">Cuánto tendría que llegar a valer cada una, si fuera la única que se mueve.</p>
+          <h2 className="font-body font-semibold text-[13px] text-white mb-1">Con una sola métrica</h2>
+          <p className="text-[11px] text-[#8a8a8a] mb-3">Cuánto tendría que llegar a valer cada una, si fuera la única que se mueve.</p>
           <div className="grid gap-x-3 pb-1.5 border-b border-white/[.1]" style={{ gridTemplateColumns: "1fr 56px 56px 70px" }}>
             <span className={etiqueta}>Métrica</span>
             <span className={`${etiqueta} text-right`}>Hoy</span>
@@ -190,13 +190,13 @@ function ObjetivoPuntajes({ datos, propia, objetivo, referencia, onProbar }) {
             <div key={u.id_metrica} className="grid gap-x-3 py-1.5 border-b border-white/[.05] items-baseline"
                  style={{ gridTemplateColumns: "1fr 56px 56px 70px" }}>
               <span className="text-[11.5px] text-[#dcdcdc] truncate" title={u.nombre_metrica}>
-                {u.nombre_metrica} <span className="font-mono text-[9.5px] text-[#6f6f6f]">{porcentaje(u.peso_metrica)}</span>
+                {u.nombre_metrica} <span className="font-mono text-[9.5px] text-[#858585]">{porcentaje(u.peso_metrica)}</span>
               </span>
               <span className="font-mono text-[11.5px] text-right text-[#9a9a9a]">{decimal(u.de)}</span>
-              <span className={`font-mono text-[11.5px] text-right ${u.alcanzable ? "text-white" : "text-[#6f6f6f]"}`}>
+              <span className={`font-mono text-[11.5px] text-right ${u.alcanzable ? "text-white" : "text-[#858585]"}`}>
                 {u.alcanzable ? decimal(u.a) : "—"}
               </span>
-              <span className={`font-mono text-[11px] text-right ${u.alcanzable ? "text-positive" : "text-[#7a7a7a]"}`}
+              <span className={`font-mono text-[11px] text-right ${u.alcanzable ? "text-positive" : "text-[#8a8a8a]"}`}
                     title={u.alcanzable ? undefined : `Aunque llegue a ${decimal(u.techo, 0)} aporta ${decimal(u.maximoAporte)} de ${decimal(m.brecha)}`}>
                 {u.alcanzable ? conSigno(u.cambio) : "no alcanza"}
               </span>
@@ -231,14 +231,14 @@ function Plan({ titulo, datos, explicacion, plan, clasificacion, propia, onProba
   return (
     <section className="p-5 bg-panel border border-white/[.08]" data-plan={datos}>
       <div className="flex items-baseline justify-between gap-3 mb-1">
-        <h3 className="font-body font-semibold text-[13px] text-white">{titulo}</h3>
+        <h2 className="font-body font-semibold text-[13px] text-white">{titulo}</h2>
         {plan.alcanzable ? (
           <span className="font-mono text-[11px] text-positive">puesto {propia.puesto} → {puesto}</span>
         ) : (
           <span className="font-mono text-[11px] text-warn">no alcanza</span>
         )}
       </div>
-      <p className="text-[11px] text-[#7a7a7a] mb-3">{explicacion}</p>
+      <p className="text-[11px] text-[#8a8a8a] mb-3">{explicacion}</p>
       {plan.pasos.map(p => (
         <div key={p.id_metrica} className="flex items-baseline justify-between gap-3 py-1 border-b border-white/[.05]">
           <span className="text-[11.5px] text-[#dcdcdc] truncate" title={p.nombre_metrica}>{p.nombre_metrica}</span>
@@ -274,10 +274,10 @@ function ObjetivoCifras({ datos, propia, objetivo, referencia, onProbar }) {
   const unidad = (m) => (m.unidad ? ` ${m.unidad}` : "");
 
   return (
-    <div className="grid gap-8 pt-6" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
       <section data-seccion="una-metrica">
-        <h3 className="font-body font-semibold text-[13px] text-white mb-1">Con una sola métrica</h3>
-        <p className="text-[11px] text-[#7a7a7a] mb-3">
+        <h2 className="font-body font-semibold text-[13px] text-white mb-1">Con una sola métrica</h2>
+        <p className="text-[11px] text-[#8a8a8a] mb-3">
           La cifra mínima que cumple el objetivo si fuera la única que cambia. Se recalcula el percentil de todas las
           universidades del año: dejar atrás a otra también le quita puntos a ella.
         </p>
@@ -285,14 +285,14 @@ function ObjetivoCifras({ datos, propia, objetivo, referencia, onProbar }) {
           <div key={u.id_metrica} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-white/[.05]">
             <span className="text-[11.5px] text-[#dcdcdc] truncate" title={u.nombre_metrica}>{u.nombre_metrica}</span>
             <span className="font-mono text-[11.5px] shrink-0 text-right">
-              {u.sinCifra ? <span className="text-[#6f6f6f]">sin cifra</span>
+              {u.sinCifra ? <span className="text-[#858585]">sin cifra</span>
                 : u.alcanzable ? (
                   <>
                     <span className="text-[#9a9a9a]">{formatearValor(u.de)}</span> →{" "}
                     <span className="text-white">{formatearValor(u.a)}</span>
-                    <span className="text-[#6f6f6f]">{unidad(u)}</span>
+                    <span className="text-[#858585]">{unidad(u)}</span>
                   </>
-                ) : <span className="text-[#7a7a7a]">no alcanza sola</span>}
+                ) : <span className="text-[#8a8a8a]">no alcanza sola</span>}
             </span>
           </div>
         ))}
@@ -300,12 +300,12 @@ function ObjetivoCifras({ datos, propia, objetivo, referencia, onProbar }) {
 
       <section className="p-5 bg-panel border border-white/[.08] self-start" data-plan="cifras">
         <div className="flex items-baseline justify-between gap-3 mb-1">
-          <h3 className="font-body font-semibold text-[13px] text-white">Plan combinado</h3>
+          <h2 className="font-body font-semibold text-[13px] text-white">Plan combinado</h2>
           {plan.alcanzable
             ? <span className="font-mono text-[11px] text-positive">puesto {propia.puesto} → {plan.puesto}</span>
             : <span className="font-mono text-[11px] text-warn">no alcanza</span>}
         </div>
-        <p className="text-[11px] text-[#7a7a7a] mb-3">
+        <p className="text-[11px] text-[#8a8a8a] mb-3">
           Deja atrás, una a una, a la universidad siguiente en la métrica de más peso y, a igual peso, en la que está
           más cerca en proporción{referencia ? `, hasta superar a ${nombreCorto(referencia.nombre)}` : ""}.
         </p>
@@ -314,7 +314,7 @@ function ObjetivoCifras({ datos, propia, objetivo, referencia, onProbar }) {
             <span className="text-[11.5px] text-[#dcdcdc] truncate" title={p.nombre_metrica}>{p.nombre_metrica}</span>
             <span className="font-mono text-[11.5px] shrink-0">
               <span className="text-[#9a9a9a]">{formatearValor(p.de)}</span> → <span className="text-white">{formatearValor(p.a)}</span>
-              <span className="text-[#6f6f6f]">{unidad(p)}</span>
+              <span className="text-[#858585]">{unidad(p)}</span>
             </span>
           </div>
         ))}

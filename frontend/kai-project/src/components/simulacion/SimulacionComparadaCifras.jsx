@@ -130,18 +130,19 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "minmax(0,1fr) 300px" }}>
-        <div className="pt-4 pr-6 pb-7 overflow-x-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="pt-4 lg:pr-6 pb-7 overflow-x-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+             tabIndex={0} role="region" aria-label="Matriz de cifras: desplázala para ver todas las métricas">
           <div className="grid gap-[5px] pb-2" style={{ gridTemplateColumns: columnas }}>
             <div />
             {metricas.map((m) => (
               <div key={m.id_metrica} className="text-center">
                 <div className="font-body font-medium text-[9.5px] text-[#b4b4b4] leading-tight">{m.nombre_metrica}</div>
-                <div className="font-mono text-[8.5px] text-[#6f6f6f] mt-0.5 leading-tight">{m.unidad}</div>
-                <div className="font-mono text-[9px] text-[#6f6f6f]">{porcentaje(m.peso_metrica)}{m.sentido === "menor" ? " · ↓ mejor" : ""}</div>
+                <div className="font-mono text-[8.5px] text-[#858585] mt-0.5 leading-tight">{m.unidad}</div>
+                <div className="font-mono text-[9px] text-[#858585]">{porcentaje(m.peso_metrica)}{m.sentido === "menor" ? " · ↓ mejor" : ""}</div>
               </div>
             ))}
-            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#7a7a7a] text-right self-end">Puntaje</div>
+            <div className="font-mono text-[9.5px] uppercase tracking-[.12em] text-[#8a8a8a] text-right self-end">Puntaje</div>
           </div>
 
           {visibles.map((u) => {
@@ -185,7 +186,7 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
                           <span className="font-mono font-semibold text-[13px] tabular-nums" style={{ color: cambiada ? "#fff" : "#dcdcdc" }}>
                             {actual == null ? "—" : formatearValor(actual)}
                           </span>
-                          <span className="font-mono text-[8.5px] text-[#7a7a7a]">
+                          <span className="font-mono text-[8.5px] text-[#8a8a8a]">
                             {cambiada ? `base ${formatearValor(original)}` : `p${(simulado.get(u.id_universidad)?.puntajes[m.id_metrica] ?? 0).toFixed(0)}`}
                           </span>
                         </>
@@ -204,14 +205,14 @@ export default function SimulacionComparadaCifras({ rankingId, anio, rankingNomb
               </div>
             );
           })}
-          <p className="text-[11.5px] leading-relaxed text-[#7a7a7a] mt-3.5">
+          <p className="text-[11.5px] leading-relaxed text-[#8a8a8a] mt-3.5">
             «p» es el percentil de cada cifra: el porcentaje de las demás universidades a las que supera.
           </p>
         </div>
 
-        <div className="border-l border-white/[.08] bg-panel py-6 px-[22px]">
-          <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] mb-1">Posición en el ranking</p>
-          <p className="text-[10.5px] text-[#6f6f6f] mb-3.5">Entre las {universidades.length} universidades de {anio}</p>
+        <div className="border-t lg:border-t-0 lg:border-l border-white/[.08] bg-panel py-6 px-4 sm:px-[22px]">
+          <p className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] mb-1">Posición en el ranking</p>
+          <p className="text-[10.5px] text-[#858585] mb-3.5">Entre las {universidades.length} universidades de {anio}</p>
           {[...elegidas]
             .sort((a, b) => (posSim.get(a.id_universidad) ?? 1e9) - (posSim.get(b.id_universidad) ?? 1e9))
             .map((u) => {

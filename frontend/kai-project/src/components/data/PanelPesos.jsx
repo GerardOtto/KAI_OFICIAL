@@ -60,7 +60,7 @@ export default function PanelPesos({ metricas, pesos, onCambio, onRestablecer })
                 aria-valuetext={`peso ${w}, ${partes[m.id_metrica]?.toFixed(0) ?? 0} % del total`}
                 className="w-full cursor-pointer accent-white"
               />
-              <span className={`font-mono text-[11px] tabular-nums text-right ${w === 0 ? "text-[#5f5f5f]" : "text-[#cfcfcf]"}`}>
+              <span className={`font-mono text-[11px] tabular-nums text-right ${w === 0 ? "text-[#858585]" : "text-[#cfcfcf]"}`}>
                 {partes[m.id_metrica]?.toFixed(0) ?? 0} %
               </span>
             </div>

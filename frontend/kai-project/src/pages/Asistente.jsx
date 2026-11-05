@@ -54,6 +54,14 @@ export default function Asistente() {
   const location = useLocation();
   const navigate = useNavigate();
   const [input, setInput] = useState(() => location.state?.pregunta || "");
+  // Cajón del historial en el teléfono; en escritorio el panel siempre se ve.
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+  useEffect(() => {
+    if (!historialAbierto) return undefined;
+    const alPulsar = (e) => e.key === "Escape" && setHistorialAbierto(false);
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [historialAbierto]);
   useEffect(() => {
     // Se borra del historial: si no, recargar la página la volvería a escribir.
     if (location.state?.pregunta) navigate(location.pathname, { replace: true, state: null });
@@ -296,7 +304,7 @@ export default function Asistente() {
   const idUltimaRespuesta = mensajes.findLast((m) => m.role === "assistant")?.id;
 
   return (
-    <div className="flex bg-background text-white" style={{ height: "calc(100vh - 64px)" }}>
+    <div className="flex bg-background text-white" style={{ height: "calc(100dvh - 64px)" }}>
       <ChatSidebar
         conversaciones={conversaciones}
         activeId={idConversacion}
@@ -308,12 +316,28 @@ export default function Asistente() {
         motor={motor}
         onMotor={setMotor}
         motorBloqueado={motorBloqueado}
+        abierto={historialAbierto}
+        onCerrar={() => setHistorialAbierto(false)}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-10 py-8 flex flex-col gap-8">
+        <h1 className="sr-only">Asistente KAI</h1>
+        <div className="md:hidden flex items-center justify-between gap-3 px-4 py-2.5 border-b border-outline/30">
+          <button onClick={() => setHistorialAbierto(true)} aria-expanded={historialAbierto} aria-controls="panel-historial"
+                  className="flex items-center gap-2 px-3 py-2 border border-outline/50 text-[11px] uppercase tracking-widest text-[#c4c4c4] hover:text-white">
+            <span aria-hidden="true">☰</span> Historial
+          </button>
+          {motorActivo && (
+            <span className="font-mono text-[10px] uppercase tracking-widest text-outlineSoft truncate">
+              {motorActivo.nombre}
+            </span>
+          )}
+        </div>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-10 py-6 md:py-8 flex flex-col gap-8">
           {mensajes.length === 0 && !cargando && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center gap-5">
+            // my-auto y no justify-center: con poca altura (teléfono), centrar con
+            // flex recortaba el saludo por arriba, fuera del alcance del scroll.
+            <div className="my-auto flex flex-col items-center text-center gap-5">
               <div className="w-12 h-12 border border-outline/30 flex items-center justify-center text-outlineSoft">
                 <SparkleIcon />
               </div>
@@ -321,11 +345,11 @@ export default function Asistente() {
                 <p className="font-body text-sm text-outlineSoft mb-1">
                   Hola{usuario ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Elige un informe o pregúntame sobre los rankings cargados.
                 </p>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f]">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-[#858585]">
                   Consulto la base de datos real; no invento cifras
                 </p>
                 {motorActivo && (
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f] mt-1">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-[#858585] mt-1">
                     Motor: {motorActivo.nombre} · {motorActivo.etiqueta_costo}
                   </p>
                 )}
@@ -412,7 +436,7 @@ export default function Asistente() {
                     incluidos={descarga.limite}
                   />
                   {m.tokens != null && m.tokens > 0 && (
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f]">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-[#858585]">
                       {m.time} · {m.tokens.toLocaleString("es-CL")} tokens
                     </span>
                   )}
@@ -424,7 +448,7 @@ export default function Asistente() {
           {cargando && <Cargando />}
         </div>
 
-        <div className="border-t border-outline/30 px-10 py-5">
+        <div className="border-t border-outline/30 px-4 md:px-10 py-4 md:py-5">
           {/* Los dos motivos permanentes se anuncian antes de escribir, no al
               enviar: uno no se resuelve esperando y el otro tarda días. */}
           {sinAfiliacion && (
@@ -466,7 +490,7 @@ export default function Asistente() {
           <div className={`flex items-center gap-3 bg-surfaceHigh border px-4 py-3 ${
             bloqueado ? "border-negative/40" : "border-outline/50"
           }`}>
-            <span className="text-[11px] font-mono text-outlineSoft shrink-0">
+            <span className="hidden sm:inline text-[11px] font-mono text-outlineSoft shrink-0" aria-hidden="true">
               {motorActivo ? `KAI_${motorActivo.nombre.toUpperCase()}_` : "KAI_PROMPT_"}
             </span>
             <input
@@ -476,6 +500,7 @@ export default function Asistente() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
+              aria-label="Pregunta al asistente"
               disabled={cargando || bloqueado}
               placeholder={
                 sinAfiliacion ? "Asistente no disponible para esta cuenta"
@@ -484,13 +509,14 @@ export default function Asistente() {
                     : sinCupo ? "Cuota agotada"
                       : "Consultar rankings…"
               }
-              className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-outlineSoft/70 disabled:cursor-not-allowed"
+              className="flex-1 min-w-0 py-1 bg-transparent outline-none text-sm text-white placeholder:text-outlineSoft/70 disabled:cursor-not-allowed"
             />
             <button
               onClick={() => enviar()}
-              className="text-white hover:text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="-m-2 p-2 text-white hover:text-white/70 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               disabled={!input.trim() || cargando || bloqueado}
               title="Enviar"
+              aria-label="Enviar"
             >
               <SendIcon />
             </button>

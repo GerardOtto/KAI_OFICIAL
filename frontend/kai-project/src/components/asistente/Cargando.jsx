@@ -55,7 +55,7 @@ export default function Cargando({ etiqueta = "Consultando la base de datos" }) 
             <Punto retraso={320} />
           </span>
           {segundos >= CRONOMETRO_DESDE && (
-            <span className="font-mono text-[9px] uppercase tracking-widest text-[#5f5f5f] tabular-nums">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-[#858585] tabular-nums">
               {segundos}s
             </span>
           )}
@@ -67,7 +67,7 @@ export default function Cargando({ etiqueta = "Consultando la base de datos" }) 
         </div>
 
         {segundos >= AVISO_LENTO && (
-          <p className="font-mono text-[10px] uppercase tracking-widest text-[#6f6f6f]">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-[#858585]">
             La consulta sigue en curso; las que cruzan varios rankings tardan más
           </p>
         )}

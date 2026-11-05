@@ -38,28 +38,28 @@ export default function DesgloseCambio({ rankingId, anios, candidatas, universid
   return (
     <section className="mt-6 bg-panel border border-white/[.09] px-5 pt-4 pb-5" data-seccion="desglose-cambio">
       <div className="flex flex-wrap items-center gap-3 mb-1">
-        <h3 className="font-body font-semibold text-[13px] text-white mr-2">Por qué cambió el total</h3>
-        <select className={`${control} max-w-[260px]`} value={institucion} onChange={e => setElegida(Number(e.target.value))}>
+        <h2 className="font-body font-semibold text-[13px] text-white mr-2">Por qué cambió el total</h2>
+        <select aria-label="Institución del desglose" className={`${control} max-w-[260px]`} value={institucion} onChange={e => setElegida(Number(e.target.value))}>
           {candidatas.map(id => (
             <option key={id} value={id}>
               {nombreCorto(universidades?.find(u => u.id_universidad === id)?.nombre_universidad || String(id))}
             </option>
           ))}
         </select>
-        <select className={control} value={anioDesde ?? ""} onChange={e => setDesde(Number(e.target.value))}>
+        <select aria-label="Año inicial" className={control} value={anioDesde ?? ""} onChange={e => setDesde(Number(e.target.value))}>
           {ordenados.filter(a => a < anioHasta).map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <span className="text-[#7f7f7f] text-[11px]">→</span>
-        <select className={control} value={anioHasta ?? ""} onChange={e => setHasta(Number(e.target.value))}>
+        <span className="text-[#8a8a8a] text-[11px]">→</span>
+        <select aria-label="Año final" className={control} value={anioHasta ?? ""} onChange={e => setHasta(Number(e.target.value))}>
           {ordenados.slice(0, -1).map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
-      <p className="font-body text-[10.5px] text-[#7f7f7f] mb-4">
+      <p className="font-body text-[10.5px] text-[#8a8a8a] mb-4">
         Cuánto aporta cada métrica a la variación del total: su puntaje por lo que pesa, en una edición y en la otra.
       </p>
 
       {!resultado ? (
-        <p className="font-body text-[11.5px] text-[#6f6f6f]">
+        <p className="font-body text-[11.5px] text-[#858585]">
           {nombreCorto(nombre)} no tiene datos en {anioDesde} y en {anioHasta}{disciplina ? ` (${disciplina})` : ""}.
         </p>
       ) : (
@@ -75,16 +75,15 @@ export default function DesgloseCambio({ rankingId, anios, candidatas, universid
             )}
           </p>
           {resultado.metricas.map(m => (
-            <div key={m.nombre} className="grid items-center gap-3 py-1.5 border-b border-white/[.05]"
-                 style={{ gridTemplateColumns: "200px 92px 1fr 64px" }}>
+            <div key={m.nombre} className="grid items-center gap-3 py-1.5 border-b border-white/[.05] grid-cols-[minmax(0,1fr)_88px_52px] md:grid-cols-[200px_92px_minmax(0,1fr)_64px]">
               <span className="font-body text-[11.5px] text-[#dcdcdc] truncate" title={m.nombre}>
                 {m.nombre}
-                {m.estado && <span className="ml-1.5 font-mono text-[9px] uppercase text-[#7f7f7f]">{m.estado}</span>}
+                {m.estado && <span className="ml-1.5 font-mono text-[9px] uppercase text-[#8a8a8a]">{m.estado}</span>}
               </span>
               <span className="font-mono text-[10.5px] text-[#9a9a9a] text-right">
                 {m.antes == null ? "—" : fmt(m.antes)} → {m.despues == null ? "—" : fmt(m.despues)}
               </span>
-              <div className="relative h-3">
+              <div className="relative h-3 hidden md:block" aria-hidden="true">
                 <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/20" />
                 <div className="absolute top-0.5 bottom-0.5"
                      style={{
@@ -95,7 +94,7 @@ export default function DesgloseCambio({ rankingId, anios, candidatas, universid
                      }} />
               </div>
               <span className="font-mono text-[11px] text-right"
-                    style={{ color: m.delta > 0 ? POSITIVO : m.delta < 0 ? NEGATIVO : "#6f6f6f" }}>
+                    style={{ color: m.delta > 0 ? POSITIVO : m.delta < 0 ? NEGATIVO : "#858585" }}>
                 {Math.abs(m.delta) < 0.005 ? "—" : signo(m.delta, 2)}
               </span>
             </div>

@@ -125,7 +125,7 @@ export default function SelectorUniversidad({
               );
             })}
             {filas.length === 0 && (
-              <p className="px-3 py-4 text-center text-[11px] text-[#6f6f6f]">Sin resultados</p>
+              <p className="px-3 py-4 text-center text-[11px] text-[#858585]">Sin resultados</p>
             )}
           </div>
         </div>

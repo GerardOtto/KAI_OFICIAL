@@ -48,7 +48,7 @@ function Aviso({ datos, nombreRanking, propio }) {
           {faltan.map((m, i) => (
             <span key={m.id_metrica}>
               {i > 0 && ", "}
-              {m.nombre_metrica} <span className="font-mono text-[#6f6f6f]">({numero(m.peso_metrica)})</span>
+              {m.nombre_metrica} <span className="font-mono text-[#858585]">({numero(m.peso_metrica)})</span>
             </span>
           ))}
           .
@@ -66,7 +66,7 @@ function Aviso({ datos, nombreRanking, propio }) {
         </ul>
       )}
 
-      <p className="text-[11px] text-[#6f6f6f] mt-2.5">
+      <p className="text-[11px] text-[#858585] mt-2.5">
         Los valores medidos no se suman entre sí, así que esta vista no tiene total: conserva la
         posición del puntaje. Haz clic en una columna para ordenar por ella.
       </p>
@@ -124,7 +124,7 @@ export default function VistaValoresReales({
     <>
       <Aviso datos={datos} nombreRanking={nombreRanking} propio={propio} />
 
-      <div className="overflow-x-auto border-t border-white/[.12]">
+      <div className="overflow-x-auto border-t border-white/[.12] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40" tabIndex={0} role="region" aria-label="Tabla de cifras medidas">
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">
             Valores medidos de {nombreRanking} en {datos.anio}, por universidad y componente
@@ -134,12 +134,12 @@ export default function VistaValoresReales({
               <th scope="col" aria-sort={criterio.tipo === "posicion" ? "ascending" : "none"}
                 className="sticky left-0 z-10 bg-background py-2.5 px-3 align-bottom">
                 <button type="button" onClick={() => setCriterio({ tipo: "posicion" })}
-                  className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] hover:text-white">
+                  className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] hover:text-white">
                   Pos
                 </button>
               </th>
               <th scope="col" className="sticky left-[52px] z-10 bg-background py-2.5 px-3 align-bottom min-w-[220px]">
-                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Institución</span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">Institución</span>
               </th>
               {cols.map((m) => (
                 <th key={m.id_metrica} scope="col" aria-sort={ordenDe(m.id_metrica)}
@@ -152,10 +152,10 @@ export default function VistaValoresReales({
                         <span className="ml-1 text-[#9a9a9a]">{criterio.direccion === "mejor" ? "▼" : "▲"}</span>
                       )}
                     </span>
-                    <span className="block font-mono text-[9.5px] text-[#6f6f6f] mt-0.5 leading-tight">
+                    <span className="block font-mono text-[9.5px] text-[#858585] mt-0.5 leading-tight">
                       {datos.valores.find((v) => v.id_metrica === m.id_metrica)?.unidad || m.unidad_valor || "según la fuente"}
                     </span>
-                    <span className="block font-mono text-[9.5px] text-[#6f6f6f] leading-tight">
+                    <span className="block font-mono text-[9.5px] text-[#858585] leading-tight">
                       peso {numero(m.peso_metrica)}{m.sentido === "menor" ? " · menos es mejor" : ""}
                     </span>
                   </button>
@@ -183,7 +183,7 @@ export default function VistaValoresReales({
                       <td key={m.id_metrica} title={detalleCelda(v, datos.origen)}
                         className="py-2 px-3 text-right font-mono text-[12px] tabular-nums text-[#dcdcdc] whitespace-nowrap">
                         {marca && <span className="text-[#e0b25a] mr-1" aria-label={CALIDADES[v.calidad].etiqueta}>{marca}</span>}
-                        {v ? formatearValor(v.valor) : <span className="text-[#5f5f5f]">—</span>}
+                        {v ? formatearValor(v.valor) : <span className="text-[#858585]">—</span>}
                       </td>
                     );
                   })}
@@ -193,7 +193,7 @@ export default function VistaValoresReales({
           </tbody>
         </table>
       </div>
-      <p className="mt-4 text-[11px] text-[#6f6f6f]">
+      <p className="mt-4 text-[11px] text-[#858585]">
         Pasa el cursor sobre un valor para ver su fórmula, sus fuentes y de qué años salen los datos.
       </p>
     </>

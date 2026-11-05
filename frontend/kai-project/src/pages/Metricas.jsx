@@ -396,7 +396,7 @@ export default function Metricas() {
 
   return (
     <div className="min-h-screen bg-background text-white">
-      <main className="max-w-[1600px] mx-auto px-8 pt-[26px] pb-20">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-[26px] pb-20">
 
         {/* Cabecera */}
         <section className="flex items-start justify-between gap-6 flex-wrap mb-6">
@@ -405,9 +405,9 @@ export default function Metricas() {
               Análisis transversal{universidadNombre ? ` · ${universidadNombre}` : ""}
               {universidadNombre ? (anio ? ` · ${anio}` : " · ediciones más recientes") : ""}
             </p>
-            <h2 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-2">
+            <h1 className="font-headline text-[28px] font-semibold text-white tracking-[-0.01em] mb-2">
               Qué mide cada ranking, y cuánto pesa
-            </h2>
+            </h1>
             <p className="text-xs text-[#8a8a8a] max-w-2xl leading-relaxed">
               Intensidad = peso de la métrica en ese ranking. Número = {numerico ? "cifra medida" : "puntaje"}{" "}
               {universidadNombre ? `de ${universidadNombre}` : "de la institución seleccionada"}
@@ -485,7 +485,7 @@ export default function Metricas() {
 
           <div className="w-60">
             <p className="text-[10px] uppercase tracking-widest text-outlineSoft mb-1.5">Edición</p>
-            <select
+            <select aria-label="Edición"
               value={anio ?? ""}
               onChange={e => setAnio(e.target.value ? Number(e.target.value) : null)}
               className={`w-full border py-2.5 px-3 text-xs focus:outline-none transition-colors ${
@@ -502,7 +502,7 @@ export default function Metricas() {
           {(universidadId || anio) && (
             <button
               onClick={() => { setElegida(null); setAnio(null); }}
-              className="self-end text-[10px] uppercase tracking-wider px-3 py-2.5 bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500 hover:text-white transition-all"
+              className="self-end text-[10px] uppercase tracking-wider px-3 py-2.5 bg-red-500/20 text-red-300 border border-red-500/50 hover:bg-red-500 hover:text-white transition-all"
             >
               ✕ Limpiar
             </button>
@@ -513,7 +513,7 @@ export default function Metricas() {
         {loading ? (
           <div className="flex items-center justify-center h-64 text-outlineSoft text-sm">Cargando...</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40" tabIndex={0} role="region" aria-label="Matriz de dimensiones por ranking">
             <div className="min-w-[900px]">
               {/* Encabezado de rankings */}
               <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: `250px repeat(${rankings.length}, minmax(0, 1fr))` }}>
@@ -521,12 +521,12 @@ export default function Metricas() {
                 {rankings.map(r => (
                   <div key={r.id_ranking}
                        className={`font-mono text-[10px] uppercase tracking-widest text-center py-2 ${
-                         r.restringido ? "text-[#5f5f5f]" : "text-outlineSoft"}`}>
+                         r.restringido ? "text-[#808080]" : "text-outlineSoft"}`}>
                     {r.nombre_ranking}
                     {/* De qué edición son los números de la columna: cada ranking
                         aporta la suya. */}
                     {universidadId && !r.restringido && (
-                      <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-[#6f6f6f]">
+                      <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-[#858585]">
                         {edicionesMap[r.id_ranking] ? `edición ${edicionesMap[r.id_ranking]}`
                           : numerico && !r.tiene_valores_reales ? "solo puntajes"
                           : anio ? `sin edición ${anio}` : "sin datos"}

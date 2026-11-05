@@ -14,6 +14,7 @@ import { useValoresReales } from "../hooks/useValoresReales";
 import { filasCSV } from "../utils/valoresReales";
 import { useModoValores } from "../estado/ModoValores";
 import AvisoModo from "../components/data/AvisoModo";
+import useEsMovil from "../hooks/useEsMovil";
 import AvisoEdicion from "../components/data/AvisoEdicion";
 import { useAuth } from "../auth/AuthContext";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
@@ -25,6 +26,9 @@ import {
 
 const GRID_COLS = "44px 1fr 210px 120px 150px";
 const GRID_COLS_COMPACT = "44px 1fr 210px 120px";
+// En el teléfono no caben cinco columnas fijas: la grilla de escritorio dejaba
+// el nombre de la institución en ancho cero. Quedan posición, nombre y puntaje.
+const GRID_COLS_MOVIL = "26px minmax(0, 1fr) 116px";
 
 const PlaceholderIcon = ({ nombre, size }) => (
   <div
@@ -226,12 +230,14 @@ export default function Ranking() {
     }
   };
 
+  const esMovil = useEsMovil();
   const esCompacta = densidad === "compacta";
-  const gridCols = esCompacta ? GRID_COLS_COMPACT : GRID_COLS;
+  const gridCols = esMovil ? GRID_COLS_MOVIL : esCompacta ? GRID_COLS_COMPACT : GRID_COLS;
+  const conHistorial = !esCompacta && !esMovil;
 
   return (
     <div className="min-h-screen bg-background text-white">
-      <main className="max-w-[1600px] mx-auto px-8 pt-[26px] pb-20">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-[26px] pb-20">
 
         {/* Título + controles */}
         <section className="flex items-start justify-between gap-6 flex-wrap mb-6">
@@ -252,7 +258,7 @@ export default function Ranking() {
             )}
             {disciplinas.length > 0 && (
               <div className="relative">
-                <select
+                <select aria-label="Disciplina"
                   value={disciplinaActiva || ""}
                   onChange={e => setDisciplina(e.target.value)}
                   title="Este ranking clasifica por disciplina"
@@ -266,7 +272,7 @@ export default function Ranking() {
               </div>
             )}
             <div className="relative">
-              <select
+              <select aria-label="Año"
                 value={anio || ""}
                 onChange={e => setAnio(Number(e.target.value))}
                 className="appearance-none bg-[#1c1c1c] border border-white/[.14] text-[#cfcfcf] text-[11px] py-2 pl-3 pr-7 focus:outline-none focus:border-white/40"
@@ -332,7 +338,7 @@ export default function Ranking() {
         </div>
 
         {/* Línea de contexto */}
-        <div className="flex items-end justify-between gap-4 pb-3 mb-2 border-b border-white/[.12]">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 md:gap-4 pb-3 mb-2 border-b border-white/[.12]">
           <p className="text-xs text-[#8a8a8a] max-w-[760px] leading-relaxed">
             {rankingActual?.descripcion_ranking || data[0]?.descripcion_ranking || "Selecciona un ranking para ver su metodología."}
           </p>
@@ -381,8 +387,8 @@ export default function Ranking() {
                 <div className="h-4 w-6 bg-white/5 animate-pulse" />
                 <div className="h-4 w-2/3 bg-white/5 animate-pulse" />
                 <div className="h-4 w-full bg-white/5 animate-pulse" />
-                <div className="h-4 w-10 bg-white/5 animate-pulse ml-auto" />
-                {!esCompacta && <div className="h-4 w-full bg-white/5 animate-pulse" />}
+                {!esMovil && <div className="h-4 w-10 bg-white/5 animate-pulse ml-auto" />}
+                {conHistorial && <div className="h-4 w-full bg-white/5 animate-pulse" />}
               </div>
             ))}
           </div>
@@ -397,13 +403,15 @@ export default function Ranking() {
               className="grid items-center gap-4 py-2.5 px-3 sticky top-16 bg-background z-10 border-b border-white/[.12]"
               style={{ gridTemplateColumns: gridCols }}
             >
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]"
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]"
                     title="Posición entre las instituciones de esta tabla. El puesto que publica el ranking va junto al nombre.">Pos</span>
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Institución</span>
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">Score en {nombreConDisciplina}{modificados ? " · tus pesos" : ""}</span>
-              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a] text-right">Δ año ant.</span>
-              {!esCompacta && (
-                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#7a7a7a]">
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">Institución</span>
+              <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">Score en {nombreConDisciplina}{modificados ? " · tus pesos" : ""}</span>
+              {!esMovil && (
+                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a] text-right">Δ año ant.</span>
+              )}
+              {conHistorial && (
+                <span className="font-mono text-[9.5px] uppercase tracking-[.14em] text-[#8a8a8a]">
                   Posición {aniosHistorico[aniosHistorico.length - 1]}—{String(aniosHistorico[0]).slice(-2)}
                 </span>
               )}
@@ -434,7 +442,7 @@ export default function Ranking() {
                     </span>
 
                     <div className="flex items-center gap-3 min-w-0">
-                      {!esCompacta && (
+                      {!esCompacta && !esMovil && (
                         <UniversidadLogo
                           idUniversidad={uni.id_universidad}
                           nombre={uni.nombre_universidad}
@@ -442,11 +450,11 @@ export default function Ranking() {
                           fallback={<PlaceholderIcon nombre={uni.nombre_universidad} size={22} />}
                         />
                       )}
-                      <div className="min-w-0 flex items-baseline gap-2">
-                        <span className={`font-body font-semibold text-sm truncate ${esPropia ? "text-white" : "text-[#dcdcdc]"}`}>
+                      <div className="min-w-0 flex items-baseline gap-x-2 gap-y-1 flex-wrap md:flex-nowrap">
+                        <span className={`font-body font-semibold text-sm md:truncate leading-snug ${esPropia ? "text-white" : "text-[#dcdcdc]"}`}>
                           {uni.nombre_universidad}
                         </span>
-                        <span className="text-[11px] text-[#6f6f6f] shrink-0">{uni.pais_universidad}</span>
+                        {!esMovil && <span className="text-[11px] text-[#858585] shrink-0">{uni.pais_universidad}</span>}
                         {/* El puesto que publica el ranking (migración 023), tal como
                             lo escribe: «22», «=6», «851-900». */}
                         {uni.posicion_oficial && (
@@ -461,17 +469,19 @@ export default function Ranking() {
 
                     <ScoreBar value={Number(uni.score_total) || 0} max={maxScore} isOwn={esPropia} />
 
+                    {!esMovil && (
                     <span className="font-mono text-[12.5px] text-right tabular-nums">
                       {delta == null || delta === 0 ? (
-                        <span className="text-[#6f6f6f]">—</span>
+                        <span className="text-[#858585]">—</span>
                       ) : delta > 0 ? (
                         <span className="text-positive">▲ {delta}</span>
                       ) : (
                         <span className="text-negative">▼ {Math.abs(delta)}</span>
                       )}
                     </span>
+                    )}
 
-                    {!esCompacta && (
+                    {conHistorial && (
                       <Sparkline
                         posiciones={hist?.historico?.map(h => h.posicion)}
                         isOwn={esPropia}
@@ -483,7 +493,7 @@ export default function Ranking() {
               })}
             </div>
 
-            <div className="flex items-center justify-between mt-5 text-[11px] text-[#6f6f6f]">
+            <div className="flex items-center justify-between mt-5 text-[11px] text-[#858585]">
               <span>Mostrando 1–{data.length} · scroll continuo, sin paginación</span>
             </div>
           </>
