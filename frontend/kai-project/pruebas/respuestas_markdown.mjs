@@ -13,10 +13,12 @@ function comprobar(nombre, cond, detalle = "") {
   if (!cond) fallos.push(nombre);
 }
 
-const correo = `sonda_md_${Date.now()}@ejemplo.test`;
+const correo = `sonda_md_${Date.now()}@pucv.cl`;
 const alta = await (await fetch(`${API}/auth/registro`, {
   method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ nombre: "Sonda MD", correo, clave: "clave-de-sonda-123" }),
+  // La institución es obligatoria desde que la cuenta la exige al registrarse.
+  body: JSON.stringify({ nombre: "Sonda MD", correo, clave: "clave-de-sonda-123",
+                         institucion: "Pontificia Universidad Catolica de Valparaiso" }),
 })).json();
 if (!alta.token) { console.error("No se pudo registrar:", alta); process.exit(1); }
 
@@ -136,10 +138,11 @@ async function medirDesborde(ancho) {
   `);
 }
 
-// A 760 px la barra lateral (320 px) deja un espacio en el que la tabla no cabe:
-// es el caso que antes empujaba la página entera.
-const estrecho = await medirDesborde(760);
-comprobar("a 760 px la tabla efectivamente no cabe",
+// En un teléfono (360 px) la tabla no cabe: es el caso que antes empujaba la
+// página entera. (Antes se medía a 760 px, con la barra lateral de 320 px al
+// lado; desde que bajo 768 px el historial es un cajón, ahí la tabla cabe.)
+const estrecho = await medirDesborde(360);
+comprobar("a 360 px la tabla efectivamente no cabe",
   estrecho.tablaMasAnchaQueSuCaja, JSON.stringify(estrecho));
 comprobar("y es su propia envoltura la que se desplaza",
   estrecho.overflowX === "auto" && estrecho.envolturaDesplazable, JSON.stringify(estrecho));

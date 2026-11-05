@@ -158,8 +158,24 @@ comprobar("explica qué pasó", /no existe/i.test(p404.h1 || ""), JSON.stringify
 comprobar("y ofrece salida al Resumen y a la portada", p404.enlaces.includes("/ranking") && p404.enlaces.includes("/"), JSON.stringify(p404.enlaces));
 comprobar("la pestaña lo dice", /no encontrada/i.test(p404.titulo), p404.titulo);
 
-console.log("\n=== 9. Sin errores de JavaScript ===");
-const relevantes = errores.filter((t) => !/favicon|DevTools/i.test(t));
+console.log("\n=== 9. Una sesión que vence con la página abierta ===");
+// Antes los módulos quedaban vacíos, sin aviso, hasta recargar: cada petición
+// recibía 401 y los hooks lo tomaban por «sin datos».
+await escritorio();
+await ir("/ranking", 4000);
+await ev(`localStorage.setItem("kai_token", "vencido.invalido.x"); return 1;`);
+await ev(`[...document.querySelectorAll('main button')].find(b => !b.disabled && /Shanghai ARWU/.test(b.textContent))?.click(); return 1;`);
+await esperar(3000);
+const tras401 = await ev(`return { ruta: location.pathname, dialogo: !!document.querySelector('[role=dialog]') };`);
+comprobar("un 401 cierra la sesión y vuelve a la portada", tras401.ruta === "/", JSON.stringify(tras401));
+comprobar("y pide entrar de nuevo", tras401.dialogo, JSON.stringify(tras401));
+await ev(`localStorage.setItem("kai_token", ${JSON.stringify(TESTIGO)}); return 1;`);
+const erroresEsperados = errores.length;
+
+console.log("\n=== 10. Sin errores de JavaScript ===");
+// Los 401 de la sección 9 son los provocados a propósito.
+const relevantes = errores.slice(0, erroresEsperados).filter((t) => !/favicon|DevTools|401/i.test(t))
+  .concat(errores.slice(erroresEsperados).filter((t) => !/favicon|DevTools/i.test(t)));
 comprobar("la consola no registró errores", relevantes.length === 0, JSON.stringify(relevantes).slice(0, 300));
 
 console.log("\n" + "=".repeat(58));

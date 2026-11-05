@@ -441,7 +441,7 @@ export default function Tendencias() {
           <div className="flex items-center gap-2">
             <span className={etiqueta}>Ranking</span>
             <select aria-label="Ranking"
-              value={rankingId}
+              value={rankingId ?? ""}
               onChange={e => {
                 setRankingId(Number(e.target.value));
                 setDisciplina(null);

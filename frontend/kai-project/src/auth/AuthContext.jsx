@@ -100,6 +100,33 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { refrescar(); }, [token, refrescar]);
 
+  // La sesión se validaba solo al cargar. Si vencía con la página abierta —o la
+  // invalidaba el servidor—, cada petición recibía 401, los hooks lo tomaban por
+  // «sin datos» y los módulos quedaban vacíos sin explicación hasta recargar.
+  // Ahora un 401 de cualquier petición con sesión a la API revalida la sesión:
+  // si de verdad terminó, se cierra y la ruta protegida pide entrar de nuevo.
+  useEffect(() => {
+    const original = window.fetch;
+    let revisando = false;
+    window.fetch = async (...args) => {
+      const res = await original(...args);
+      if (res.status === 401 && !revisando) {
+        try {
+          const [recurso, opciones] = args;
+          const url = typeof recurso === "string" ? recurso : recurso?.url || "";
+          const cabeceras = new Headers(opciones?.headers || (recurso instanceof Request ? recurso.headers : undefined));
+          const conSesion = /^Bearer /.test(cabeceras.get("Authorization") || "");
+          if (conSesion && url.startsWith(API) && !url.startsWith(`${API}/auth/`)) {
+            revisando = true;
+            Promise.resolve(refrescar()).finally(() => { revisando = false; });
+          }
+        } catch { /* la respuesta llega igual a quien la pidió */ }
+      }
+      return res;
+    };
+    return () => { window.fetch = original; };
+  }, [refrescar]);
+
   const aplicarSesion = useCallback((datos) => {
     guardarToken(datos.token);
     setUsuario(datos.usuario);

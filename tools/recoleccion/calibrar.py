@@ -237,7 +237,7 @@ def calibrar_qs(anual, ventana, universidades, publicados, filas_salida) -> None
               f"({votos[elegido]} de {len(mejores)})")
     else:
         elegido = mc.DESFASES["QS Latam"]["institucional"]
-        print(f"\n  Ningún indicador identifica un desfase dentro del rango probado.")
+        print("\n  Ningún indicador identifica un desfase dentro del rango probado.")
         print(f"  Se usa E-{elegido} por convención, y queda dicho que no está medido.")
 
     # 2. La recta por indicador y edición, con el desfase elegido.

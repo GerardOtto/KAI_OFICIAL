@@ -121,7 +121,18 @@ miden la versión recortada de las vistas, que es la que verá la mayoría.
 
 `motores` y `respuestas_markdown` ejercitan la interfaz del asistente y necesitan
 además un backend con el proveedor sustituido por un doble, con la aplicación
-compilada apuntando a él. Se omiten si no se define `KAI_API_URL`.
+compilada apuntando a él. Se omiten si no se define `KAI_API_URL`. Ese backend es
+`pruebas/servidor_doble.py`: el real, con un proveedor que responde textos fijos
+(sin gastar tokens), el asistente abierto a cualquier cuenta y las cuentas nuevas
+en un plan de pago, para poder elegir entre los dos motores:
+
+```bash
+python pruebas/servidor_doble.py                      # backend de prueba en :8010
+cd ../frontend/kai-project
+VITE_API_URL=http://localhost:8010 npx vite build --outDir dist-doble
+npx serve -s dist-doble -l 5197
+KAI_APP_URL=http://localhost:5197 KAI_API_URL=http://localhost:8010 node pruebas/ejecutar.mjs motores respuestas_markdown
+```
 
 `reporte`, `informes`, `revelado` y `consultas_guiadas` son la excepción a todo lo anterior: no miran la
 aplicación compilada, sino que importan los módulos de origen y montan los

@@ -14,10 +14,12 @@ function comprobar(nombre, cond, detalle = "") {
 }
 
 // --- Usuario desechable -----------------------------------------------------
-const correo = `sonda_motores_${Date.now()}@ejemplo.test`;
+const correo = `sonda_motores_${Date.now()}@pucv.cl`;
 const alta = await (await fetch(`${API}/auth/registro`, {
   method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ nombre: "Sonda Motores", correo, clave: "clave-de-sonda-123" }),
+  // La institución es obligatoria desde que la cuenta la exige al registrarse.
+  body: JSON.stringify({ nombre: "Sonda Motores", correo, clave: "clave-de-sonda-123",
+                         institucion: "Pontificia Universidad Catolica de Valparaiso" }),
 })).json();
 if (!alta.token) { console.error("No se pudo registrar:", alta); process.exit(1); }
 console.log(`Usuario desechable: ${correo} (id ${alta.usuario.id})\n`);
@@ -100,7 +102,9 @@ compositor = await textoDe("main");
 comprobar("al elegir Gemini el compositor lo refleja", /KAI_GEMINI_/.test(compositor || ""),
   (compositor || "").slice(-200));
 // El CSS pone este pie en mayúsculas, así que la comparación es insensible.
-comprobar("y anuncia el modelo barato", /gemini-2\.5-flash-lite/i.test(compositor || ""),
+// El modelo se lee del catálogo: cambia con GEMINI_MODEL y no debe fijarse aquí.
+const modeloGemini = (await (await fetch(`${API}/motores`)).json()).motores.find(m => m.id === "gemini")?.modelo || "?";
+comprobar(`y anuncia el modelo barato (${modeloGemini})`, (compositor || "").toLowerCase().includes(modeloGemini.toLowerCase()),
   (compositor || "").slice(-250));
 
 console.log("\n=== 3. Al abrir conversación el selector se bloquea ===");
