@@ -15,6 +15,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Las pruebas solo leen el repositorio.
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest

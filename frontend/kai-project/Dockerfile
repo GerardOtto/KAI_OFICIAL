@@ -20,12 +20,19 @@ COPY . .
 ARG VITE_API_URL
 RUN test -n "$VITE_API_URL" || { echo "Falta VITE_API_URL: pásala como argumento de construcción." >&2; exit 1; }
 RUN npm run build
+# Cabeceras de seguridad que `serve` lee de dist/serve.json (ver serve.json). La
+# política de contenido nombra el origen del backend, que solo se conoce aquí.
+RUN API_ORIGEN="$(node -e 'console.log(new URL(process.env.VITE_API_URL).origin)')" \
+ && sed "s#__API__#${API_ORIGEN}#" serve.json > dist/serve.json \
+ && grep -q "connect-src 'self' ${API_ORIGEN} " dist/serve.json
 
 # --- Servicio ------------------------------------------------------------------
 FROM node:22-slim
 WORKDIR /app
 RUN npm install -g --no-audit --no-fund serve@14.2.6
 COPY --from=compilacion /app/dist ./dist
+# Sin privilegios: la imagen de Node trae el usuario `node`, y el puerto es alto.
+USER node
 # El mismo puerto que antes, para no cambiar lo que espera el despliegue.
 EXPOSE 5173
 # -s: una ruta que no es un archivo devuelve index.html, que es lo que necesita

@@ -24,10 +24,11 @@ on:
     branches: [main]
     paths: ["datos/rankings/**"]
 
+# Por defecto, solo lectura. La escritura (rama, PR e issue) la pide únicamente
+# el trabajo que la usa: `cargar` corre con el secreto de la base y no necesita
+# poder escribir en el repositorio.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 concurrency:
   group: rankings
@@ -37,6 +38,10 @@ jobs:
   revisar:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4

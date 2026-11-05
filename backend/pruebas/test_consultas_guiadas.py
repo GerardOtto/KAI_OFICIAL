@@ -28,7 +28,7 @@ sys.path.insert(0, RAIZ)
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(RAIZ, ".env"))
-from app import acceso, herramientas as h  # noqa: E402
+from app import acceso, auth, herramientas as h  # noqa: E402
 from app.conversaciones import titulo_desde_mensaje, LIMITE_TITULO  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
 
@@ -240,7 +240,9 @@ try:
         db.execute(text("UPDATE usuario SET plan_usuario = 'free', google_sub = :g WHERE id_usuario = :u"),
                    {"g": f"prueba-{uuid.uuid4().hex}", "u": id_usuario})
         db.commit()
-    cabeceras = {"Authorization": f"Bearer {token}"}
+    # Vincular con Google cambia la huella de la sesión (auth.crear_token): el token
+    # del registro deja de valer, como en la aplicación real. Se emite otro.
+    cabeceras = {"Authorization": f"Bearer {auth.crear_token(id_usuario, correo)[0]}"}
 
     r = cliente.post("/chat", headers=cabeceras, json={"mensaje": guiada["mensaje"], "motor": "gemini"})
     cuerpo = r.json()

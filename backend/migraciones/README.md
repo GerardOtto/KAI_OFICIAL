@@ -157,7 +157,7 @@ Además de la migración, el servicio de backend necesita estas variables
 |---|---|---|
 | `DATABASE_URL` | sí | La interna (`postgres.railway.internal`) funciona bien aquí |
 | `ANTHROPIC_API_KEY` | sí, para el asistente | |
-| `JWT_SECRET` | **sí** | Sin ella, todo `/auth/*` responde 503. Genera una distinta de la local |
+| `JWT_SECRET` | **sí** | Sin ella, todo `/auth/*` responde 503. Genera una distinta de la local, de al menos 32 bytes (con menos, el backend lo advierte en el registro: un secreto corto se descifra por fuerza bruta a partir de cualquier token) |
 | `JWT_HORAS_VALIDEZ` | no | Por defecto 12 |
 | `GOOGLE_CLIENT_ID` | no | Sin ella el botón de Google no aparece |
 | `GEMINI_API_KEY` | no | Sin ella el motor Gemini se muestra deshabilitado. Ver `docs/asistente-motores.md` |
@@ -168,7 +168,10 @@ Además de la migración, el servicio de backend necesita estas variables
 | `SMTP_HOST`, `SMTP_PORT` | no | Por defecto `smtp.gmail.com` y `587` |
 | `KAI_PROXIES_CONFIABLES` | no | Por defecto 1, el proxy de Railway. Súbelo si se pone otro delante (una CDN): de él depende qué IP ven los topes |
 | `KAI_LOGIN_FALLOS_POR_CUENTA`, `KAI_LOGIN_FALLOS_POR_IP`, `KAI_REGISTROS_POR_IP` | no | Topes de autenticación; ver `docs/acceso-y-planes.md` §6 |
-| `DATABASE_URL_ASISTENTE` | recomendada | Conexión propia para la consulta SQL libre del asistente, con el usuario `kai_asistente`. Ver «019» abajo |
+| `DATABASE_URL_ASISTENTE` | **muy recomendada** | Conexión propia para la consulta SQL libre del asistente, con el usuario `kai_asistente`. Sin ella, esa consulta corre con la conexión común y solo el filtro de `herramientas.py` impide recuperar sus privilegios: el 2026-11-04 se encontró y cerró una forma de esquivarlo. Ver «019» abajo |
+| `KAI_ENTORNO` | no | `produccion` cierra `/docs`, `/redoc` y `/openapi.json`, quita el acceso CORS desde `localhost` y agrega HSTS. En Railway no hace falta: se detecta por `RAILWAY_ENVIRONMENT_NAME` |
+| `KAI_ORIGENES` | no | Orígenes del frontend adicionales para CORS, separados por comas (un dominio propio, por ejemplo) |
+| `KAI_CORS_LOCALHOST` | no | `1` vuelve a admitir `http://localhost:*` en producción, para probar un frontend local contra el backend publicado |
 
 Sin las tres de contacto, las solicitudes se guardan igual en `solicitud_contacto`
 con `enviado = FALSE` y el motivo en `error_envio`: se pueden revisar con

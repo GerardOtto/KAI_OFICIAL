@@ -37,6 +37,8 @@ BATERIAS = [
      "Grupos de comparación guardados y el lugar en cada ranking", False, False),
     ("actualizacion", "test_actualizacion.py",
      "Posición oficial, estado de las ediciones y THE World", False, False),
+    ("seguridad", "test_seguridad.py",
+     "Tokens manipulados, huella de sesión, topes de entrada, cabeceras y aislamiento entre cuentas", False, False),
     ("rankings", "test_rankings_oficiales.py",
      "Rankings oficiales: la base se reconstruye desde sus fuentes, edición por edición", False, False),
     ("valores-reales", "test_valores_reales.py",

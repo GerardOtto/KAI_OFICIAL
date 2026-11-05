@@ -134,6 +134,32 @@ with h.con_rankings_vedados({1, 2, 5, 7}):
 comprobar("con el plan gratuito, TABLE y un esquema escrito con U& no esquivan el veto de THE",
           escapada.startswith("ERROR"), escapada[:120])
 
+# El filtro quitaba los comentarios con una expresión que no sabe de comillas:
+# en `SELECT '--', ...` tomaba el resto de la línea por comentario y no lo
+# revisaba, pero PostgreSQL sí lo ejecutaba. Así el plan gratuito leía 9.238
+# cifras de THE y QS, y set_config + ts_stat devolvían los correos de las
+# cuentas. Ahora se revisa el mismo texto que se ejecuta.
+OCULTAS = [
+    ("'--' oculta el esquema",
+     "SELECT '--' AS x, count(*) AS n FROM public.metrica_universidad mu "
+     "JOIN public.metrica m USING (id_metrica) WHERE m.id_ranking IN (1, 2, 5, 7) LIMIT 1"),
+    ("'--' oculta set_config y ts_stat",
+     "SELECT '--' AS x, set_config('role','postgres',true) AS r, "
+     "(SELECT count(*) FROM ts_stat('select to_tsvector(correo_usuario) from usuario')) AS n LIMIT 1"),
+    ("'/*' oculta el esquema", "SELECT '/*' AS x, (SELECT count(*) FROM public.metrica_universidad) AS n, '*/' AS y LIMIT 1"),
+    ("$$--$$ oculta el esquema", "SELECT $$--$$ AS x, count(*) FROM public.metrica_universidad LIMIT 1"),
+    ("current_setting", "SELECT current_setting('data_directory') LIMIT 1"),
+    ("set_config con esquema", "SELECT pg_catalog.set_config('role','postgres',true) LIMIT 1"),
+]
+with h.con_rankings_vedados({1, 2, 5, 7}):
+    for nombre, sql in OCULTAS:
+        comprobar(f"el filtro rechaza: {nombre}", h._revisar_sql(sql) is not None, sql[:80])
+        salida = h.consulta_sql(sql)
+        comprobar(f"  y no se ejecuta: {nombre}", salida.startswith("ERROR"), salida[:120])
+    recursiva = h.consulta_sql("WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM r WHERE n < 3) "
+                               "SELECT max(n) AS n FROM r LIMIT 1")
+comprobar("un CTE con lista de columnas, r(n) AS (...), se admite", not recursiva.startswith("ERROR"), recursiva[:120])
+
 print("\n=== 3c. Si el filtro fallara, los privilegios de la base frenan ===")
 # Se desactiva el filtro a propósito: lo que queda es el rol de solo lectura
 # (migración 019), la garantía que da PostgreSQL.

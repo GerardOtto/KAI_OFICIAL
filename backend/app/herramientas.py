@@ -960,7 +960,6 @@ TABLAS_PUBLICAS = {
 TABLAS_VETADAS = {"usuario", "conversacion", "mensaje", "notificacion", "plan", "descarga",
                   "solicitud_contacto", "grupo_comparacion"}
 
-_COMENTARIOS = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 # Identificadores en posición de tabla: lo que sigue a FROM, JOIN, INTO o UPDATE.
 # Se admiten las comillas dobles de PostgreSQL, que si no quedarían fuera del
 # análisis y permitirían colar `FROM "usuario"`.
@@ -983,7 +982,16 @@ _CATALOGOS = re.compile(r"\b(pg_catalog|information_schema|pg_[a-z_]+)\b", re.I)
 # quita (ver ROL_ASISTENTE).
 _SQL_DINAMICO = re.compile(
     r"\b(query_to_xml\w*|table_to_xml\w*|cursor_to_xml\w*|schema_to_xml\w*|database_to_xml\w*|"
-    r"ts_stat|ts_rewrite|set_config)\b", re.I)
+    r"ts_stat|ts_rewrite|set_config|current_setting|lo_get|lo_open|loread)\b", re.I)
+# Marcas de comentario, en cualquier lugar. Antes los comentarios se quitaban con
+# una expresión regular antes de revisar la consulta, pero esa expresión no sabe
+# de comillas: en `SELECT '--', ... FROM public.metrica_universidad` tomaba el
+# resto de la línea por comentario, la revisión no lo veía y PostgreSQL sí lo
+# ejecutaba. Así se leían las cifras de THE y QS desde el plan gratuito y, con
+# set_config y ts_stat, las tablas de cuentas. Ahora se revisa exactamente el
+# texto que se ejecuta, y los comentarios no se admiten (el modelo no los
+# necesita para consultar).
+_MARCAS_COMENTARIO = re.compile(r"--|/\*|\*/")
 # Identificadores y textos escritos con escapes Unicode (U&"\0075suario"): no
 # contienen el nombre que se busca, así que esquivaban todo lo anterior.
 _ESCAPES_U = re.compile(r"\bU&\s*['\"]", re.I)
@@ -1024,9 +1032,12 @@ def _revisar_sql(sql: str) -> str | None:
     rol que solo puede leer las tablas académicas: esas dos garantías las da el
     propio motor de la base y no dependen de acertar con estas expresiones.
     """
-    limpio = _COMENTARIOS.sub(" ", sql or "").strip().rstrip(";")
+    limpio = (sql or "").strip().rstrip(";").strip()
     if not limpio:
         return "La consulta está vacía."
+    if _MARCAS_COMENTARIO.search(limpio):
+        return ("No se admiten comentarios (-- o /* */) en la consulta, ni esas marcas dentro de "
+                "un texto; quítalos y vuelve a intentarlo.")
     if ";" in limpio:
         return "Solo se admite una sentencia; quita el ';' intermedio."
     if not re.match(r"^\s*(select|with)\b", limpio, re.I):
@@ -1049,7 +1060,8 @@ def _revisar_sql(sql: str) -> str | None:
                 "usuarias y queda fuera del alcance del asistente.")
 
     # Los CTE definen nombres propios que no son tablas reales; se admiten.
-    ctes = {n.lower() for n in re.findall(r"\b([a-zA-Z_]\w*)\s+as\s*\(", limpio, re.I)}
+    ctes = {n.lower() for n in re.findall(
+        r"\b([a-zA-Z_]\w*)\s*(?:\([\w\s,]*\))?\s+as\s+(?:not\s+)?(?:materialized\s+)?\(", limpio, re.I)}
     for relacion in _RELACIONES.findall(limpio):
         nombre = relacion.replace('"', "").split(".")[-1].lower()
         if nombre in ctes or nombre in TABLAS_PUBLICAS:
@@ -1068,7 +1080,7 @@ def _sin_vedados(sql: str) -> str | None:
     por WITH, los CTE propios se suman a los suyos. Una tabla escrita con esquema
     (`public.metrica`) esquivaría el CTE, así que en ese caso no se ejecuta.
     """
-    if re.search(r'\bpublic"?\s*\.', _COMENTARIOS.sub(" ", sql), re.I):
+    if re.search(r'\bpublic"?\s*\.', sql, re.I) or _MARCAS_COMENTARIO.search(sql):
         return None
     ids = ", ".join(str(i) for i in sorted(_vedados.get()))
     propios = (

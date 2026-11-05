@@ -4,7 +4,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware # 1. Importa el middleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 import os
@@ -20,13 +20,23 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
-app = FastAPI()
+# En producción —Railway define RAILWAY_ENVIRONMENT_NAME en cada servicio; fuera
+# de Railway, KAI_ENTORNO=produccion— se cierran la documentación interactiva y
+# el acceso desde cualquier localhost. /docs y /openapi.json describían cada
+# endpoint y cada parámetro a quien los pidiera, sin sesión.
+EN_PRODUCCION = (bool(os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RAILWAY_ENVIRONMENT"))
+                 or os.getenv("KAI_ENTORNO", "").strip().lower() in ("produccion", "production"))
+
+app = FastAPI(docs_url=None if EN_PRODUCCION else "/docs",
+              redoc_url=None if EN_PRODUCCION else "/redoc",
+              openapi_url=None if EN_PRODUCCION else "/openapi.json")
 
 
-# Orígenes de producción: lista explícita, sin barra final.
+# Orígenes de producción: lista explícita, sin barra final. KAI_ORIGENES agrega
+# otros, separados por comas (un dominio propio, por ejemplo).
 ORIGENES_PRODUCCION = [
     "https://kaioficial-production.up.railway.app",
-]
+] + [o.strip().rstrip("/") for o in os.getenv("KAI_ORIGENES", "").split(",") if o.strip()]
 
 # En desarrollo se acepta cualquier puerto de localhost. Motivo: si el puerto
 # habitual de Vite (5173) está ocupado, el servidor arranca en el siguiente y,
@@ -35,6 +45,9 @@ ORIGENES_PRODUCCION = [
 # respuestas y la aplicación entera parece caída, con un síntoma que no señala
 # su causa. Aceptar cualquier puerto local elimina ese modo de fallo.
 REGEX_LOCALHOST = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+# En producción, solo si se pide (KAI_CORS_LOCALHOST=1): una página cualquiera
+# servida en el localhost de un visitante no tiene por qué hablar con la API.
+CON_LOCALHOST = not EN_PRODUCCION or os.getenv("KAI_CORS_LOCALHOST") == "1"
 
 
 class ErroresConCORS(BaseHTTPMiddleware):
@@ -58,14 +71,42 @@ class ErroresConCORS(BaseHTTPMiddleware):
             )
 
 
+class CabecerasSeguras(BaseHTTPMiddleware):
+    """Cabeceras de seguridad en toda respuesta de la API.
+
+    La API solo entrega JSON, así que su política de contenido es la más cerrada
+    posible y nada puede incrustarla en un marco. `no-store` porque casi todo lo
+    que responde depende de la cuenta (plan, conversaciones, cuota), y una caché
+    intermedia o la del navegador no debe guardarlo. La documentación
+    interactiva, cuando está abierta (fuera de producción), carga sus scripts de
+    una CDN y queda fuera de la política de contenido.
+    """
+
+    async def dispatch(self, request, call_next):
+        respuesta = await call_next(request)
+        h = respuesta.headers
+        h.setdefault("X-Content-Type-Options", "nosniff")
+        h.setdefault("X-Frame-Options", "DENY")
+        h.setdefault("Referrer-Policy", "no-referrer")
+        h.setdefault("Cache-Control", "no-store")
+        h.setdefault("Cross-Origin-Resource-Policy", "same-site")
+        if request.url.path not in ("/docs", "/redoc", "/docs/oauth2-redirect"):
+            h.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+        if EN_PRODUCCION:
+            h.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return respuesta
+
+
 # El orden importa: add_middleware antepone, así que el último añadido queda por
 # fuera. CORS debe ser el más externo para poder añadir cabeceras a la respuesta
-# de error que genera el middleware de arriba.
+# de error que genera el middleware de arriba; las de seguridad van entre los
+# dos, para que también las lleve esa respuesta de error.
 app.add_middleware(ErroresConCORS)
+app.add_middleware(CabecerasSeguras)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGENES_PRODUCCION,
-    allow_origin_regex=REGEX_LOCALHOST,
+    allow_origin_regex=REGEX_LOCALHOST if CON_LOCALHOST else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -85,15 +126,19 @@ def root():
 MENSAJE_SOLO_GOOGLE = "Su cuenta está verificada, solo puede ingresar vía su cuenta de Google."
 
 
+# Topes de largo en todo lo que llega del cliente: sin ellos el registro guardaba
+# un nombre de 200 kB, que luego viajaba en cada sesión y en cada informe. La
+# contraseña admite más de 72 bytes aquí para que el aviso de largo sea el de
+# `auth.validar_registro`, en castellano, y no el de la validación.
 class RegistroRequest(BaseModel):
-    nombre: str
-    correo: str
-    clave: str
-    institucion: str
+    nombre: str = Field(max_length=120)
+    correo: str = Field(max_length=254)
+    clave: str = Field(max_length=256)
+    institucion: str = Field(max_length=200)
 
 
 class InstitucionRequest(BaseModel):
-    institucion: str
+    institucion: str = Field(max_length=200)
 
 
 def _validar_institucion(db, nombre: str | None) -> str:
@@ -121,12 +166,12 @@ def _validar_institucion(db, nombre: str | None) -> str:
 
 
 class LoginRequest(BaseModel):
-    correo: str
-    clave: str
+    correo: str = Field(max_length=254)
+    clave: str = Field(max_length=256)
 
 
 class GoogleRequest(BaseModel):
-    credential: str  # ID token emitido por Google Identity Services
+    credential: str = Field(max_length=8192)  # ID token emitido por Google Identity Services
 
 
 def _sesion(db, usuario: dict) -> dict:
@@ -365,6 +410,21 @@ def listar_instituciones():
         db.close()
 
 
+def _lista_ids(texto: str | None, campo: str, maximo: int = 500) -> list[int]:
+    """Identificadores separados por comas, validados.
+
+    Antes se convertían con `int()` sin más: un valor no numérico respondía 500,
+    y una lista sin tope llegaba entera a la consulta.
+    """
+    partes = [p.strip() for p in (texto or "").split(",") if p.strip()]
+    if len(partes) > maximo:
+        raise HTTPException(status_code=400, detail=f"Demasiados valores en «{campo}» (máximo {maximo}).")
+    try:
+        return [int(p) for p in partes]
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"«{campo}» debe ser una lista de números separados por comas.")
+
+
 def ranking_permitido(ranking_id: int | None = None,
                       usuario: dict = Depends(auth.usuario_actual)) -> dict:
     """Exige sesión y, si la petición nombra un ranking, que el plan lo incluya.
@@ -390,8 +450,8 @@ def ranking_permitido(ranking_id: int | None = None,
 # ---------------------------------------------------------------------------
 
 class DescargaRequest(BaseModel):
-    modulo: str
-    formato: str
+    modulo: str = Field(max_length=40)
+    formato: str = Field(max_length=10)
 
 
 @app.get("/descargas")
@@ -442,8 +502,8 @@ MAX_GRUPOS = 30
 
 
 class GrupoRequest(BaseModel):
-    nombre: str
-    universidades: list[int]
+    nombre: str = Field(max_length=200)
+    universidades: list[int] = Field(max_length=500)
 
 
 def _sin_grupos(db) -> bool:
@@ -525,7 +585,7 @@ def eliminar_grupo(id_grupo: int, usuario: dict = Depends(auth.usuario_actual)):
 # ---------------------------------------------------------------------------
 
 class NuevoTitulo(BaseModel):
-    titulo: str
+    titulo: str = Field(max_length=500)
 
 
 @app.get("/conversaciones")
@@ -608,16 +668,18 @@ def listar_planes():
 
 
 class ContactoRequest(BaseModel):
-    nombre: str
-    correo: str
-    institucion: str
-    cargo: str | None = None
-    telefono: str | None = None
-    plan: str | None = None
-    mensaje: str | None = None
+    # Los campos se recortan después (`_linea`); estos topes solo evitan cargar
+    # cuerpos enormes en memoria antes de recortarlos.
+    nombre: str = Field(max_length=1000)
+    correo: str = Field(max_length=1000)
+    institucion: str = Field(max_length=1000)
+    cargo: str | None = Field(default=None, max_length=1000)
+    telefono: str | None = Field(default=None, max_length=1000)
+    plan: str | None = Field(default=None, max_length=100)
+    mensaje: str | None = Field(default=None, max_length=10000)
     # Trampa para robots: el formulario la esconde, así que una persona la deja
     # vacía y un programa que rellena todo, no.
-    sitio_web: str | None = None
+    sitio_web: str | None = Field(default=None, max_length=1000)
 
 
 def _linea(valor: str | None, maximo: int) -> str:
@@ -902,7 +964,7 @@ def get_trends(ranking_id: int, metrica_id: int, universidades: str = None,
         }
 
         if universidades:
-            ids = [int(x) for x in universidades.split(",")]
+            ids = _lista_ids(universidades, "universidades")
             base_query += " AND u.id_universidad = ANY(:ids)"
             params["ids"] = ids
 
@@ -1009,7 +1071,7 @@ def get_simulacion(ranking_id: int, anio: int, universidades: str = None,
         params = {"ranking_id": ranking_id, "anio": anio}
         uni_filter = ""
         if universidades:
-            ids = [int(x) for x in universidades.split(",")]
+            ids = _lista_ids(universidades, "universidades")
             uni_filter = "AND u.id_universidad = ANY(:ids)"
             params["ids"] = ids
 
@@ -1721,12 +1783,12 @@ def get_tendencias_comparacion(
 
         met_filter = ""
         if metricas:
-            params["met_ids"] = [int(x) for x in metricas.split(",") if x.strip()]
+            params["met_ids"] = _lista_ids(metricas, "metricas")
             met_filter = "AND m.id_metrica = ANY(:met_ids)"
 
         uni_filter = ""
         if universidades:
-            params["uni_ids"] = [int(x) for x in universidades.split(",") if x.strip()]
+            params["uni_ids"] = _lista_ids(universidades, "universidades")
             uni_filter = "AND u.id_universidad = ANY(:uni_ids)"
 
         fuente = _fuente_valores(db, modo)

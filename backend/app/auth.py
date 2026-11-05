@@ -4,6 +4,7 @@ El sistema emite siempre su propio JWT, tanto si el usuario entró con correo y
 contraseña como si lo hizo con Google. De ese modo el resto de la aplicación
 tiene un único mecanismo de sesión y no necesita saber cómo se autenticó nadie.
 """
+import logging
 import os
 import re
 from datetime import datetime, timedelta, timezone
@@ -19,8 +20,16 @@ from .db import SessionLocal
 
 # --- Configuración ---------------------------------------------------------
 
+logger = logging.getLogger(__name__)
+
 JWT_SECRETO = os.getenv("JWT_SECRET")
 JWT_ALGORITMO = "HS256"
+# HS256 con un secreto corto se rompe por fuerza bruta a partir de un solo token
+# (que cualquiera obtiene registrándose), y con él se firman sesiones de
+# cualquier cuenta. 32 bytes aleatorios es lo que recomienda la RFC 7518.
+if JWT_SECRETO and len(JWT_SECRETO.encode("utf-8")) < 32:
+    logger.warning("JWT_SECRET tiene menos de 32 bytes: genera uno con "
+                   "`python -c \"import secrets; print(secrets.token_urlsafe(48))\"`.")
 JWT_HORAS_VALIDEZ = int(os.getenv("JWT_HORAS_VALIDEZ", "12"))
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -85,6 +94,24 @@ def validar_registro(correo: str, clave: str, nombre: str) -> None:
 
 # --- JWT -------------------------------------------------------------------
 
+# Huella de la forma de entrar de la cuenta: cambia cuando cambia la contraseña o
+# cuando la cuenta se vincula a Google (que borra la contraseña). Viaja en el
+# token como `sv` y se compara en cada petición. Sin ella, quien se registró con
+# un correo ajeno conservaba su sesión hasta 12 horas después de que el dueño
+# real vinculara la cuenta con Google, pese a que la vinculación existe
+# justamente para cerrarle el paso.
+_HUELLA_SQL = "left(md5(coalesce(u.google_sub, '') || '|' || coalesce(u.clave_usuario, '')), 16)"
+
+
+def _huella(id_usuario: int) -> Optional[str]:
+    db = SessionLocal()
+    try:
+        return db.execute(text(f"SELECT {_HUELLA_SQL} FROM usuario u WHERE u.id_usuario = :i"),
+                          {"i": id_usuario}).scalar()
+    finally:
+        db.close()
+
+
 def crear_token(id_usuario: int, correo: str) -> tuple[str, int]:
     """Devuelve (token, segundos_de_validez)."""
     ahora = datetime.now(timezone.utc)
@@ -95,13 +122,19 @@ def crear_token(id_usuario: int, correo: str) -> tuple[str, int]:
         "iat": int(ahora.timestamp()),
         "exp": int(expira.timestamp()),
     }
+    huella = _huella(id_usuario)
+    if huella:
+        carga["sv"] = huella
     token = jwt.encode(carga, _secreto(), algorithm=JWT_ALGORITMO)
     return token, JWT_HORAS_VALIDEZ * 3600
 
 
 def _leer_token(token: str) -> dict:
     try:
-        return jwt.decode(token, _secreto(), algorithms=[JWT_ALGORITMO])
+        # Sin `require`, un token sin `exp` no vence nunca: PyJWT solo comprueba
+        # la caducidad si el campo está.
+        return jwt.decode(token, _secreto(), algorithms=[JWT_ALGORITMO],
+                          options={"require": ["exp", "iat", "sub"]})
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="La sesión expiró. Vuelve a iniciar sesión.")
     except jwt.InvalidTokenError:
@@ -116,9 +149,10 @@ CAMPOS_USUARIO = """
     (u.google_sub IS NOT NULL) AS con_google,
     (u.clave_usuario IS NOT NULL) AS con_clave,
     institucion_por_correo(u.correo_usuario) AS institucion_del_correo,
+    {huella} AS huella_sesion,
     p.nombre_plan, p.mensajes_por_dia, p.precio_mensual_usd,
     p.tokens_claude_mes, p.tokens_gemini_mes, p.dias_entre_mensajes, p.mensajes_totales
-"""
+""".replace("{huella}", _HUELLA_SQL)
 
 
 def buscar_usuario_por_id(db, id_usuario: int) -> Optional[dict]:
@@ -142,13 +176,23 @@ def usuario_actual(
             headers={"WWW-Authenticate": "Bearer"},
         )
     carga = _leer_token(credencial.credentials)
+    try:
+        id_usuario = int(carga["sub"])
+    except (TypeError, ValueError):
+        # Solo puede pasar con un token firmado con el secreto, pero era un 500.
+        raise HTTPException(status_code=401, detail="Credencial de sesión inválida.")
     db = SessionLocal()
     try:
-        usuario = buscar_usuario_por_id(db, int(carga["sub"]))
+        usuario = buscar_usuario_por_id(db, id_usuario)
     finally:
         db.close()
     if usuario is None:
         raise HTTPException(status_code=401, detail="La cuenta asociada a esta sesión ya no existe.")
+    huella = usuario.get("huella_sesion")
+    if huella is not None and carga.get("sv") != huella:
+        raise HTTPException(status_code=401,
+                            detail="La sesión ya no es válida: la cuenta cambió su forma de entrar. "
+                                   "Vuelve a iniciar sesión.")
     return usuario
 
 
@@ -192,7 +236,9 @@ def verificar_token_google(token_google: str) -> dict:
             token_google, google_requests.Request(), GOOGLE_CLIENT_ID
         )
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=f"El token de Google no es válido: {e}")
+        # El detalle va al registro, no al cliente: describe la verificación.
+        logger.info("Token de Google rechazado: %s", e)
+        raise HTTPException(status_code=401, detail="El token de Google no es válido. Vuelve a intentarlo.")
 
     if not datos.get("email"):
         raise HTTPException(status_code=400, detail="La cuenta de Google no expone un correo electrónico.")

@@ -25,7 +25,7 @@ load_dotenv(os.path.join(RAIZ, ".env"))
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app import assistant_gemini as g
+from app import assistant_gemini as g, auth
 from app.db import SessionLocal
 from app.main import app
 
@@ -98,6 +98,9 @@ try:
                {"c": codigo_plan, "g": f"prueba-{uuid.uuid4().hex}", "u": id_usuario})
     db.commit()
     db.close()
+    # Vincular con Google cambia la huella de la sesión (auth.crear_token): el token
+    # del registro deja de valer, como en la aplicación real. Se emite otro.
+    cabeceras = {"Authorization": f"Bearer {auth.crear_token(id_usuario, correo)[0]}"}
 
     print(f"=== 1. {SIMULTANEAS} peticiones simultáneas con un tope diario de {TOPE_DIARIO} ===")
 

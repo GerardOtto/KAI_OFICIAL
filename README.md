@@ -67,6 +67,8 @@ npm install
 npm run dev
 ```
 
+En producción, el contenedor (`frontend/kai-project/Dockerfile`) compila la aplicación y la sirve con `serve`, que toma sus cabeceras de seguridad de [`serve.json`](frontend/kai-project/serve.json): política de contenido (solo scripts propios y los de Google Identity; ninguna conexión salvo al backend y a Google), sin marcos, `nosniff` y HSTS. Si la aplicación empieza a cargar algo de otro origen —una fuente, una imagen, un script—, hay que agregarlo ahí o el navegador lo bloqueará.
+
 ## Variables de entorno
 
 **`backend/.env`**
