@@ -15,7 +15,7 @@ import os
 import anthropic
 from anthropic import Anthropic
 
-from .herramientas import TOOLS, resultado, system_prompt
+from .herramientas import ANALIZANDO, TOOLS, aviso, resultado, system_prompt
 from .entorno import entero
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,39 @@ def _es_tope_de_gasto_mensual(e) -> bool:
     return "enforced_spend_limit_reached" in _detalle_error(e)
 
 
-def responder(mensajes: list[dict]) -> dict:
+def _seguir_flujo(flujo, emitir, hay_texto: bool):
+    """Recorre una llamada en streaming emitiendo lo que el usuario puede ver ya,
+    y devuelve el mensaje completo, el mismo que daría la llamada sin streaming.
+
+    `hay_texto` dice si ya se mostró texto de la respuesta (de una parte pausada
+    del turno): la respuesta final une sus bloques con una línea en blanco, y la
+    vista previa hace lo mismo para no pegar dos párrafos.
+    """
+    separar = False
+    for evento in flujo:
+        if evento.type == "content_block_start":
+            bloque = evento.content_block
+            if bloque.type in ("tool_use", "server_tool_use"):
+                emitir(aviso(bloque.name))
+            elif bloque.type == "text":
+                separar = hay_texto
+        elif evento.type == "content_block_delta" and evento.delta.type == "text_delta":
+            delta = evento.delta.text
+            if not delta:
+                continue
+            if separar:
+                delta, separar = "\n\n" + delta, False
+            hay_texto = True
+            emitir({"tipo": "texto", "delta": delta})
+    return flujo.get_final_message()
+
+
+def responder(mensajes: list[dict], emitir=None) -> dict:
+    """Resuelve un turno. Con `emitir` (una función que recibe un dict), además
+    informa en vivo: el texto a medida que se escribe y un aviso por cada
+    herramienta que el modelo pide (ver `/chat/stream` en main.py). Lo que
+    devuelve es lo mismo en ambos casos y es lo único que se guarda: los eventos
+    son una vista previa."""
     if not configurado():
         return _res("El servidor no tiene configurada ANTHROPIC_API_KEY: el motor Claude "
                     "está deshabilitado. Ver docs/asistente-creditos.md.", ok=False)
@@ -123,8 +155,12 @@ def responder(mensajes: list[dict]) -> dict:
                 tools=[*TOOLS, *HERRAMIENTAS_WEB],
                 messages=historial,
                 max_iterations=MAX_CICLOS - llamadas,
+                # En streaming, el runner entrega cada llamada como un flujo que
+                # hay que recorrer antes de pedirle el mensaje completo.
+                **({"stream": True} if emitir is not None else {}),
             )
-            for message in runner:
+            for item in runner:
+                message = item if emitir is None else _seguir_flujo(item, emitir, bool(pausado))
                 final = message
                 llamadas += 1
                 # El ciclo de herramientas hace varias llamadas a la API; el
@@ -148,6 +184,12 @@ def responder(mensajes: list[dict]) -> dict:
                     respuesta = runner.generate_tool_call_response()
                     if respuesta is not None:
                         historial.append(respuesta)
+                        if emitir is not None:
+                            # El texto de una llamada que terminó pidiendo
+                            # herramientas («voy a consultar…») no forma parte
+                            # de la respuesta final: se retira de la vista.
+                            emitir({"tipo": "reinicio"})
+                            emitir({"tipo": "estado", "texto": ANALIZANDO})
 
             # `pause_turn`: la API cortó el turno a mitad de una búsqueda web
             # larga. El runner lo da por terminado —no trae herramientas que

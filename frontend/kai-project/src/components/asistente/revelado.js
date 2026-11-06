@@ -1,9 +1,10 @@
 // Lógica del revelado progresivo de una respuesta del asistente.
 //
-// El servidor entrega la respuesta completa en una sola pieza —no hay flujo de
-// datos token a token—, así que la aparición gradual se compone en el navegador
-// sobre un texto que ya está entero. Eso la hace gratuita: ni una petición más,
-// ni un token más, ni un cambio en el backend.
+// La respuesta recién enviada llega en vivo (`/chat/stream`) y se ve escribirse
+// tal como la produce el modelo; ahí solo se aplica `recorteSeguro`. El revelado
+// por palabras queda para cuando el texto llega entero de una vez —un motor que
+// no alcanzó a emitir nada en vivo—, y se compone en el navegador sobre ese
+// texto completo: ni una petición más ni un token más.
 //
 // Aquí vive solo la parte pura y comprobable; el temporizador está en
 // `useRevelado.js` y la presentación, en `Markdown.jsx`.

@@ -8,8 +8,9 @@ import BotonReporte from "../components/asistente/BotonReporte";
 import { construirMensaje, consultaDeMensaje, parteVisible } from "../components/asistente/consultasGuiadas";
 import { ESTILO_RANKING } from "../components/asistente/estiloRankings";
 import { SparkleIcon } from "../components/asistente/iconos";
+import { MS_ENTRE_DIBUJOS } from "../components/asistente/revelado";
 import { useAuth } from "../auth/AuthContext";
-import { useConversaciones, useMotores, enviarMensaje } from "../hooks/useConversaciones";
+import { useConversaciones, useMotores, enviarMensajeEnVivo } from "../hooks/useConversaciones";
 import { useDescarga, motivoAgotado } from "../hooks/useDescarga";
 
 const hora = (fecha) =>
@@ -78,6 +79,15 @@ export default function Asistente() {
   // derivarla a otro motor o tras un fallo—. El campo muestra solo su pregunta;
   // si el usuario la envía sin tocarla, se manda con sus instrucciones.
   const [pendiente, setPendiente] = useState(null);
+  // La respuesta mientras se escribe: `texto`, lo llegado hasta ahora;
+  // `estado`, lo último que el servidor dijo que estaba haciendo («Buscando las
+  // universidades»), y `desde`, cuándo empezó el turno. Los trozos se acumulan
+  // en la referencia y se dibujan como mucho cada MS_ENTRE_DIBUJOS: cada dibujo
+  // reinterpreta el Markdown entero, y un motor puede mandar decenas de trozos
+  // por segundo.
+  const [enVivo, setEnVivo] = useState(null);
+  const vivoRef = useRef(null);
+  const dibujoRef = useRef(0);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -117,6 +127,34 @@ export default function Asistente() {
     const restante = caja.scrollHeight - caja.scrollTop - caja.clientHeight;
     if (restante < 160) caja.scrollTop = caja.scrollHeight;
   }, []);
+
+  useEffect(() => {
+    if (enVivo?.texto) seguirElFinal();
+  }, [enVivo, seguirElFinal]);
+
+  // Un dibujo pendiente no debe dispararse sobre una vista que ya se desmontó.
+  useEffect(() => () => clearTimeout(dibujoRef.current), []);
+
+  /** Aplica un evento del flujo y agenda el próximo dibujo. */
+  const alEvento = useCallback((evento) => {
+    const actual = vivoRef.current;
+    if (!actual) return;
+    if (evento.tipo === "estado") actual.estado = evento.texto;
+    else if (evento.tipo === "reinicio") actual.texto = "";
+    else if (evento.tipo === "texto") actual.texto += evento.delta;
+    if (dibujoRef.current) return;
+    dibujoRef.current = setTimeout(() => {
+      dibujoRef.current = 0;
+      setEnVivo(vivoRef.current ? { ...vivoRef.current } : null);
+    }, MS_ENTRE_DIBUJOS);
+  }, []);
+
+  const terminarEnVivo = () => {
+    clearTimeout(dibujoRef.current);
+    dibujoRef.current = 0;
+    vivoRef.current = null;
+    setEnVivo(null);
+  };
 
   const seleccionar = useCallback(async (id) => {
     setError("");
@@ -247,9 +285,15 @@ export default function Asistente() {
       { id: idOptimista, role: "user", content: contenido, time: hora(Date.now()) },
     ]);
     setCargando(true);
+    vivoRef.current = { texto: "", estado: null, desde: Date.now() };
+    setEnVivo({ ...vivoRef.current });
 
     try {
-      const r = await enviarMensaje(contenido, idConversacion, motor);
+      const r = await enviarMensajeEnVivo(contenido, idConversacion, motor, alEvento);
+      // Si el texto ya se vio escribirse, la respuesta final no vuelve a
+      // aparecer palabra a palabra: sería repetir lo que se acaba de leer.
+      const yaSeVio = !!vivoRef.current?.texto;
+      terminarEnVivo();
       if (r.cuota) setCuota(r.cuota);
 
       if (!r.ok) {
@@ -265,7 +309,7 @@ export default function Asistente() {
       const esNueva = idConversacion === null;
       const idRespuesta = `a-${Date.now()}`;
       setIdConversacion(r.id_conversacion);
-      setIdRevelable(idRespuesta);
+      setIdRevelable(yaSeVio ? null : idRespuesta);
       setMensajes((prev) => [
         ...prev,
         {
@@ -278,11 +322,15 @@ export default function Asistente() {
       ]);
       if (esNueva) recargar();
     } catch (e) {
+      terminarEnVivo();
       // 429 es la cuota agotada: el mensaje del servidor ya explica qué hacer.
       setError(e.message);
       setMensajes((prev) => prev.filter((m) => m.id !== idOptimista));
       devolverAlCompositor(contenido);
       if (e.status === 401) refrescar();
+      // El turno sigue en el servidor: si era una conversación nueva, aparecerá
+      // en el historial en cuanto se guarde.
+      if (e.cortada) recargar();
     } finally {
       setCargando(false);
     }
@@ -449,7 +497,21 @@ export default function Asistente() {
             );
           })}
 
-          {cargando && <Cargando />}
+          {cargando && (enVivo?.texto ? (
+            // La respuesta mientras se escribe, con la misma forma que tendrá
+            // al terminar. Sin región viva: un lector de pantalla leería cada
+            // trozo; la respuesta completa se anuncia al llegar.
+            <div className="flex items-start gap-3" aria-busy="true">
+              <div className="w-8 h-8 shrink-0 flex items-center justify-center border mt-1 bg-surfaceHigh border-outline/50 text-white animate-latido motion-reduce:animate-none">
+                <SparkleIcon />
+              </div>
+              <Markdown className="max-w-3xl min-w-0" enCurso>
+                {enVivo.texto}
+              </Markdown>
+            </div>
+          ) : (
+            <Cargando etiqueta={enVivo?.estado || undefined} desde={enVivo?.desde} />
+          ))}
         </div>
 
         <div className="border-t border-outline/30 px-4 md:px-10 py-4 md:py-5">

@@ -174,7 +174,9 @@ def system_prompt() -> str:
 # herramientas no reciben al usuario —su firma es lo que ve el modelo—, así que
 # /chat fija los rankings vedados en esta variable antes de llamar al motor. Los
 # dos motores ejecutan las herramientas en el mismo hilo que los llama, que es lo
-# que hace llegar el valor. Sin fijar, no hay restricción: es el caso de las
+# que hace llegar el valor. /chat/stream atiende el turno en un hilo propio, y un
+# hilo nuevo no hereda las variables de contexto: por eso las fija dentro de él
+# (`_resolver_turno` en main.py) y no antes de lanzarlo. Sin fijar, no hay restricción: es el caso de las
 # pruebas que llaman a las herramientas directamente.
 _vedados: contextvars.ContextVar[frozenset[int]] = contextvars.ContextVar(
     "rankings_vedados", default=frozenset())
@@ -1191,3 +1193,37 @@ def resultado(texto: str, modelo: str, motor: str,
     """
     return {"texto": texto, "tokens_entrada": entrada, "tokens_salida": salida,
             "modelo": modelo, "motor": motor, "ok": ok, "busquedas": busquedas}
+
+
+# --- Avisos de progreso de una respuesta en vivo ---------------------------
+
+# Lo que la pantalla dice mientras el modelo trabaja (`/chat/stream`). Son
+# hechos, no etapas fingidas: cada aviso sale en el momento en que el modelo
+# pide esa herramienta. Las de internet tienen nombre propio en cada proveedor
+# (`buscar_en_internet` en Gemini, `web_search` y `web_fetch` en Claude).
+ETIQUETAS = {
+    "listar_rankings": "Revisando los rankings cargados",
+    "detalle_ranking": "Leyendo la metodología del ranking",
+    "buscar_metricas": "Buscando las métricas",
+    "buscar_universidades": "Buscando las universidades",
+    "consultar_valores": "Consultando los valores",
+    "consultar_tendencia": "Consultando la serie histórica",
+    "consultar_ranking_resumen": "Calculando el puntaje ponderado",
+    "comparar_universidades": "Comparando las universidades",
+    "buscar_cientificos": "Buscando en el censo de científicos",
+    "perfil_cientifico": "Leyendo el perfil del científico",
+    "consulta_sql": "Consultando la base de datos",
+    "buscar_en_internet": "Buscando en internet",
+    "web_search": "Buscando en internet",
+    "web_fetch": "Leyendo una página web",
+}
+
+# Tras ejecutar las herramientas, el modelo vuelve a recibir el control. No se
+# sabe si va a redactar o a pedir más datos, así que el aviso no promete ninguna
+# de las dos cosas.
+ANALIZANDO = "Analizando los resultados"
+
+
+def aviso(nombre: str) -> dict:
+    """Evento de progreso por la herramienta que el modelo acaba de pedir."""
+    return {"tipo": "estado", "texto": ETIQUETAS.get(nombre, "Consultando la base de datos")}

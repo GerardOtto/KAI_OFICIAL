@@ -18,12 +18,15 @@ Orden del archivo:
 Las reglas de cada plan viven en acceso.py; las sesiones, en auth.py; los
 topes, en limites.py.
 """
+import json
 import logging
+import queue
+import threading
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -829,6 +832,98 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     El motor solo se elige al crear la conversación. En una ya existente se usa
     el que quedó guardado y se rechaza cualquier intento de cambiarlo, porque el
     historial no es intercambiable entre proveedores (ver `motores.py`).
+
+    La interfaz usa `/chat/stream`, que hace lo mismo y además muestra la
+    respuesta mientras se escribe. Este se conserva para los clientes que
+    prefieren la respuesta entera de una vez, y es el que recorren las pruebas.
+    """
+    db = SessionLocal()
+    try:
+        turno = _abrir_turno(db, req, usuario)
+        return _resolver_turno(db, usuario, turno)
+    finally:
+        db.close()
+
+
+# Cada cuánto viaja un latido mientras el modelo trabaja sin emitir nada (una
+# consulta pesada a la base, una búsqueda en internet). Los proxies cierran las
+# conexiones que pasan un rato en silencio, y el turno se cortaría a la vista
+# del usuario aunque el servidor siguiera trabajando.
+LATIDO_SEGUNDOS = 15
+
+
+def _evento_sse(evento: dict) -> bytes:
+    return f"data: {json.dumps(evento, ensure_ascii=False)}\n\n".encode("utf-8")
+
+
+@app.post("/chat/stream")
+def chat_en_vivo(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
+    """El mismo turno que `/chat`, entregado en vivo como eventos SSE.
+
+    Cada evento es una línea `data:` con un JSON:
+      * `estado`: qué está haciendo el modelo («Buscando las universidades»).
+      * `texto`: un trozo de la respuesta, a medida que se escribe.
+      * `reinicio`: descartar el texto mostrado hasta ahora (era de una vuelta
+        que terminó pidiendo herramientas, o de un intento que falló).
+      * `fin`: el cierre, con exactamente lo que devolvería `/chat`. Es la única
+        fuente de verdad: el texto en vivo es una vista previa, y el de `fin`
+        puede diferir (el informe original de una consulta guiada, el aviso de
+        respuesta cortada) o ser un mensaje de error con `ok` en falso.
+      * `error`: el turno falló de una forma que no alcanzó a producir `fin`.
+
+    Las validaciones —sesión, motor, plan, cuota— ocurren antes de abrir el
+    flujo, así que sus rechazos llegan con su código HTTP de siempre.
+
+    El turno corre en un hilo propio y no depende de que el cliente siga
+    conectado: si se cierra la pestaña a mitad, la respuesta se termina y se
+    guarda igual, y aparece en el historial de la conversación.
+    """
+    db = SessionLocal()
+    try:
+        turno = _abrir_turno(db, req, usuario)
+    except BaseException:
+        db.close()
+        raise
+
+    cola: queue.Queue = queue.Queue()
+
+    def trabajar():
+        try:
+            cola.put({"tipo": "fin", **_resolver_turno(db, usuario, turno, emitir=cola.put)})
+        except Exception:
+            logger.exception("Fallo inesperado al resolver un turno en vivo")
+            cola.put({"tipo": "error",
+                      "detalle": "El asistente falló al procesar la consulta. Vuelve a intentarlo."})
+        finally:
+            db.close()
+            cola.put(None)
+
+    threading.Thread(target=trabajar, name="turno-en-vivo", daemon=True).start()
+
+    def flujo():
+        while True:
+            try:
+                evento = cola.get(timeout=LATIDO_SEGUNDOS)
+            except queue.Empty:
+                # Un comentario SSE: mantiene viva la conexión y el cliente lo ignora.
+                yield b": latido\n\n"
+                continue
+            if evento is None:
+                return
+            yield _evento_sse(evento)
+
+    return StreamingResponse(flujo(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-store",
+        # Que un proxy intermedio (nginx y compatibles) no acumule la respuesta.
+        "X-Accel-Buffering": "no",
+    })
+
+
+def _abrir_turno(db, req: ChatRequest, usuario: dict) -> dict:
+    """Valida el turno y deja guardado el mensaje del usuario.
+
+    Lanza HTTPException con el motivo si el turno no puede ejecutarse. Devuelve
+    lo que necesita `_resolver_turno`.
     """
     texto = (req.mensaje or "").strip()
     if not texto:
@@ -846,108 +941,121 @@ def chat(req: ChatRequest, usuario: dict = Depends(auth.usuario_actual)):
     if not permitido:
         raise HTTPException(status_code=403, detail=motivo)
 
-    db = SessionLocal()
-    try:
-        # 1) Qué motor atiende este turno.
-        if req.id_conversacion is None:
-            motor = req.motor or motores.POR_DEFECTO
-            if not motores.existe(motor):
-                raise HTTPException(status_code=400, detail=f"El motor '{motor}' no existe.")
-            if not motores.disponible(motor):
-                raise HTTPException(
-                    status_code=503,
-                    detail=(f"El motor {motores.nombre(motor)} no está configurado en el servidor. "
-                            "Ver docs/asistente-motores.md."))
+    # 1) Qué motor atiende este turno.
+    if req.id_conversacion is None:
+        motor = req.motor or motores.POR_DEFECTO
+        if not motores.existe(motor):
+            raise HTTPException(status_code=400, detail=f"El motor '{motor}' no existe.")
+        if not motores.disponible(motor):
+            raise HTTPException(
+                status_code=503,
+                detail=(f"El motor {motores.nombre(motor)} no está configurado en el servidor. "
+                        "Ver docs/asistente-motores.md."))
+    else:
+        motor = conv.motor_de_conversacion(db, req.id_conversacion, usuario["id_usuario"])
+        if motor is None:
+            raise HTTPException(status_code=404, detail="Conversación no encontrada.")
+        if req.motor and req.motor != motor:
+            # 409: la petición es válida pero incompatible con el estado del
+            # recurso. El cliente debe derivar el mensaje a una conversación
+            # nueva en vez de reintentar esta.
+            raise HTTPException(
+                status_code=409,
+                detail=(f"Esta conversación usa {motores.nombre(motor)} y no puede cambiar de "
+                        "motor. Deriva el mensaje a una conversación nueva."))
+
+    # 2) Si el plan permite usarlo y queda cuota. Se comprueba después de
+    #    conocer el motor porque la cuota es de cada uno por separado, y
+    #    antes de escribir nada, para no dejar rastro de un turno rechazado.
+    #
+    #    El cerrojo abarca desde aquí hasta que se confirma el mensaje del
+    #    usuario: comprobar y consumir la cuota son dos pasos, y sin él dos
+    #    peticiones simultáneas del mismo usuario leen el mismo recuento y
+    #    ambas se creen dentro del límite (ver `bloquear_cuota`).
+    conv.bloquear_cuota(db, usuario["id_usuario"])
+    cuota = conv.estado_de_cuota(db, usuario)
+    bloqueo = conv.motivo_de_bloqueo(cuota, motor)
+    if bloqueo:
+        codigo, mensaje = bloqueo
+        raise HTTPException(status_code=codigo, detail=mensaje)
+
+    # 3) La conversación se crea solo cuando el turno va a ejecutarse.
+    if req.id_conversacion is None:
+        id_conversacion = conv.crear_conversacion(
+            db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto), motor)
+    else:
+        id_conversacion = req.id_conversacion
+
+    id_mensaje_usuario = conv.guardar_mensaje(db, id_conversacion, "user", texto)
+    historial = conv.historial_para_modelo(db, id_conversacion)
+    vedados = acceso.ids_vedados(db, usuario)
+    db.commit()
+
+    return {"texto": texto, "motor": motor, "id_conversacion": id_conversacion,
+            "id_mensaje_usuario": id_mensaje_usuario, "historial": historial,
+            "vedados": vedados, "era_nueva": req.id_conversacion is None}
+
+
+def _resolver_turno(db, usuario: dict, turno: dict, emitir=None) -> dict:
+    """Llama al motor, guarda (o descarta) el turno y arma la respuesta de /chat.
+
+    `emitir`, si se da, recibe los eventos en vivo del motor (`/chat/stream`).
+    """
+    texto, motor = turno["texto"], turno["motor"]
+    id_conversacion = turno["id_conversacion"]
+
+    # Las herramientas del asistente leen la base por su cuenta: sin esto, el
+    # plan gratuito obtendría por el chat los datos de THE y QS que la
+    # interfaz le niega. Se fija aquí, en el hilo que ejecuta el motor: en
+    # /chat/stream es un hilo propio, que no hereda las variables de contexto.
+    with herramientas.con_rankings_vedados(turno["vedados"]), herramientas.capturar_informes() as informes:
+        if emitir is None:
+            resultado = motores.responder(motor, turno["historial"])
         else:
-            motor = conv.motor_de_conversacion(db, req.id_conversacion, usuario["id_usuario"])
-            if motor is None:
-                raise HTTPException(status_code=404, detail="Conversación no encontrada.")
-            if req.motor and req.motor != motor:
-                # 409: la petición es válida pero incompatible con el estado del
-                # recurso. El cliente debe derivar el mensaje a una conversación
-                # nueva en vez de reintentar esta.
-                raise HTTPException(
-                    status_code=409,
-                    detail=(f"Esta conversación usa {motores.nombre(motor)} y no puede cambiar de "
-                            "motor. Deriva el mensaje a una conversación nueva."))
+            resultado = motores.responder(motor, turno["historial"], emitir)
 
-        # 2) Si el plan permite usarlo y queda cuota. Se comprueba después de
-        #    conocer el motor porque la cuota es de cada uno por separado, y
-        #    antes de escribir nada, para no dejar rastro de un turno rechazado.
-        #
-        #    El cerrojo abarca desde aquí hasta que se confirma el mensaje del
-        #    usuario: comprobar y consumir la cuota son dos pasos, y sin él dos
-        #    peticiones simultáneas del mismo usuario leen el mismo recuento y
-        #    ambas se creen dentro del límite (ver `bloquear_cuota`).
-        conv.bloquear_cuota(db, usuario["id_usuario"])
-        cuota = conv.estado_de_cuota(db, usuario)
-        bloqueo = conv.motivo_de_bloqueo(cuota, motor)
-        if bloqueo:
-            codigo, mensaje = bloqueo
-            raise HTTPException(status_code=codigo, detail=mensaje)
+    # Una consulta guiada (un botón del chat) pide copiar tal cual el informe
+    # que arma la base. Si la copia del modelo no coincide —traducir una
+    # palabra le ha pasado—, se entrega el original: es la respuesta que se
+    # le pidió, sin el error de transcripción.
+    if (resultado["ok"] and informes and conv.MARCA_INSTRUCCIONES in texto
+            and resultado["texto"].strip() != informes[-1].strip()):
+        logger.info("Consulta guiada: la copia del modelo no coincidía con el informe; "
+                    "se entrega el original.")
+        resultado = {**resultado, "texto": informes[-1]}
 
-        # 3) La conversación se crea solo cuando el turno va a ejecutarse.
-        if req.id_conversacion is None:
-            id_conversacion = conv.crear_conversacion(
-                db, usuario["id_usuario"], conv.titulo_desde_mensaje(texto), motor)
-        else:
-            id_conversacion = req.id_conversacion
+    if resultado["ok"]:
+        conv.guardar_mensaje(db, id_conversacion, "assistant", resultado["texto"],
+                             resultado["tokens_entrada"], resultado["tokens_salida"],
+                             resultado["modelo"])
+    else:
+        # El turno no llegó a producirse: se descarta para que el historial no
+        # arrastre un mensaje sin respuesta que luego se reenviaría al modelo,
+        # ni un mensaje de error que el modelo leería como si fuera suyo.
+        conv.descartar_turno_fallido(db, id_conversacion, turno["id_mensaje_usuario"],
+                                     turno["era_nueva"])
+        if turno["era_nueva"]:
+            # La conversación se borró con el turno: no se devuelve su id, o el
+            # cliente lo reutilizaría en el mensaje siguiente y recibiría un 404.
+            id_conversacion = None
+    db.commit()
 
-        id_mensaje_usuario = conv.guardar_mensaje(db, id_conversacion, "user", texto)
-        historial = conv.historial_para_modelo(db, id_conversacion)
-        vedados = acceso.ids_vedados(db, usuario)
-        db.commit()
-
-        # Las herramientas del asistente leen la base por su cuenta: sin esto, el
-        # plan gratuito obtendría por el chat los datos de THE y QS que la
-        # interfaz le niega.
-        with herramientas.con_rankings_vedados(vedados), herramientas.capturar_informes() as informes:
-            resultado = motores.responder(motor, historial)
-
-        # Una consulta guiada (un botón del chat) pide copiar tal cual el informe
-        # que arma la base. Si la copia del modelo no coincide —traducir una
-        # palabra le ha pasado—, se entrega el original: es la respuesta que se
-        # le pidió, sin el error de transcripción.
-        if (resultado["ok"] and informes and conv.MARCA_INSTRUCCIONES in texto
-                and resultado["texto"].strip() != informes[-1].strip()):
-            logger.info("Consulta guiada: la copia del modelo no coincidía con el informe; "
-                        "se entrega el original.")
-            resultado = {**resultado, "texto": informes[-1]}
-
-        era_nueva = req.id_conversacion is None
-        if resultado["ok"]:
-            conv.guardar_mensaje(db, id_conversacion, "assistant", resultado["texto"],
-                                 resultado["tokens_entrada"], resultado["tokens_salida"],
-                                 resultado["modelo"])
-        else:
-            # El turno no llegó a producirse: se descarta para que el historial no
-            # arrastre un mensaje sin respuesta que luego se reenviaría al modelo,
-            # ni un mensaje de error que el modelo leería como si fuera suyo.
-            conv.descartar_turno_fallido(db, id_conversacion, id_mensaje_usuario, era_nueva)
-            if era_nueva:
-                # La conversación se borró con el turno: no se devuelve su id, o el
-                # cliente lo reutilizaría en el mensaje siguiente y recibiría un 404.
-                id_conversacion = None
-        db.commit()
-
-        return {
-            "role": "assistant",
-            "content": resultado["texto"],
-            "ok": resultado["ok"],
-            "id_conversacion": id_conversacion,
-            "motor": motor,
-            "modelo": resultado["modelo"],
-            "uso": {
-                "tokens_entrada": resultado["tokens_entrada"],
-                "tokens_salida": resultado["tokens_salida"],
-                # Las búsquedas en internet las cobran ambos proveedores por uso,
-                # aparte de los tokens; se informan para que el gasto sea visible.
-                "busquedas": resultado.get("busquedas", 0),
-            },
-            "cuota": conv.estado_de_cuota(db, usuario),
-        }
-    finally:
-        db.close()
+    return {
+        "role": "assistant",
+        "content": resultado["texto"],
+        "ok": resultado["ok"],
+        "id_conversacion": id_conversacion,
+        "motor": motor,
+        "modelo": resultado["modelo"],
+        "uso": {
+            "tokens_entrada": resultado["tokens_entrada"],
+            "tokens_salida": resultado["tokens_salida"],
+            # Las búsquedas en internet las cobran ambos proveedores por uso,
+            # aparte de los tokens; se informan para que el gasto sea visible.
+            "busquedas": resultado.get("busquedas", 0),
+        },
+        "cuota": conv.estado_de_cuota(db, usuario),
+    }
 
 # ---------------------------------------------------------------------------
 # Datos académicos

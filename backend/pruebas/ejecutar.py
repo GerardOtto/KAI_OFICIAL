@@ -67,6 +67,8 @@ BATERIAS = [
      "Cuotas por motor, consultas de prueba, tope diario, margen y administrador", False, False),
     ("chat", "test_chat_extremo_a_extremo.py",
      "Recorrido completo de /chat con sesión y base reales", False, False),
+    ("en-vivo-chat", "test_respuesta_en_vivo.py",
+     "Respuesta en vivo (/chat/stream): eventos, ambos motores, plan y turno guardado", False, False),
     ("concurrencia", "test_concurrencia.py",
      "Tope diario y consultas de prueba bajo peticiones simultáneas", False, False),
     ("autenticacion", "test_autenticacion.py",

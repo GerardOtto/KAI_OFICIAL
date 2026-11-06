@@ -61,10 +61,13 @@ def catalogo_publico() -> list[dict]:
     ]
 
 
-def responder(motor: str, mensajes: list[dict]) -> dict:
+def responder(motor: str, mensajes: list[dict], emitir=None) -> dict:
+    """`emitir`, si se da, recibe los eventos de la respuesta en vivo: `estado`
+    (qué herramienta pidió el modelo), `texto` (un trozo de la respuesta) y
+    `reinicio` (descartar el texto mostrado hasta ahora)."""
     entrada = _POR_ID.get(motor)
     if entrada is None:
         # No debería ocurrir: el motor se valida al crear la conversación y queda
         # guardado. Si aparece aquí, es una fila escrita a mano en la base.
-        return claude.responder(mensajes)
-    return entrada["modulo"].responder(mensajes)
+        return claude.responder(mensajes, emitir)
+    return entrada["modulo"].responder(mensajes, emitir)

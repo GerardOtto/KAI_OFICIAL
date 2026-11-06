@@ -24,7 +24,7 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
-from .herramientas import POR_NOMBRE, TOOLS, resultado, system_prompt
+from .herramientas import ANALIZANDO, POR_NOMBRE, TOOLS, aviso, resultado, system_prompt
 from .entorno import entero, texto
 
 logger = logging.getLogger(__name__)
@@ -258,10 +258,55 @@ def _configuracion() -> types.GenerateContentConfig:
     )
 
 
-def _con_reintentos(modelo: str, contenidos, config):
-    """Una llamada a un modelo concreto, reintentando ante saturación pasajera."""
+def _en_vivo(modelo: str, contenidos, config, emitir):
+    """Una llamada con streaming: va emitiendo el texto y arma al final una
+    respuesta igual a la de `generate_content`, para que el ciclo no distinga.
+
+    Empieza siempre con un `reinicio`: el texto que el cliente tenga a medias es
+    de una vuelta anterior que terminó pidiendo herramientas, o de un intento
+    que falló, y en ningún caso forma parte de la respuesta. La respuesta de un
+    turno es solo el texto de su última vuelta.
+
+    Las partes se conservan tal como llegan, sin unir los trozos de texto: la
+    firma de razonamiento puede venir en una parte propia, a veces sin texto, y
+    el historial de la vuelta siguiente la necesita intacta.
+    """
+    emitir({"tipo": "reinicio"})
+    partes, uso, motivo, fuentes = [], None, None, None
+    for trozo in cliente().models.generate_content_stream(model=modelo, contents=contenidos, config=config):
+        if trozo.usage_metadata is not None:
+            # Cada trozo trae el consumo acumulado: vale el último.
+            uso = trozo.usage_metadata
+        if not trozo.candidates:
+            continue
+        candidato = trozo.candidates[0]
+        motivo = candidato.finish_reason or motivo
+        fuentes = candidato.grounding_metadata or fuentes
+        for parte in (candidato.content.parts if candidato.content and candidato.content.parts else []):
+            partes.append(parte)
+            if parte.function_call is not None:
+                emitir(aviso(parte.function_call.name))
+            elif parte.text and not parte.thought:
+                emitir({"tipo": "texto", "delta": parte.text})
+    return types.GenerateContentResponse(
+        candidates=[types.Candidate(
+            content=types.Content(role="model", parts=partes),
+            finish_reason=motivo,
+            grounding_metadata=fuentes)],
+        usage_metadata=uso)
+
+
+def _con_reintentos(modelo: str, contenidos, config, emitir=None):
+    """Una llamada a un modelo concreto, reintentando ante saturación pasajera.
+
+    Con `emitir`, la llamada va en streaming (`_en_vivo`). Un 503 puede llegar
+    también a mitad del flujo; se reintenta igual, y el `reinicio` con que
+    empieza cada intento borra lo que alcanzó a mostrarse.
+    """
     for espera in (*ESPERAS_TRAS_503, None):
         try:
+            if emitir is not None:
+                return _en_vivo(modelo, contenidos, config, emitir)
             return cliente().models.generate_content(model=modelo, contents=contenidos, config=config)
         except genai_errors.APIError as e:
             codigo = getattr(e, "code", None)
@@ -275,7 +320,7 @@ def _con_reintentos(modelo: str, contenidos, config):
             time.sleep(pausa)
 
 
-def _generar(contenidos, config, modelo_fijado: str | None = None):
+def _generar(contenidos, config, modelo_fijado: str | None = None, emitir=None):
     """Llama al modelo y devuelve `(respuesta, modelo que respondió)`.
 
     Sin modelo fijado recorre la cadena: si uno agota sus reintentos por
@@ -287,7 +332,7 @@ def _generar(contenidos, config, modelo_fijado: str | None = None):
     candidatos = [modelo_fijado] if modelo_fijado else MODELOS
     for i, modelo in enumerate(candidatos):
         try:
-            return _con_reintentos(modelo, contenidos, config), modelo
+            return _con_reintentos(modelo, contenidos, config, emitir), modelo
         except genai_errors.APIError as e:
             ultimo = i == len(candidatos) - 1
             if getattr(e, "code", None) not in CODIGOS_REINTENTABLES or ultimo:
@@ -401,7 +446,12 @@ FINALES_PROBLEMATICOS = {
 }
 
 
-def responder(mensajes: list[dict]) -> dict:
+def responder(mensajes: list[dict], emitir=None) -> dict:
+    """Resuelve un turno. Con `emitir` (una función que recibe un dict), además
+    informa en vivo: el texto a medida que se escribe y un aviso por cada
+    herramienta que el modelo pide (ver `/chat/stream` en main.py). Lo que
+    devuelve es lo mismo en ambos casos y es lo único que se guarda: los eventos
+    son una vista previa."""
     if not configurado():
         return _res("El servidor no tiene configurada GEMINI_API_KEY: el motor Gemini está "
                     "deshabilitado. Ver docs/asistente-motores.md.", ok=False)
@@ -416,7 +466,7 @@ def responder(mensajes: list[dict]) -> dict:
         vueltas = 0
         llamadas_hechas = 0
         for vueltas in range(1, MAX_CICLOS + 1):
-            respuesta, modelo = _generar(contenidos, config, modelo_fijado=modelo)
+            respuesta, modelo = _generar(contenidos, config, modelo_fijado=modelo, emitir=emitir)
 
             uso = getattr(respuesta, "usage_metadata", None)
             if uso is not None:
@@ -452,6 +502,8 @@ def responder(mensajes: list[dict]) -> dict:
             # antes de añadir los resultados.
             contenidos.append(respuesta.candidates[0].content)
             contenidos.append(types.Content(role="user", parts=partes))
+            if emitir is not None:
+                emitir({"tipo": "estado", "texto": ANALIZANDO})
         else:
             return _res(f"El asistente encadenó más de {MAX_CICLOS} consultas sin llegar a una "
                         "respuesta. Acota la pregunta.", entrada, salida, ok=False,

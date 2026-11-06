@@ -23,17 +23,23 @@ const Punto = ({ retraso }) => (
  * imagen que descargar, se adapta al color del tema y se ve nítido en cualquier
  * pantalla. Con `prefers-reduced-motion` queda el mismo indicador quieto.
  *
- * Nada de lo que muestra es inventado: el servidor no informa del progreso
- * mientras responde, así que se anuncia lo único que se sabe con certeza —que la
- * consulta sigue en curso y cuánto lleva—, sin fingir etapas.
+ * Nada de lo que muestra es inventado: `etiqueta` es lo que el servidor dice que
+ * está haciendo el modelo en ese momento («Buscando las universidades»), en el
+ * instante en que pide cada herramienta; mientras no ha dicho nada, el aviso
+ * genérico. No se fingen etapas.
+ *
+ * `desde` (milisegundos) es cuándo empezó la consulta. El indicador se desmonta
+ * mientras se ve texto y vuelve si el modelo pide otra herramienta; con `desde`,
+ * el cronómetro sigue contando desde el principio en vez de volver a cero.
  */
-export default function Cargando({ etiqueta = "Consultando la base de datos" }) {
-  const [segundos, setSegundos] = useState(0);
+export default function Cargando({ etiqueta = "Consultando la base de datos", desde }) {
+  const [inicio] = useState(() => desde ?? Date.now());
+  const [segundos, setSegundos] = useState(() => Math.floor((Date.now() - inicio) / 1000));
 
   useEffect(() => {
-    const reloj = setInterval(() => setSegundos((s) => s + 1), 1000);
+    const reloj = setInterval(() => setSegundos(Math.floor((Date.now() - inicio) / 1000)), 1000);
     return () => clearInterval(reloj);
-  }, []);
+  }, [inicio]);
 
   return (
     <div className="flex items-start gap-3" role="status" aria-live="polite">

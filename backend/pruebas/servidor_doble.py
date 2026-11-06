@@ -64,7 +64,7 @@ SELECT nombre_universidad FROM universidad LIMIT 3
 """
 
 
-def responder_doble(motor, mensajes):
+def responder_doble(motor, mensajes, emitir=None):
     ultimo = next((m["content"] for m in reversed(mensajes) if m.get("role") == "user"), "")
     if isinstance(ultimo, list):
         ultimo = " ".join(str(p.get("text", "")) for p in ultimo if isinstance(p, dict))
@@ -73,6 +73,13 @@ def responder_doble(motor, mensajes):
     else:
         turnos = sum(1 for m in mensajes if m.get("role") == "user")
         texto = f"Respuesta simulada del motor {motor} (contexto: {turnos})"
+    if emitir is not None:
+        # /chat/stream: el texto se entrega en trozos, como lo hace un motor real,
+        # para que las pruebas de navegador recorran la vista en vivo.
+        emitir({"tipo": "estado", "texto": "Consultando la base de datos"})
+        emitir({"tipo": "reinicio"})
+        for i in range(0, len(texto), 40):
+            emitir({"tipo": "texto", "delta": texto[i:i + 40]})
     return resultado(texto, f"modelo-doble-{motor}", motor, 1000, 100, ok=True)
 
 

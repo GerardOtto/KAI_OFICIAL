@@ -142,10 +142,14 @@ const COMPONENTES = {
  * Con `revelar`, el texto aparece por palabras en vez de de golpe. Mientras dura
  * la aparición se recorta por donde el marcado esté completo, para que no se vea
  * una tabla a medio formar ni un gráfico en forma de bloque de código.
+ *
+ * Con `enCurso`, el texto es una respuesta que todavía se está escribiendo en el
+ * servidor: se aplica el mismo recorte, sin animación propia, porque el ritmo ya
+ * lo marca la llegada de los trozos.
  */
-export default function Markdown({ children, className = "", revelar = false, alAvanzar }) {
-  const { visible, revelando } = useRevelado(children || "", revelar, alAvanzar);
-  const texto = revelando ? recorteSeguro(visible) : visible;
+export default function Markdown({ children, className = "", revelar = false, alAvanzar, enCurso = false }) {
+  const { visible, revelando } = useRevelado(children || "", revelar && !enCurso, alAvanzar);
+  const texto = revelando || enCurso ? recorteSeguro(visible) : visible;
 
   return (
     <div className={`text-white/80 ${className}`}>

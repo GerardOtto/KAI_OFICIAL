@@ -476,37 +476,66 @@ quedó corto.
 
 ---
 
-## 8. La espera y la aparición de la respuesta
+## 8. La espera y la respuesta en vivo
 
-`/chat` no emite en flujo: el turno puede encadenar hasta quince ciclos de
-herramientas, y la respuesta se devuelve entera cuando termina el último. Entre
-la pregunta y esa entrega no hay nada que informar, así que la interfaz resuelve
-los dos momentos por separado.
+La interfaz pide cada turno a **`POST /chat/stream`**, que hace exactamente lo
+mismo que `/chat` —validaciones, cuota, plan, guardado— y además va informando
+mientras el modelo trabaja, como eventos SSE (`text/event-stream`). `/chat` se
+conserva igual, para quien prefiera la respuesta entera y para las baterías.
 
-**Mientras se espera** (`components/asistente/Cargando.jsx`) se muestra un
-indicador animado: la marca del asistente latiendo, la etiqueta recorrida por un
-barrido de luz, tres puntos en onda y una barra indeterminada. A los tres
-segundos aparece un cronómetro y, a los quince, una nota de que la consulta sigue
-en curso. Todo el movimiento es CSS sobre elementos que ya están en la página
-—ninguna imagen que descargar— y se detiene con `prefers-reduced-motion`.
+| Evento | Qué trae |
+|---|---|
+| `estado` | Qué está haciendo el modelo, en el momento en que pide cada herramienta: «Buscando las universidades», «Buscando en internet», «Analizando los resultados» (`herramientas.ETIQUETAS`) |
+| `texto` | Un trozo de la respuesta, a medida que el proveedor lo escribe |
+| `reinicio` | Descartar el texto mostrado: era de una vuelta que terminó pidiendo herramientas («voy a consultar…») o de un intento que falló y se reintenta |
+| `fin` | El cierre, con lo mismo que devolvería `/chat` |
+| `error` | Un fallo que no alcanzó a producir `fin` |
 
-El indicador no anuncia etapas («analizando», «redactando»): el servidor no
-informa del progreso, y fingirlo sería inventar. Dice lo único que se sabe con
-certeza —que la consulta sigue en curso y cuánto lleva—.
+**El texto en vivo es una vista previa; `fin` es lo que vale.** Puede diferir: en
+una consulta guiada se entrega el informe original si la copia del modelo no
+coincide, una respuesta cortada lleva su aviso, y un fallo del proveedor llega
+como `fin` con `ok` en falso y el mensaje de error. Es lo único que se guarda.
 
-**Al llegar la respuesta**, el texto aparece por palabras en lugar de de golpe
-(`revelado.js` y `useRevelado.js`). No es flujo de datos: el texto ya está
-completo en el navegador y solo se entrega a la vista de forma gradual, en entre
-0,3 y 2 segundos según su largo. Por eso no cuesta ni una petición ni un token, y
-no cambia nada del backend.
+Decisiones que no se ven a simple vista:
 
-Mientras dura la aparición, el texto se recorta por donde el marcado esté
-completo: un bloque de gráfico sin cerrar se dibujaría como código y una tabla a
-medias saltaría de párrafo a tabla en cada avance, así que ambos se mantienen
-ocultos hasta que terminan y entonces aparecen de una vez. Solo se revela la
-respuesta recién llegada; las que se abren desde el historial se muestran enteras.
+- **Los rechazos llegan antes del flujo**, con su código HTTP de siempre (400,
+  401, 403, 404, 409, 429, 503): las validaciones se hacen antes de abrirlo.
+- **El turno corre en un hilo propio y no depende del cliente.** Si se cierra la
+  pestaña a mitad, la respuesta se termina y se guarda, y aparece en el
+  historial. Como un hilo nuevo no hereda las variables de contexto, los
+  rankings vedados por el plan se fijan dentro de ese hilo (`_resolver_turno`);
+  la batería `en-vivo-chat` comprueba que lleguen.
+- **Un latido cada 15 s** (un comentario SSE) mientras el modelo trabaja en
+  silencio, para que un proxy no corte la conexión por inactividad.
+- **Sin compresión:** `GZipMiddleware` excluye `text/event-stream`, que es la
+  razón de usar SSE y no otro formato; comprimido, el flujo se acumularía.
+- **En Gemini**, cada llamada del ciclo usa `generate_content_stream` y empieza
+  con un `reinicio`; las partes se guardan tal como llegan, porque la firma de
+  razonamiento puede venir en una parte propia. Un 503 a mitad del flujo se
+  reintenta igual que antes. La consulta aparte de `buscar_en_internet` no va en
+  flujo: es interna. **En Claude**, el `tool_runner` va con `stream=True`.
+- **Los tokens no cambian:** el consumo es el mismo que sin streaming y se cobra
+  igual.
 
-La verificación está en la sonda `revelado` (25 comprobaciones).
+**En la interfaz**, mientras no hay texto se ve el indicador de espera
+(`components/asistente/Cargando.jsx`) con la etiqueta del último `estado`: la
+marca latiendo, un barrido de luz, tres puntos en onda y una barra
+indeterminada; a los tres segundos, un cronómetro que cuenta desde el envío
+aunque el indicador desaparezca y vuelva, y a los quince, una nota de que la
+consulta sigue en curso. Todo es CSS y se detiene con `prefers-reduced-motion`.
+
+En cuanto llega texto, se dibuja con la forma que tendrá al terminar, como mucho
+cada 40 ms —cada dibujo reinterpreta el Markdown entero— y recortado por donde
+el marcado esté completo (`recorteSeguro`): una tabla a medias o un bloque de
+gráfico sin cerrar quedan ocultos hasta terminar. La respuesta que ya se vio
+escribirse no se vuelve a revelar por palabras; el revelado (`revelado.js` y
+`useRevelado.js`) queda para cuando el texto llega entero de una vez. Si la
+conexión se corta antes de `fin`, se avisa de que la respuesta puede aparecer en
+el historial.
+
+La verificación está en la batería `en-vivo-chat` del backend y en las sondas
+`revelado`, `motores` y `respuestas_markdown`, que recorren la interfaz contra el
+flujo del servidor doble.
 
 ---
 

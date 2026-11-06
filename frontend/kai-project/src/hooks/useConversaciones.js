@@ -3,18 +3,21 @@ import { cabeceraAuth } from "../auth/AuthContext";
 
 const API = import.meta.env.VITE_API_URL;
 
+/** El error de una respuesta fallida, con el motivo que da el servidor. */
+async function errorDe(res) {
+  let detalle = `HTTP ${res.status}`;
+  try { detalle = (await res.json())?.detail || detalle; } catch { /* respuesta sin JSON */ }
+  const err = new Error(detalle);
+  err.status = res.status;
+  return err;
+}
+
 async function pedir(ruta, opciones = {}) {
   const res = await fetch(`${API}${ruta}`, {
     ...opciones,
     headers: { "Content-Type": "application/json", ...cabeceraAuth(), ...(opciones.headers || {}) },
   });
-  if (!res.ok) {
-    let detalle = `HTTP ${res.status}`;
-    try { detalle = (await res.json())?.detail || detalle; } catch { /* respuesta sin JSON */ }
-    const err = new Error(detalle);
-    err.status = res.status;
-    throw err;
-  }
+  if (!res.ok) throw await errorDe(res);
   return res.status === 204 ? null : res.json();
 }
 
@@ -110,4 +113,72 @@ export async function enviarMensaje(mensaje, idConversacion, motor) {
       motor: idConversacion == null ? motor : null,
     }),
   });
+}
+
+/** Igual que `enviarMensaje`, pero la respuesta llega en vivo (`/chat/stream`).
+ *
+ * `alEvento` recibe, a medida que llegan, los eventos `estado` (qué está
+ * haciendo el modelo), `texto` (un trozo de la respuesta) y `reinicio` (descartar
+ * el texto mostrado hasta ahora). La promesa se resuelve con el evento `fin`,
+ * que trae lo mismo que devolvería `/chat` y es lo que vale: el texto en vivo es
+ * una vista previa.
+ *
+ * Los rechazos previos al turno (sesión, plan, cuota, motor) llegan como un
+ * error con su código HTTP, igual que en `enviarMensaje`.
+ */
+export async function enviarMensajeEnVivo(mensaje, idConversacion, motor, alEvento) {
+  const res = await fetch(`${API}/chat/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...cabeceraAuth() },
+    body: JSON.stringify({
+      mensaje,
+      id_conversacion: idConversacion ?? null,
+      motor: idConversacion == null ? motor : null,
+    }),
+  });
+  if (!res.ok) throw await errorDe(res);
+
+  const lector = res.body.getReader();
+  const decodificador = new TextDecoder();
+  let pendiente = "";
+  let fin = null;
+  try {
+    for (;;) {
+      const { value, done } = await lector.read();
+      if (done) break;
+      pendiente += decodificador.decode(value, { stream: true });
+      // Cada evento SSE termina en una línea en blanco; lo que queda después
+      // es un evento a medio llegar.
+      let corte;
+      while ((corte = pendiente.indexOf("\n\n")) >= 0) {
+        const bloque = pendiente.slice(0, corte);
+        pendiente = pendiente.slice(corte + 2);
+        const datos = bloque.split("\n")
+          .filter((l) => l.startsWith("data:"))
+          .map((l) => l.slice(5).trimStart())
+          .join("\n");
+        // Sin `data:` es un latido del servidor para mantener viva la conexión.
+        if (!datos) continue;
+        const evento = JSON.parse(datos);
+        if (evento.tipo === "fin") fin = evento;
+        else if (evento.tipo === "error") throw new Error(evento.detalle);
+        else alEvento?.(evento);
+      }
+    }
+  } catch (e) {
+    if (e instanceof SyntaxError || e instanceof TypeError) throw conexionCortada();
+    throw e;
+  }
+  if (!fin) throw conexionCortada();
+  return fin;
+}
+
+/** El flujo terminó sin su cierre: se cayó la red o el servidor a mitad. El
+ *  turno sigue en el servidor y, si termina, queda guardado. */
+function conexionCortada() {
+  const err = new Error(
+    "Se cortó la conexión mientras llegaba la respuesta. Si el asistente alcanzó a terminarla, " +
+    "aparecerá al abrir la conversación desde el historial.");
+  err.cortada = true;
+  return err;
 }

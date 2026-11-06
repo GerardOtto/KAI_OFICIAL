@@ -65,6 +65,7 @@ psql "$DATABASE_URL" -f migraciones/024_the_world.sql
 | `convivencia` | Motor fijado por conversación y aislamiento del contexto entre motores |
 | `planes` | Cuotas por motor, las 3 consultas de por vida del gratuito, tope diario, margen comercial y rol de administrador |
 | `chat` | Recorrido completo de `/chat` con sesión y base reales |
+| `en-vivo-chat` | Respuesta en vivo (`/chat/stream`): eventos de Gemini y de Claude (SDK real contra SSE simulado), firmas y reintentos a mitad del flujo, rechazos antes del flujo, `fin` igual a `/chat`, el plan aplicado en el hilo del turno y el turno guardado aunque el cliente se vaya |
 | `concurrencia` | El tope diario y las consultas de por vida bajo peticiones simultáneas del mismo usuario |
 | `autenticacion` | Registro, sesión y propiedad de las conversaciones (necesita el backend en marcha) |
 | `en-vivo` | El motor real contra la API real del proveedor |
