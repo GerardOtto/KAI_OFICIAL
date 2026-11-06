@@ -208,7 +208,9 @@ export default function VistaEvolucion({
       {/* El gráfico scrollea dentro de su columna: nunca empuja el ancho de la página. */}
       <div className={estatico ? "flex-1 min-w-0" : "flex-1 min-w-0 overflow-x-auto pb-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"}
            tabIndex={estatico ? undefined : 0} role={estatico ? undefined : "region"} aria-label={estatico ? undefined : "Gráfico de evolución"}>
-       <div className="pl-[52px] min-w-[420px]">
+       {/* pt-2: la etiqueta del tope del eje Y sobresale media línea hacia arriba y,
+           sin este margen, el contenedor con desplazamiento la recortaba. */}
+       <div className="pl-[52px] pt-2 min-w-[420px]">
         <div ref={wrapRef} className="relative" style={{ height: `${H}px` }}>
           {ticks.map(t => (
             <div
