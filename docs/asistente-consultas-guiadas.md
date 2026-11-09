@@ -8,6 +8,14 @@ dos en que conviene concentrarse. Es la generalización del prompt de brechas de
 Scimago que se probó a mano el 30-09-2026 («KAI - Guía del prompt brechas
 Scimago»).
 
+Desde el 09-11-2026 estos botones se ven **con el motor Gemini**. Con Claude, el
+chat vacío muestra en su lugar cuatro botones «Demo» (`BotonesDemo.jsx`) que
+descargan los diagnósticos de muestra de la PUCV y la UV en QS World 2027 y
+Scimago 2026: PDF estáticos en `frontend/kai-project/public/demos/`, sin pasar
+por el servidor ni gastar consultas o descargas del plan. Quien no puede abrir
+Claude (su plan no lo incluye) ve las demos debajo de los informes de brechas.
+Para cambiar un diagnóstico, se reemplaza su PDF conservando el nombre.
+
 | Pieza | Dónde |
 |---|---|
 | Prompts, SQL y textos de cada ranking | `frontend/kai-project/src/components/asistente/consultasGuiadas.js` |

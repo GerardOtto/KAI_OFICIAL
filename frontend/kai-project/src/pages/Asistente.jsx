@@ -4,6 +4,7 @@ import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
 import Cargando from "../components/asistente/Cargando";
 import BotonesBrechas from "../components/asistente/BotonesBrechas";
+import BotonesDemo from "../components/asistente/BotonesDemo";
 import BotonReporte from "../components/asistente/BotonReporte";
 import { construirMensaje, consultaDeMensaje, parteVisible } from "../components/asistente/consultasGuiadas";
 import { ESTILO_RANKING } from "../components/asistente/estiloRankings";
@@ -349,6 +350,14 @@ export default function Asistente() {
   // preguntar, y conviene decirlo antes de que el usuario escriba.
   const sinMotor = motores.length > 0 && disponibles.length === 0;
   const bloqueado = sinCupo || sinMotor || sinAfiliacion;
+  // Chat vacío: con Claude, las demos (diagnósticos ya hechos, en PDF); con otro
+  // motor, los informes de brechas en vivo. Mientras no hay motor elegido se
+  // muestran las demos, que no dependen de nada. Quien no puede abrir Claude
+  // —su plan no lo incluye o no está configurado— ve además las demos bajo los
+  // informes: son para todos los usuarios.
+  const conBrechas = motor != null && motor !== "claude";
+  const sinClaude = motores.length > 0 && !disponibles.some((m) => m.id === "claude");
+  const conDemo = !conBrechas || sinClaude;
   // La última respuesta lleva el reporte destacado: es la que se acaba de leer.
   const idUltimaRespuesta = mensajes.findLast((m) => m.role === "assistant")?.id;
 
@@ -406,11 +415,14 @@ export default function Asistente() {
                   </p>
                 )}
               </div>
-              <BotonesBrechas
-                onElegir={(c) => enviar(construirMensaje(c))}
-                deshabilitado={bloqueado}
-                restringidos={rankingsRestringidos}
-              />
+              {conBrechas && (
+                <BotonesBrechas
+                  onElegir={(c) => enviar(construirMensaje(c))}
+                  deshabilitado={bloqueado}
+                  restringidos={rankingsRestringidos}
+                />
+              )}
+              {conDemo && <BotonesDemo />}
             </div>
           )}
 
