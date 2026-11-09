@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ChatSidebar from "../components/asistente/ChatSidebar";
 import Markdown from "../components/asistente/Markdown";
 import Cargando from "../components/asistente/Cargando";
-import BotonesBrechas from "../components/asistente/BotonesBrechas";
-import BotonesDemo from "../components/asistente/BotonesDemo";
+import PanelesInicio from "../components/asistente/PanelesInicio";
 import BotonReporte from "../components/asistente/BotonReporte";
 import { construirMensaje, consultaDeMensaje, parteVisible } from "../components/asistente/consultasGuiadas";
 import { ESTILO_RANKING } from "../components/asistente/estiloRankings";
@@ -264,13 +263,18 @@ export default function Asistente() {
    *  siguientes, para entender de qué se habló. La pantalla, el título de la
    *  conversación y el reporte usan solo la pregunta (`parteVisible`).
    */
-  const enviar = async (texto) => {
+  const enviar = async (texto, motorForzado = null) => {
     let contenido = (texto ?? input).trim();
     if (texto === undefined && pendiente && contenido === parteVisible(pendiente).trim()) {
       contenido = pendiente;
     }
     if (!contenido || cargando) return;
-    if (!motor) { setError("Todavía no hay un motor seleccionado."); return; }
+    // Un informe del recuadro Gemini se responde con Gemini aunque el selector
+    // esté en Claude: así lo promete el recuadro. Solo ocurre en el chat vacío,
+    // cuando la conversación todavía no tiene motor fijado.
+    const motorTurno = motorForzado || motor;
+    if (!motorTurno) { setError("Todavía no hay un motor seleccionado."); return; }
+    if (motorForzado && motorForzado !== motor) setMotor(motorForzado);
 
     setError("");
     setInput("");
@@ -290,7 +294,7 @@ export default function Asistente() {
     setEnVivo({ ...vivoRef.current });
 
     try {
-      const r = await enviarMensajeEnVivo(contenido, idConversacion, motor, alEvento);
+      const r = await enviarMensajeEnVivo(contenido, idConversacion, motorTurno, alEvento);
       // Si el texto ya se vio escribirse, la respuesta final no vuelve a
       // aparecer palabra a palabra: sería repetir lo que se acaba de leer.
       const yaSeVio = !!vivoRef.current?.texto;
@@ -350,14 +354,13 @@ export default function Asistente() {
   // preguntar, y conviene decirlo antes de que el usuario escriba.
   const sinMotor = motores.length > 0 && disponibles.length === 0;
   const bloqueado = sinCupo || sinMotor || sinAfiliacion;
-  // Chat vacío: con Claude, las demos (diagnósticos ya hechos, en PDF); con otro
-  // motor, los informes de brechas en vivo. Mientras no hay motor elegido se
-  // muestran las demos, que no dependen de nada. Quien no puede abrir Claude
-  // —su plan no lo incluye o no está configurado— ve además las demos bajo los
-  // informes: son para todos los usuarios.
-  const conBrechas = motor != null && motor !== "claude";
-  const sinClaude = motores.length > 0 && !disponibles.some((m) => m.id === "claude");
-  const conDemo = !conBrechas || sinClaude;
+  // Los informes del recuadro Gemini necesitan que Gemini esté configurado e
+  // incluido en el plan; si no, se muestran deshabilitados con el motivo.
+  const geminiDisponible = disponibles.some((m) => m.id === "gemini");
+  const motivoBrechas = sinAfiliacion ? asistente.motivo
+    : !geminiDisponible && motores.length > 0 ? "Gemini no está disponible en este momento."
+      : prueba?.restantes === 0 ? "Ya usaste las consultas de prueba del plan gratuito."
+        : sinCupo ? "Tu cuota de consultas está agotada por ahora." : "";
   // La última respuesta lleva el reporte destacado: es la que se acaba de leer.
   const idUltimaRespuesta = mensajes.findLast((m) => m.role === "assistant")?.id;
 
@@ -404,7 +407,7 @@ export default function Asistente() {
               </div>
               <div>
                 <p className="font-body text-sm text-outlineSoft mb-1">
-                  Hola{usuario ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Elige un informe o pregúntame sobre los rankings cargados.
+                  Hola{usuario ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Pide un informe gratis con Gemini, descarga una demo de Claude o pregúntame sobre los rankings cargados.
                 </p>
                 <p className="font-mono text-[10px] uppercase tracking-widest text-[#858585]">
                   Consulto la base de datos real; no invento cifras
@@ -415,14 +418,12 @@ export default function Asistente() {
                   </p>
                 )}
               </div>
-              {conBrechas && (
-                <BotonesBrechas
-                  onElegir={(c) => enviar(construirMensaje(c))}
-                  deshabilitado={bloqueado}
-                  restringidos={rankingsRestringidos}
-                />
-              )}
-              {conDemo && <BotonesDemo />}
+              <PanelesInicio
+                onBrecha={(c) => enviar(construirMensaje(c), "gemini")}
+                brechasDeshabilitadas={bloqueado || !geminiDisponible}
+                motivoDeshabilitado={motivoBrechas}
+                restringidos={rankingsRestringidos}
+              />
             </div>
           )}
 

@@ -8,18 +8,24 @@ dos en que conviene concentrarse. Es la generalización del prompt de brechas de
 Scimago que se probó a mano el 30-09-2026 («KAI - Guía del prompt brechas
 Scimago»).
 
-Desde el 09-11-2026 estos botones se ven **con el motor Gemini**. Con Claude, el
-chat vacío muestra en su lugar cuatro botones «Demo» (`BotonesDemo.jsx`) que
-descargan los diagnósticos de muestra de la PUCV y la UV en QS World 2027 y
-Scimago 2026: PDF estáticos en `frontend/kai-project/public/demos/`, sin pasar
-por el servidor ni gastar consultas o descargas del plan. Quien no puede abrir
-Claude (su plan no lo incluye) ve las demos debajo de los informes de brechas.
-Para cambiar un diagnóstico, se reemplaza su PDF conservando el nombre.
+Desde el 09-11-2026 el chat vacío muestra **dos recuadros lado a lado**, cada uno
+con el color de su motor (`PanelesInicio.jsx`):
+
+- **Gratis con Gemini** (izquierda, degradado azul-violeta): estos cuatro
+  informes de brechas. Se envían **siempre con Gemini**, aunque el selector esté
+  en Claude, porque es lo que promete el recuadro; usan una consulta del plan.
+- **Demo · exclusivo de Claude** (derecha, terracota): cuatro diagnósticos de
+  muestra de la PUCV y la UV en QS World 2027 y Scimago 2026, hechos con Claude.
+  Son PDF estáticos en `frontend/kai-project/public/demos/` (lista en
+  `demos.js`): no pasan por el servidor ni gastan consultas o descargas, y nunca
+  se deshabilitan. Para cambiar uno, se reemplaza su PDF conservando el nombre.
+
+En el teléfono los recuadros se apilan, Gemini primero.
 
 | Pieza | Dónde |
 |---|---|
 | Prompts, SQL y textos de cada ranking | `frontend/kai-project/src/components/asistente/consultasGuiadas.js` |
-| Botones | `src/components/asistente/BotonesBrechas.jsx` y `estiloRankings.js` |
+| Botones | `src/components/asistente/PanelesInicio.jsx`, `demos.js` y `estiloRankings.js` |
 | Botón del reporte PDF | `src/components/asistente/BotonReporte.jsx` |
 | Título de la conversación y red de seguridad | `backend/app/conversaciones.py`, `backend/app/main.py` (`/chat`), `backend/app/herramientas.py` |
 | Pruebas | batería `consultas-guiadas` (backend) y sonda `consultas_guiadas` (navegador) |
